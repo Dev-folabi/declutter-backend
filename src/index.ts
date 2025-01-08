@@ -1,9 +1,10 @@
-import express, { Express, Request, Response } from "express";
+import express, { Express, NextFunction, Request, Response } from "express";
 import morgan from "morgan";
 import cors from "cors";
 import dotenv from "dotenv";
 import routes from "./routes/api";
 import connectDB from "./db";
+import { errorHandler } from "./error/errorHandler";
 
 // Dotenv config
 dotenv.config();
@@ -24,11 +25,16 @@ app.use("/api", routes);
 
 // Routes
 app.get("/", (req: Request, res: Response) => {
-  res.send({ message: "Declut-Mart-Auth Express + TypeScript Server" });
+  res.send({ message: "Declut-Mart Express + TypeScript Server" });
 });
 
 app.use("*", (req: Request, res: Response) => {
   res.status(404).send("Error 404");
+});
+
+// Error handler
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  errorHandler(err, req, res, next);
 });
 
 // Database Connection
