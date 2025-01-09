@@ -1,11 +1,16 @@
 import { Document, ObjectId } from "mongoose";
 
+export interface ISchool extends Document {
+  schoolName: string;
+  location: string;
+}
+
 export interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
   schoolId: ObjectId;
-  schoolIdCard?: string;
+  schoolIdCardURL?: string;
   nin?: string;
   accountName?: string;
   accountNumber?: string;

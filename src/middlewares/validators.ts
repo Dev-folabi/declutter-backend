@@ -28,10 +28,25 @@ export const validateWaitlist = [
   handleValidationErrors,
 ];
 
-export const validateRegister = [
-  body("fullName")
+export const validateAddSchoolsBulk = [
+  body("schools")
+    .isArray({ min: 1 })
+    .withMessage("Schools must be an array with at least one entry."),
+  body("schools.*.schoolName")
     .notEmpty()
-    .withMessage("Full name is required"),
+    .withMessage("School Name is required for each school.")
+    .isString()
+    .withMessage("School Name must be a string."),
+  body("schools.*.location")
+    .notEmpty()
+    .withMessage("Location is required for each school.")
+    .isString()
+    .withMessage("Location must be a string."),
+  handleValidationErrors,
+];
+
+export const validateRegister = [
+  body("fullName").notEmpty().withMessage("Full name is required"),
   body("email")
     .notEmpty()
     .withMessage("Email is required")
@@ -42,29 +57,28 @@ export const validateRegister = [
     .withMessage("Password is required")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters long"),
-  body("schoolId")
-    .notEmpty()
-    .withMessage("School ID is required"),
-  body("schoolIdCard")
+  body("schoolId").notEmpty().withMessage("School ID is required"),
+  body("schoolIdCardURL")
     .optional()
     .isURL()
-    .withMessage("School ID Card must be a string"),
+    .withMessage("School ID Card must be a url"),
   body("nin")
     .optional()
+    .isString()
+    .withMessage("NIN must be a string")
     .isLength({ min: 11 })
     .withMessage("NIN must be 11 characters long"),
   body("accountNumber")
     .optional()
     .isString()
-    .withMessage("Account Number must be a string"),
+    .withMessage("Account Number must be a string")
+    .isLength({ min: 10 })
+    .withMessage("Account Number must be 11 characters long"),
   body("bankCode")
     .optional()
     .isString()
     .withMessage("Bank Code must be a string"),
-  body("pin")
-    .optional()
-    .isString()
-    .withMessage("PIN must be a string"),
+  body("pin").optional().isString().withMessage("PIN must be a string"),
   body("role")
     .notEmpty()
     .withMessage("Role is required")

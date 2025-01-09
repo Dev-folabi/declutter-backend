@@ -5,7 +5,7 @@ export interface UserRequest {
     password: string;
     schoolId: string;
     role: string;
-    schoolIdCard?: string;
+    schoolIdCardURL?: string;
     nin?: string;
     accountNumber?: string;
     bankCode?: string;
