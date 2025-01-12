@@ -1,4 +1,4 @@
-import { Document, ObjectId } from "mongoose";
+import { Document, Schema } from "mongoose";
 
 export interface ISchool extends Document {
   schoolName: string;
@@ -9,7 +9,7 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
-  schoolId: ObjectId;
+  schoolId: Schema.Types.ObjectId;
   schoolIdCardURL?: string;
   nin?: string;
   accountName?: string;
@@ -19,4 +19,11 @@ export interface IUser extends Document {
   role: string[];
   sellerStatus: string;
   isVerified: boolean;
+}
+
+export interface OTPVerificationModelType {
+  user: Schema.Types.ObjectId;
+  OTP: string;
+  type: "password" | "transaction pin";
+  verificationType: string;
 }
