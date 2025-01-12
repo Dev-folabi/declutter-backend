@@ -6,6 +6,8 @@ import { handleError } from "../error/errorHandler";
 import { generateToken } from "../function/token";
 import _ from "lodash";
 import { School } from "../models/schoolsModel";
+import OTPVerification from "../models/OTPVerifivation";
+import { sendEmail } from "../utils/mail";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -206,6 +208,103 @@ export const loginUser = async (
       message: "User logged in successfully.",
       data: userData,
       token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPasswordOTP = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return handleError(res, 404, "User not found.");
+    }
+
+    // Generate OTP and expiration timestamp
+    const OTP = generateOTP();
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
+
+    // Upsert OTP entry
+    await OTPVerification.updateOne(
+      { user: user._id, type: "password" },
+      {
+        user: user._id,
+        OTP,
+        type: "password",
+        verificationType: "email",
+      },
+      { upsert: true }
+    );
+
+    // Send email
+    await sendEmail(
+      user.email,
+      "Reset Your Password - OTP Verification",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>You recently requested to reset your password. Use the OTP below to reset it:</p>
+        <h2>${OTP}</h2>
+        <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <br />
+      `
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent to your email.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { OTP, newPassword } = req.body;
+
+    // Validate input
+    if (!OTP || !newPassword) {
+      return handleError(res, 400, "OTP and new password are required.");
+    }
+
+    // Find and validate OTP entry
+    const otpVerification = await OTPVerification.findOne({
+      OTP,
+      type: "password",
+    });
+    if (!otpVerification) {
+      return handleError(res, 400, "Invalid OTP.");
+    }
+
+    // Find user
+    const user = await User.findById(otpVerification.user);
+    if (!user) {
+      return handleError(res, 404, "User not found.");
+    }
+
+    // Hash and update password
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    // Remove OTP entry
+    await OTPVerification.deleteOne({ _id: otpVerification._id });
+
+    res.status(200).json({
+      success: true,
+      message: "Password reset successfully.",
     });
   } catch (error) {
     next(error);

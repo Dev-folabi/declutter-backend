@@ -102,3 +102,28 @@ export const validateLogin = [
     .withMessage("Password must be string"),
   handleValidationErrors,
 ];
+
+export const validateResetPasswordOTP = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email address"),
+  handleValidationErrors,
+];
+
+export const validateResetPassword = [
+  body("OTP")
+    .notEmpty()
+    .withMessage("OTP is required")
+    .isString()
+    .withMessage("OTP must be a string"),
+  body("newPassword")
+    .notEmpty()
+    .withMessage("New password is required")
+    .isString()
+    .withMessage("New password must be a string")
+    .isLength({ min: 8 })
+    .withMessage("New password must be at least 8 characters long"),
+  handleValidationErrors,
+];
