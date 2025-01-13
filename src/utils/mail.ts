@@ -7,8 +7,9 @@ dotenv.config();
 const currentYear = new Date().getFullYear();
 
 const transporter = nodemailer.createTransport({
+  service: "gmail",
   host: "smtp.gmail.com",
-  port: 587,
+  port: 487,
   secure: false,
   auth: {
     user: process.env.EMAIL_USER,
