@@ -149,6 +149,7 @@ export const registerUser = async (
       pin: hashedPin,
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",
+      sellerProfileComplete: role === "seller" ? true : undefined,
     });
 
     const populatedUser = await newUser.populate("schoolId");

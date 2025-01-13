@@ -65,12 +65,12 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
       <body>
         <div class="email-container">
           <div class="header">
-            <img src="cid:logo" alt="DeclutMart" />
+            <img src=${process.env.DECLUTMART_LOGO} alt="DeclutMart" />
           </div>
           <div class="content">
             ${text}
             <p>Thank you,</p>
-            <p><strong>DeclutMart</strong></p>
+            <p><strong>DeclutMart Team</strong></p>
           </div>
           <div class="footer">
             &copy; ${currentYear} DeclutMart. All rights reserved.
@@ -79,13 +79,6 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
       </body>
       </html>
     `,
-    attachments: [
-      {
-        filename: "logo.png",
-        path: path.join(__dirname, "../assets/logo.png"),
-        cid: "logo",
-      },
-    ],
   };
 
   try {

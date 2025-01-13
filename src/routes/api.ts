@@ -1,10 +1,9 @@
-import { Router } from 'express';
-import { collectWaitlistEmail } from '../controllers/waitlistController';
-import { validateWaitlist } from '../middlewares/validators';
-import authRoute from '../routes/authRoute'
+import { Router } from "express";
 
+import authRoute from "../routes/authRoute";
+import waitlistRoute from "../routes/waitlistRoute";
 const router = Router();
 
-router.post('/waitlist', validateWaitlist, collectWaitlistEmail);
-router.use('/auth', authRoute)
+router.use("/waitlist", waitlistRoute);
+router.use("/auth", authRoute);
 export default router;

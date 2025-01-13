@@ -18,7 +18,7 @@ export interface IUser extends Document {
   pin?: string;
   role: string[];
   sellerStatus: string;
-  isVerified: boolean;
+  sellerProfileComplete: boolean;
 }
 
 export interface OTPVerificationModelType {

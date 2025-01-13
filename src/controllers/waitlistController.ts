@@ -51,3 +51,40 @@ export const collectWaitlistEmail = async (
     next(error);
   }
 };
+
+export const sendWaitlistMessage = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Get all waitlist emails
+    const waitlistEmails = await Waitlist.find().select("email");
+
+    // Send a message to each email
+    for (const email of waitlistEmails) {
+      await sendEmail(
+        email.email,
+        "DeclutMart",
+        `
+          <div class="header">
+            Thank you for joining the DeclutMart waitlist! 🎉
+          </div>
+          <div class="content">
+            <p>Dear DeclutStar,</p>
+            <p>We’ve been working hard to create a platform that helps students declutter and sell their goods effortlessly. Your support means everything to us, and we can’t wait to share it with you soon!</p>
+            <br />
+            <p>Stay tuned, exciting updates are on the way!</p>
+          </div>
+          <br />
+        `
+      );
+    }
+
+    // Respond with success
+    res.status(200).json({ message: "Message sent to all waitlist emails" });
+  } catch (error) {
+    console.error("Error sending message to waitlist emails:", error);
+    next(error);
+  }
+};

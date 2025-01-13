@@ -30,7 +30,7 @@ const userSchema = new Schema<IUser>(
       default: "not enroll",
       required: true,
     },
-    isVerified: { type: Boolean, default: false, required: true },
+    sellerProfileComplete: { type: Boolean, default: false, required: true },
   },
   { timestamps: true }
 );
