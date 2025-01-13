@@ -8,6 +8,7 @@ import _ from "lodash";
 import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
+import { generateOTP } from "../utils";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -148,6 +149,7 @@ export const registerUser = async (
       pin: hashedPin,
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",
+      sellerProfileComplete: role === "seller" ? true : undefined,
     });
 
     const populatedUser = await newUser.populate("schoolId");
@@ -230,7 +232,6 @@ export const resetPasswordOTP = async (
 
     // Generate OTP and expiration timestamp
     const OTP = generateOTP();
-    const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
