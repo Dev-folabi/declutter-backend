@@ -24,11 +24,28 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Add schools in bulk
  *     description: Add multiple schools to the system
+ *     parameters:
+ *       - in: body
+ *         name: schools
+ *         description: Array of school objects to add to the system
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             schools:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   schoolName:
+ *                     type: string
+ *                   location:
+ *                     type: string
  *     responses:
  *       200:
  *         description: Schools added successfully
  *       400:
- *         description: Invalid input data
+ *         description: Invalid input data or all schools already exist
  *
  * /api/auth/schools:
  *   get:
@@ -44,17 +61,58 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Register new user
  *     description: Create a new user account
+ *     parameters:
+ *       - in: body
+ *         name: user
+ *         description: User registration data
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             fullName:
+ *               type: string
+ *             email:
+ *               type: string
+ *             password:
+ *               type: string
+ *             schoolId:
+ *               type: string
+ *             schoolIdCardURL:
+ *               type: string
+ *             nin:
+ *               type: string
+ *             accountNumber:
+ *               type: string
+ *             bankCode:
+ *               type: string
+ *             pin:
+ *               type: string
+ *             role:
+ *               type: string
+ *               enum: [student, seller]
  *     responses:
  *       201:
  *         description: User registered successfully
  *       400:
- *         description: Invalid registration data
+ *         description: Invalid registration data or missing required fields for seller role
  *
  * /api/auth/login:
  *   post:
  *     tags: [Authentication]
  *     summary: User login
  *     description: Authenticate user and generate access token
+ *     parameters:
+ *       - in: body
+ *         name: login
+ *         description: User login credentials
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             email:
+ *               type: string
+ *             password:
+ *               type: string
  *     responses:
  *       200:
  *         description: Login successful
@@ -66,6 +124,16 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Request password reset OTP
  *     description: Send OTP to user's email for password reset
+ *     parameters:
+ *       - in: body
+ *         name: otpRequest
+ *         description: Email to send OTP for password reset
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             email:
+ *               type: string
  *     responses:
  *       200:
  *         description: OTP sent successfully
@@ -77,6 +145,18 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Reset password
  *     description: Reset user password using OTP
+ *     parameters:
+ *       - in: body
+ *         name: resetPassword
+ *         description: OTP and new password to reset the user’s password
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             OTP:
+ *               type: string
+ *             newPassword:
+ *               type: string
  *     responses:
  *       200:
  *         description: Password reset successful
