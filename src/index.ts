@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 import routes from "./routes/api";
 import connectDB from "./db";
 import { errorHandler } from "./error/errorHandler";
+import swaggerRouter from './swagger';
 
 // Dotenv config
 dotenv.config();
@@ -26,6 +27,7 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api", routes);
+app.use('/', swaggerRouter);
 
 app.use("*", (req: Request, res: Response) => {
   res.status(404).send("Error 404");
