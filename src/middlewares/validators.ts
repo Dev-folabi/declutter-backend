@@ -84,8 +84,7 @@ export const validateRegister = [
     .withMessage("Role is required")
     .isIn(["seller", "buyer"])
     .withMessage("Invalid role. Role must be either 'seller' or 'buyer'")
-    .isString()
-    .withMessage("PIN must be a string"),
+    .isString(),
   handleValidationErrors,
 ];
 
@@ -109,6 +108,20 @@ export const validateResetPasswordOTP = [
     .withMessage("Email is required")
     .isEmail()
     .withMessage("Invalid email address"),
+  handleValidationErrors,
+];
+
+export const validateVerifyEmailOTP = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email address"),
+  body("OTP")
+    .notEmpty()
+    .withMessage("OTP is required")
+    .isString()
+    .withMessage("OTP must be string"),
   handleValidationErrors,
 ];
 

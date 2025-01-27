@@ -3,9 +3,7 @@ import {
   validateAddSchoolsBulk,
   validateLogin,
   validateRegister,
-  validateResetPassword,
-  validateResetPasswordOTP,
-  validateVerifyEmailOTP,
+
 } from "../../middlewares/validators";
 import {
   addSchoolsBulk,
@@ -16,6 +14,8 @@ import {
   resetPassword,
   verifyEmail
 } from "../../controllers/authController";
+import { upload } from "../../function/file_upload";
+import { updateProfile, userProfile } from "../../controllers/userController";
 
 const router = express.Router();
 
@@ -164,38 +164,11 @@ const router = express.Router();
  *         description: Password reset successful
  *       400:
  *         description: Invalid OTP or password
- * 
- * /api/auth/verify-otp:
- *   post:
- *     tags: [Authentication]
- *     summary: Verify Email
- *     description: Verify user email using OTP
- *     parameters:
- *       - in: body
- *         name: verifyOtp
- *         description: OTP and email to verify user’s email
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             OTP:
- *               type: string
- *             email:
- *               type: string
- *     responses:
- *       200:
- *         description: Email verified successful
- *       400:
- *         description: User not found
  */
 
-router.post("/school", validateAddSchoolsBulk, addSchoolsBulk);
-router.get("/schools", getSchools);
+router.post("/profile", userProfile);
 
-router.post("/signup", validateRegister, registerUser);
-router.post("/login", validateLogin, loginUser);
-router.post("/reset-password-otp", validateResetPasswordOTP, resetPasswordOTP);
-router.post("/reset-password", validateResetPassword, resetPassword);
-router.post("/verify-otp", validateVerifyEmailOTP, verifyEmail);
+router.post("/update-profile", 
+    upload.single("profileImage"), updateProfile);
 
 export default router;

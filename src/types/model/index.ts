@@ -18,12 +18,21 @@ export interface IUser extends Document {
   pin?: string;
   role: string[];
   sellerStatus: string;
+  emailVerified: boolean;
   sellerProfileComplete: boolean;
+  profileImageURL : string;
 }
 
 export interface OTPVerificationModelType {
   user: Schema.Types.ObjectId;
   OTP: string;
-  type: "password" | "transaction pin";
+  type: "password" | "transaction pin" | "activate account";
   verificationType: string;
+}
+
+export interface NotificationType {
+  user: Schema.Types.ObjectId;
+  body: string;
+  type: "account" | "market" | "promotion";
+  title: string;
 }
