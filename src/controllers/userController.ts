@@ -92,7 +92,7 @@ export const changePassword = async(
     }
 
 
-    if (!new_password === confirm_password){
+    if (!(new_password === confirm_password)){
       return handleError(res, 400, "Password doesn't match.");
     }
 
