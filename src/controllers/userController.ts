@@ -86,12 +86,11 @@ export const changePassword = async(
 
     const { old_password, new_password, confirm_password } = req.body;
     
-    // console.log(old_password)
     const isValidPassword = await bcrypt.compare(old_password, user.password);
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid email or password.");
     }
-    console.log(old_password)
+
 
     if (!new_password === confirm_password){
       return handleError(res, 400, "Password doesn't match.");
