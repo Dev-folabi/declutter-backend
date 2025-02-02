@@ -1,87 +1,33 @@
 import express from "express";
 import {
-  validateAddSchoolsBulk,
-  validateLogin,
-  validateRegister,
-
+  validateChangePassword,
+  validateProfileUpdate,
 } from "../../middlewares/validators";
-import {
-  addSchoolsBulk,
-  getSchools,
-  loginUser,
-  registerUser,
-  resetPasswordOTP,
-  resetPassword,
-  verifyEmail
-} from "../../controllers/authController";
-import { upload } from "../../function/file_upload";
-import { updateProfile, userProfile } from "../../controllers/userController";
+
+import { 
+  changePassword,
+  updateProfile, 
+  userProfile,
+} from "../../controllers/userController";
 
 const router = express.Router();
 
 /**
  * @swagger
- * /api/auth/school:
- *   post:
- *     tags: [Authentication]
- *     summary: Add schools in bulk
- *     description: Add multiple schools to the system
- *     parameters:
- *       - in: body
- *         name: schools
- *         description: Array of school objects to add to the system
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             schools:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   schoolName:
- *                     type: string
- *                   location:
- *                     type: string
- *     responses:
- *       200:
- *         description: Schools added successfully
- *       400:
- *         description: Invalid input data or all schools already exist
- *
- * /api/auth/schools:
- *   get:
- *     tags: [Authentication]
- *     summary: Get all schools
- *     description: Retrieve list of all schools
- *     responses:
- *       200:
- *         description: List of schools retrieved successfully
- *
- * /api/auth/signup:
- *   post:
- *     tags: [Authentication]
- *     summary: Register new user
- *     description: Create a new user account
+ * /api/user/update-profile:
+ *   patch:
+ *     tags: [Profile]
+ *     summary: Update user profile
+ *     description: Update user information
  *     parameters:
  *       - in: body
  *         name: user
- *         description: User registration data
+ *         description: User profile data
  *         required: true
  *         schema:
  *           type: object
  *           properties:
  *             fullName:
- *               type: string
- *             email:
- *               type: string
- *             password:
- *               type: string
- *             schoolId:
- *               type: string
- *             schoolIdCardURL:
- *               type: string
- *             nin:
  *               type: string
  *             accountNumber:
  *               type: string
@@ -89,86 +35,52 @@ const router = express.Router();
  *               type: string
  *             pin:
  *               type: string
- *             role:
- *               type: string
- *               enum: [student, seller]
  *     responses:
- *       201:
- *         description: User registered successfully
+ *       200:
+ *         description: User information successfully
  *       400:
- *         description: Invalid registration data or missing required fields for seller role
+ *         description: Invalid input data
  *
- * /api/auth/login:
- *   post:
- *     tags: [Authentication]
- *     summary: User login
- *     description: Authenticate user and generate access token
+ * /api/user/changepassword:
+ *   patch:
+ *     tags: [Profile]
+ *     summary: Change user password
+ *     description: Change user psasword
  *     parameters:
  *       - in: body
- *         name: login
- *         description: User login credentials
+ *         name: user
+ *         description: User password
  *         required: true
  *         schema:
  *           type: object
  *           properties:
- *             email:
+ *             old_password:
  *               type: string
- *             password:
+ *             new_password:
  *               type: string
- *     responses:
- *       200:
- *         description: Login successful
- *       401:
- *         description: Invalid credentials
- *
- * /api/auth/reset-password-otp:
- *   post:
- *     tags: [Authentication]
- *     summary: Request password reset OTP
- *     description: Send OTP to user's email for password reset
- *     parameters:
- *       - in: body
- *         name: otpRequest
- *         description: Email to send OTP for password reset
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             email:
+ *             confirm_password:
  *               type: string
  *     responses:
  *       200:
- *         description: OTP sent successfully
- *       404:
- *         description: User not found
- *
- * /api/auth/reset-password:
- *   post:
- *     tags: [Authentication]
- *     summary: Reset password
- *     description: Reset user password using OTP
- *     parameters:
- *       - in: body
- *         name: resetPassword
- *         description: OTP and new password to reset the user’s password
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             OTP:
- *               type: string
- *             newPassword:
- *               type: string
- *     responses:
- *       200:
- *         description: Password reset successful
+ *         description: User password changed successfully
  *       400:
- *         description: Invalid OTP or password
+ *         description: Invalid input data
+ *
+ * /api/user/profile:
+ *   get:
+ *     tags: [Profile]
+ *     summary: Get User Profile
+ *     description: Retrieve User Informations
+ *     responses:
+ *       200:
+ *         description: User profile retrieved successfully
  */
 
-router.post("/profile", userProfile);
 
-router.post("/update-profile", 
-    upload.single("profileImage"), updateProfile);
+
+
+router.get("/profile", userProfile);
+router.patch("/update-profile", validateProfileUpdate, updateProfile);
+router.patch("/changepassword", validateChangePassword, changePassword);
 
 export default router;

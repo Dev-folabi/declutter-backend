@@ -160,7 +160,7 @@ export const registerUser = async (
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
-      { user: newUser._id, type: "password" },
+      { user: newUser._id, type: "activate account" },
       {
         user: newUser._id,
         OTP,
@@ -332,37 +332,6 @@ export const resetPasswordOTP = async (
     next(error);
   }
 };
-
-export const requestEmailVerifyOTP = async(
-  user: IUser,
-) => {
-  const OTP = generateOTP();
-        // Upsert OTP entry
-        await OTPVerification.updateOne(
-          { user: user._id, type: "password" },
-          {
-            user: user._id,
-            OTP,
-            type: "activate account",
-            verificationType: "email",
-          },
-          { upsert: true }
-        );
-
-        // Send email
-        await sendEmail(
-          user.email,
-          "Verify EMail - OTP Verification",
-          `
-            Hi ${user?.fullName.split(" ")[0] || "User"},
-            <p>You recently requested to verify your email. Use the OTP below to reset it:</p>
-            <h2>${OTP}</h2>
-            <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-            <p>If you didn’t request this, you can safely ignore this email.</p>
-            <br />
-          `
-        );
-}
 
 export const verifyEmail = async (
   req: Request,

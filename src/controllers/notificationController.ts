@@ -7,9 +7,6 @@ import { handleError } from "../error/errorHandler";
 import { generateToken } from "../function/token";
 import _ from "lodash";
 import { Notification } from "../models/notifications";
-import OTPVerification from "../models/OTPVerifivation";
-import { sendEmail } from "../utils/mail";
-import { generateOTP } from "../utils";
 import { getIdFromToken } from "../function/token"
 
 
@@ -23,6 +20,20 @@ export const getUserNotificationss = async (
       
       const notifications = await Notification.find({user: getIdFromToken(req)});
       res.status(200).json(notifications);
+    } catch (error) {
+      next(error);
+    }
+  };
+
+export const getUserSingleNotification = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+      
+      const notification = await Notification.find({user: getIdFromToken(req), _id:req.params.id});
+      res.status(200).json(notification);
     } catch (error) {
       next(error);
     }
