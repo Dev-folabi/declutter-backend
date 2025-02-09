@@ -38,23 +38,18 @@ export interface NotificationType {
   title: string;
 }
 
-export interface ProductCategory extends Document {
-  category: string;
-}
-
 export interface ProductListing extends Document {
   name: string;
   price: Number;
-  category: Schema.Types.ObjectId;
+  category: "electronics" | "books & stationery" | "clothing & accessories" | "furniture" | "home & kitchen" | "sports & fitness equipment" | "gaming & entertainment" | "health & personal care" | "hobbies & crafts" | "miscellaneous";
   location: string;
   description: string;
   is_approved: boolean;
   is_sold: boolean;
-  created: Date;
-  updated: Date;
+  seller: Schema.Types.ObjectId;
 }
 
-export interface ProductListingImages extends Document {
+export interface ProductListingImage extends Document {
   product: Schema.Types.ObjectId;
   image_url: string;
 }

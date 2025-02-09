@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import { body, validationResult } from "express-validator";
+import { body, check, validationResult } from "express-validator";
 import isURL from "validator/lib/isURL";
 
 const handleValidationErrors = (
@@ -56,7 +56,7 @@ export const validateRegister = [
     .notEmpty()
     .withMessage("Password is required")
     .isStrongPassword()
-    .withMessage("Password must be strong")
+    .withMessage("Password must be 8 characters containing atleast a special character, a number, an uppercase and lowercase letter")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters long"),
   body("schoolId").notEmpty().withMessage("School ID is required"),
@@ -98,7 +98,7 @@ export const validateProfileUpdate = [
     .isString()
     .withMessage("Account Number must be a string")
     .isLength({ min: 10 })
-    .withMessage("Account Number must be 11 characters long"),
+    .withMessage("Account Number must be 10 characters long"),
   body("bankCode")
     .optional()
     .isString()
@@ -176,5 +176,30 @@ export const validateResetPassword = [
     .withMessage("New password must be a string")
     .isLength({ min: 8 })
     .withMessage("New password must be at least 8 characters long"),
+  handleValidationErrors,
+];
+
+
+
+export const validateProductListing = [
+  body("name").notEmpty().withMessage("Product name is required"),
+  body("price")
+    .isNumeric()
+    .withMessage("Price must be a number")
+    .notEmpty()
+    .withMessage("Price is required"),
+  body("category")
+    .notEmpty()
+    .withMessage("Product category is required")
+    .isIn(['electronics', 'books & stationery', 'clothing & accessories', 'furniture', 'home & kitchen', 'sports & fitness equipment', 'gaming & entertainment', 'health & personal care', 'hobbies & crafts', 'miscellaneous'])
+    .withMessage("Invalid category. Category must be among "),
+  body("location")
+    .isString().withMessage("Product location must be string")
+    .notEmpty().withMessage("Product location is required")
+    .withMessage("location must be a string"),
+  body("description")
+    .isString()
+    .notEmpty().withMessage("Product description is required")
+    .withMessage("description must be a string"),
   handleValidationErrors,
 ];

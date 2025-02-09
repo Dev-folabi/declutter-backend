@@ -19,7 +19,19 @@ export const getUserNotificationss = async (
     try {
       
       const notifications = await Notification.find({user: getIdFromToken(req)});
-      res.status(200).json(notifications);
+      if (notifications){
+        res.status(200).json({
+              success: true,
+              message: "Notifications retrieved successfully.",
+              data: notifications,
+          });
+      } else {
+          res.status(400).json({
+              success: false,
+              message: "You have 0 Notifications.",
+              data: [],
+          });
+      }
     } catch (error) {
       next(error);
     }
@@ -33,7 +45,20 @@ export const getUserSingleNotification = async (
     try {
       
       const notification = await Notification.find({user: getIdFromToken(req), _id:req.params.id});
-      res.status(200).json(notification);
+
+      if (notification){
+        res.status(200).json({
+              success: true,
+              message: "Notification retrieved successfully.",
+              data: notification,
+          });
+      } else {
+          res.status(400).json({
+              success: false,
+              message: "Notification not found.",
+              data: null,
+          });
+      }
     } catch (error) {
       next(error);
     }
