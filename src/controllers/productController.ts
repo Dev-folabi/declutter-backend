@@ -115,8 +115,16 @@ export const updateAProduct = async (
         
         const product = await Product.findById(req.params.id);
 
+        if (!product){
+            res.status(400).json({
+                success: false,
+                message: "Product not found.",
+                data: null,
+            });
+        }
+
         if (product?.seller !== user?._id) {
-            return res.status(400).json({
+            res.status(400).json({
                 success: false,
                 message: "You are not authorized to perform this action.",
                 data: null,
@@ -128,12 +136,12 @@ export const updateAProduct = async (
         const updatedProduct = await Product.findByIdAndUpdate(
             req.params.id,
             { $set: req.body },
-            { new: true, runValidators: true }
+            { new: true, runValidators: true },
         );
         
         const productData = _.omit(updatedProduct, ["is_sold"]);
         
-        res.status(201).json({
+        res.status(200).json({
             success: true,
             message: "Product updated successfully.",
             data: productData,
