@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 import { UserRequest } from "../types/requests";
 import _ from "lodash";
 import { getIdFromToken } from "../function/token"
+import { User } from '../models/userModel';
 
 
 export const getAllUnsoldProduct = async (
@@ -13,7 +14,7 @@ export const getAllUnsoldProduct = async (
     next: NextFunction
   ) => {
     try {
-      
+        
         const products = await Product.find({is_sold: true, is_approved: true})
         if (products){
             res.status(200).json({
@@ -40,6 +41,24 @@ export const listAProduct = async (
   ) => {
     try {
 
+        const user = await User.findById(getIdFromToken(req))
+
+        if (!user){
+            res.status(400).json({
+                success: false,
+                message: "Unauthenticated user cannot list a product.",
+                data: null,
+            });
+        }
+
+        if (user?.role?.includes("seller")){
+            res.status(400).json({
+                success: false,
+                message: "User is not a seller.",
+                data: null,
+            });
+        }
+
         const {
             name,
             category,
@@ -54,6 +73,7 @@ export const listAProduct = async (
             category,
             location,
             description,
+            seller: user?._id,
         });
 
         const productData = _.omit(newProduct.toObject(), ["is_sold"]);
@@ -75,10 +95,43 @@ export const updateAProduct = async (
   ) => {
     try {
 
-        req.body.is_approved = false
+        const user = await User.findById(getIdFromToken(req))
+
+        if (!user){
+            res.status(400).json({
+                success: false,
+                message: "Unauthenticated user cannot list a product.",
+                data: null,
+            });
+        }
+
+        if (user?.role?.includes("seller")){
+            res.status(400).json({
+                success: false,
+                message: "User is not a seller.",
+                data: null,
+            });
+        }
         
-        const product = await Product.updateOne({ _id: req.params.id }, { $set: req.body });
-        const productData = _.omit(product, ["is_sold"]);
+        const product = await Product.findById(req.params.id);
+
+        if (product?.seller !== user?._id) {
+            return res.status(400).json({
+                success: false,
+                message: "You are not authorized to perform this action.",
+                data: null,
+            });
+        }
+        
+        req.body.is_approved = false;
+        
+        const updatedProduct = await Product.findByIdAndUpdate(
+            req.params.id,
+            { $set: req.body },
+            { new: true, runValidators: true }
+        );
+        
+        const productData = _.omit(updatedProduct, ["is_sold"]);
         
         res.status(201).json({
             success: true,

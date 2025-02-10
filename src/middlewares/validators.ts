@@ -180,7 +180,6 @@ export const validateResetPassword = [
 ];
 
 
-
 export const validateProductListing = [
   body("name").notEmpty().withMessage("Product name is required"),
   body("price")
@@ -201,5 +200,52 @@ export const validateProductListing = [
     .isString()
     .notEmpty().withMessage("Product description is required")
     .withMessage("description must be a string"),
+  handleValidationErrors,
+];
+
+
+export const validateProductUpdate = [
+  check("name")
+    .if((value, { req }) => req.body.name)
+    .notEmpty()
+    .withMessage("Product name cannot be empty"),
+
+  check("price")
+    .if((value, { req }) => req.body.price)
+    .isNumeric()
+    .withMessage("Price must be a number")
+    .notEmpty()
+    .withMessage("Price cannot be empty"),
+
+  check("category")
+    .if((value, { req }) => req.body.category)
+    .isIn([
+      "electronics",
+      "books & stationery",
+      "clothing & accessories",
+      "furniture",
+      "home & kitchen",
+      "sports & fitness equipment",
+      "gaming & entertainment",
+      "health & personal care",
+      "hobbies & crafts",
+      "miscellaneous",
+    ])
+    .withMessage("Invalid category. Must be among the predefined list."),
+
+  check("location")
+    .if((value, { req }) => req.body.location)
+    .isString()
+    .withMessage("Product location must be a string")
+    .notEmpty()
+    .withMessage("Location cannot be empty"),
+
+  check("description")
+    .if((value, { req }) => req.body.description)
+    .isString()
+    .withMessage("Description must be a string")
+    .notEmpty()
+    .withMessage("Description cannot be empty"),
+
   handleValidationErrors,
 ];
