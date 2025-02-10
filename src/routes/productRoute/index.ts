@@ -37,7 +37,7 @@ const router = express.Router();
  *         description: Not found
  *
  * /api/createproduct:
- *   get:
+ *   post:
  *     tags: [Product]
  *     summary: List a Product
  *     description: Create a new product to sell
@@ -67,7 +67,7 @@ const router = express.Router();
  *         description: Invalid data
  * 
  * /api/updateproduct/id:
- *   get:
+ *   patch:
  *     tags: [Product]
  *     summary: Update a Product
  *     description: Update a product
