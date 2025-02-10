@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
 import { UserRequest } from "../types/requests";
+import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import { generateToken } from "../function/token";
 import _ from "lodash";
@@ -154,8 +155,37 @@ export const registerUser = async (
 
     const populatedUser = await newUser.populate("schoolId");
 
-    // Generate token
-    const token = generateToken({ id: populatedUser.id });
+    // Generate OTP and expiration timestamp
+    const OTP = generateOTP();
+
+    // Upsert OTP entry
+    await OTPVerification.updateOne(
+      { user: newUser._id, type: "activate account" },
+      {
+        user: newUser._id,
+        OTP,
+        type: "activate account",
+        verificationType: "email",
+      },
+      { upsert: true }
+    );
+
+    // Send email
+    await sendEmail(
+      newUser.email,
+      "Verify EMail - OTP Verification",
+      `
+        Hi ${newUser?.fullName.split(" ")[0] || "User"},
+        <p>You recently requested to verify your email. Use the OTP below to reset it:</p>
+        <h2>${OTP}</h2>
+        <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <br />
+      `
+    );
+
+    // Generate token // todo: do not login user yet until email is verified
+    // const token = generateToken({ id: populatedUser.id });
 
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
@@ -164,7 +194,7 @@ export const registerUser = async (
       success: true,
       message: "User created successfully.",
       data: userData,
-      token,
+      // token,
     });
   } catch (error) {
     next(error);
@@ -197,6 +227,41 @@ export const loginUser = async (
     const isValidPassword = await bcrypt.compare(password, user.password);
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid email or password.");
+    }
+    
+    // send otp if user is not verified
+    if (!user.emailVerified){
+        // Generate OTP and expiration timestamp
+        // await requestEmailVerifyOTP(user)
+
+        const OTP = generateOTP();
+
+        // Upsert OTP entry
+        await OTPVerification.updateOne(
+          { user: user._id, type: "password" },
+          {
+            user: user._id,
+            OTP,
+            type: "activate account",
+            verificationType: "email",
+          },
+          { upsert: true }
+        );
+
+        // Send email
+        await sendEmail(
+          user.email,
+          "Verify EMail - OTP Verification",
+          `
+            Hi ${user?.fullName.split(" ")[0] || "User"},
+            <p>You recently requested to verify your email. Use the OTP below to reset it:</p>
+            <h2>${OTP}</h2>
+            <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+            <p>If you didn’t request this, you can safely ignore this email.</p>
+            <br />
+          `
+        );
+      return handleError(res, 400, "Your email has not been verified. Check your email for the otp");
     }
 
     // Generate token
@@ -267,6 +332,45 @@ export const resetPasswordOTP = async (
     next(error);
   }
 };
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try{
+    const {OTP, email} = req.body;
+
+    if (!OTP || !email) {
+      return handleError(res, 400, "OTP and email are required.");
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return handleError(res, 404, "User not found.");
+    }
+
+    const otpVerification = await OTPVerification.findOne({
+      OTP,
+      type: "activate account",
+      user: user
+    });
+    if (!otpVerification) {
+      return handleError(res, 400, "Invalid OTP.");
+    }
+
+    user.emailVerified = true
+    user.save()
+
+    res.status(200).json({
+      success: true,
+      message: "OTP verified.",
+    });
+
+  } catch (error) {
+    next(error);
+  }
+}
 
 export const resetPassword = async (
   req: Request,

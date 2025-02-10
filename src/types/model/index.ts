@@ -1,4 +1,5 @@
-import { Document, Schema } from "mongoose";
+import { extend } from "lodash";
+import { Date, Document, Schema } from "mongoose";
 
 export interface ISchool extends Document {
   schoolName: string;
@@ -18,12 +19,39 @@ export interface IUser extends Document {
   pin?: string;
   role: string[];
   sellerStatus: string;
+  emailVerified: boolean;
   sellerProfileComplete: boolean;
+  profileImageURL : string;
 }
 
 export interface OTPVerificationModelType {
   user: Schema.Types.ObjectId;
   OTP: string;
-  type: "password" | "transaction pin";
+  type: "password" | "transaction pin" | "activate account";
   verificationType: string;
 }
+
+export interface NotificationType {
+  user: Schema.Types.ObjectId;
+  body: string;
+  type: "account" | "market" | "promotion";
+  title: string;
+}
+
+export interface ProductListing extends Document {
+  name: string;
+  price: Number;
+  category: "electronics" | "books & stationery" | "clothing & accessories" | "furniture" | "home & kitchen" | "sports & fitness equipment" | "gaming & entertainment" | "health & personal care" | "hobbies & crafts" | "miscellaneous";
+  location: string;
+  description: string;
+  is_approved: boolean;
+  is_sold: boolean;
+  seller: Schema.Types.ObjectId;
+}
+
+export interface ProductListingImage extends Document {
+  product: Schema.Types.ObjectId;
+  image_url: string;
+}
+
+

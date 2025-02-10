@@ -30,6 +30,8 @@ const userSchema = new Schema<IUser>(
       default: "not enroll",
       required: true,
     },
+    emailVerified: { type: Boolean, default: false, required: true },
+    profileImageURL: { type: String, required: false },
     sellerProfileComplete: { type: Boolean, default: false, required: true },
   },
   { timestamps: true }
