@@ -10,6 +10,7 @@ import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
 import { generateOTP } from "../utils";
+import { createNotification } from "./notificationController";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -404,6 +405,14 @@ export const resetPassword = async (
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
+    const notificationData = {
+            user: user._id,
+            body: "You password has been changed",
+            type: "account",
+            title: "Password Change"
+        }
+    
+        await createNotification(notificationData)
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 
@@ -415,3 +424,4 @@ export const resetPassword = async (
     next(error);
   }
 };
+

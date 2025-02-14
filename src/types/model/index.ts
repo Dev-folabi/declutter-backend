@@ -16,7 +16,7 @@ export interface IUser extends Document {
   accountName?: string;
   accountNumber?: string;
   bankCode?: string;
-  pin?: string;
+  pin: string;
   role: string[];
   sellerStatus: string;
   emailVerified: boolean;
@@ -27,7 +27,7 @@ export interface IUser extends Document {
 export interface OTPVerificationModelType {
   user: Schema.Types.ObjectId;
   OTP: string;
-  type: "password" | "transaction pin" | "activate account";
+  type: "password" | "transaction pin" | "activate account" | "edit profile" ;
   verificationType: string;
 }
 
@@ -36,6 +36,7 @@ export interface NotificationType {
   body: string;
   type: "account" | "market" | "promotion";
   title: string;
+  is_read: boolean
 }
 
 export interface ProductListing extends Document {

@@ -6,6 +6,7 @@ import { UserRequest } from "../types/requests";
 import _ from "lodash";
 import { getIdFromToken } from "../function/token"
 import { User } from '../models/userModel';
+import { createNotification } from './notificationController';
 
 
 export const getAllUnsoldProduct = async (
@@ -72,12 +73,21 @@ export const listAProduct = async (
         });
 
         const productData = _.omit(newProduct.toObject(), ["is_sold"]);
-      
+
+        const notificationData = {
+            user: user?._id,
+            body: "Product has been created. It is awaiting review by the admin",
+            type: "market",
+            title: "Product Create"
+        }
+
+        await createNotification(notificationData)
         res.status(201).json({
             success: true,
             message: "Product listed successfully.",
             data: productData,
           });
+        
         } catch (error) {
           next(error);
         }
@@ -136,6 +146,15 @@ export const updateAProduct = async (
         
         const productData = _.omit(updatedProduct, ["is_sold"]);
         
+        const notificationData = {
+            user: user?._id,
+            body: "Product has been updated. It is awaiting review by the admin",
+            type: "market",
+            title: "Product Updated"
+        }
+
+        await createNotification(notificationData)
+
         res.status(200).json({
             success: true,
             message: "Product updated successfully.",
