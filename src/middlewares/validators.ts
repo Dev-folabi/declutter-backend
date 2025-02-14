@@ -92,18 +92,42 @@ export const validateRegister = [
 ];
 
 export const validateProfileUpdate = [
-  body("fullName").notEmpty().withMessage("Full name is required"),
-  body("accountNumber")
+  body("fullName").optional().notEmpty().withMessage("Full name is required"),
+  body("email")
     .optional()
     .isString()
     .withMessage("Account Number must be a string")
     .isLength({ min: 10 })
     .withMessage("Account Number must be 10 characters long"),
-  body("bankCode")
+  body("profile_image")
     .optional()
     .isString()
-    .withMessage("Bank Code must be a string"),
-  body("pin").optional().isString().withMessage("PIN must be a string"),
+    .withMessage("Profile image must be a string"),
+  body("currentPassword")
+    .notEmpty().withMessage("Curent Password must be provided")
+    .isString()
+    .withMessage("Curent Password must be a string"),
+  handleValidationErrors,
+];
+
+export const validateBankUpdate = [
+  body("accountName").notEmpty().withMessage("Account name is required"),
+  body("accountNumber")
+    .notEmpty().withMessage("Account Number must be provided")
+    .isString()
+    .withMessage("Account Number must be a string"),
+  body("bankCode")
+    .notEmpty().withMessage("Bandk code must be provided")
+    .isString()
+    .withMessage("Bandk code must be a string"),
+  body("currentPassword")
+    .notEmpty().withMessage("Curent Password must be provided")
+    .isString()
+    .withMessage("Curent Password must be a string"),
+  body("withdrawalPin")
+    .notEmpty().withMessage("Pin must be provided")
+    .isString()
+    .withMessage("Pin must be a string"),
   handleValidationErrors,
 ];
 
@@ -137,6 +161,46 @@ export const validateChangePassword = [
     .withMessage("Password is required")
     .isString()
     .withMessage("Password must be string"),
+  handleValidationErrors,
+];
+
+export const validateChangePin = [
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("currentPassword is required")
+    .isString()
+    .withMessage("currentPassword must be string"),
+  body("withdrawalPin")
+    .notEmpty()
+    .withMessage("withdrawalPin is required")
+    .isString()
+    .withMessage("withdrawalPin must be string"),
+  body("new_pin")
+    .notEmpty()
+    .withMessage("pin is required")
+    .isString()
+    .withMessage("pin must be string"),
+  body("confirm_pin")
+    .notEmpty()
+    .withMessage("pin is required")
+    .isString()
+    .withMessage("pin must be string"),
+  handleValidationErrors,
+];
+
+export const validateRequestOtp = [
+  body("reason")
+    .notEmpty()
+    .withMessage("Reason is required")
+    .isString()
+    .withMessage("Password must be string"),
+  body("type")
+    .notEmpty()
+    .withMessage("Type is required")
+    .isString()
+    .withMessage("Password must be string")
+    .isIn(["password", "transaction pin", "activate account", "edit profile"])
+    .withMessage("Yype must be among "),
   handleValidationErrors,
 ];
 

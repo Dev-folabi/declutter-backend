@@ -1,6 +1,7 @@
 import express from "express";
 import {
   validateProductListing,
+  validateProductUpdate,
 } from "../../middlewares/validators";
 
 import { 
@@ -14,7 +15,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/allproducts:
+ * /api/product/allproducts:
  *   get:
  *     tags: [Product]
  *     summary: Get all Product listings
@@ -25,7 +26,7 @@ const router = express.Router();
  *       400:
  *         description: Not found
  *
- * /api/product/id:
+ * /api/product/product/id:
  *   get:
  *     tags: [Product]
  *     summary: Get all Product listings
@@ -36,8 +37,8 @@ const router = express.Router();
  *       400:
  *         description: Not found
  *
- * /api/createproduct:
- *   get:
+ * /api/product/createproduct:
+ *   post:
  *     tags: [Product]
  *     summary: List a Product
  *     description: Create a new product to sell
@@ -66,8 +67,8 @@ const router = express.Router();
  *       400:
  *         description: Invalid data
  * 
- * /api/updateproduct/id:
- *   get:
+ * /api/product/updateproduct/id:
+ *   patch:
  *     tags: [Product]
  *     summary: Update a Product
  *     description: Update a product
@@ -103,6 +104,6 @@ const router = express.Router();
 router.get("/allproducts", getAllUnsoldProduct);
 router.get("/product/:id", getSingleUnsoldProduct);
 router.post("/createproduct", validateProductListing, listAProduct);
-router.patch("/updateproduct/:id", validateProductListing, updateAProduct);
+router.patch("/updateproduct/:id", validateProductUpdate, updateAProduct);
 
 export default router;

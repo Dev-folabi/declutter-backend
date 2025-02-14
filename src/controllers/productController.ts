@@ -6,6 +6,7 @@ import { UserRequest } from "../types/requests";
 import _ from "lodash";
 import { getIdFromToken } from "../function/token"
 import { User } from '../models/userModel';
+import { createNotification } from './notificationController';
 
 
 export const getAllUnsoldProduct = async (
@@ -15,20 +16,15 @@ export const getAllUnsoldProduct = async (
   ) => {
     try {
         
-        const products = await Product.find({is_sold: true, is_approved: true})
-        if (products){
-            res.status(200).json({
-                success: true,
-                message: "Product retrieved successfully.",
-                data: products,
-            });
-        } else {
-            res.status(400).json({
-                success: false,
-                message: "Product not found.",
-                data: [],
-            });
-        }
+        const products = await Product.find({is_sold: false, is_approved: true})
+        const productsData = _.map(products, (product) =>
+            _.omit(product.toObject(), ["is_approved", "is_sold"]) // Replace with actual field names
+          );
+        res.status(200).json({
+            success: true,
+            message: products.length > 0 ? "Product retrieved successfully." : "No product listed at the moment",
+            data: productsData,
+        });
     } catch (error) {
       next(error);
     }
@@ -51,7 +47,7 @@ export const listAProduct = async (
             });
         }
 
-        if (user?.role?.includes("seller")){
+        if (!(user?.role?.includes("seller"))){
             res.status(400).json({
                 success: false,
                 message: "User is not a seller.",
@@ -77,12 +73,21 @@ export const listAProduct = async (
         });
 
         const productData = _.omit(newProduct.toObject(), ["is_sold"]);
-      
+
+        const notificationData = {
+            user: user?._id,
+            body: "Product has been created. It is awaiting review by the admin",
+            type: "market",
+            title: "Product Create"
+        }
+
+        await createNotification(notificationData)
         res.status(201).json({
             success: true,
             message: "Product listed successfully.",
             data: productData,
           });
+        
         } catch (error) {
           next(error);
         }
@@ -105,7 +110,7 @@ export const updateAProduct = async (
             });
         }
 
-        if (user?.role?.includes("seller")){
+        if (!(user?.role?.includes("seller"))){
             res.status(400).json({
                 success: false,
                 message: "User is not a seller.",
@@ -123,10 +128,10 @@ export const updateAProduct = async (
             });
         }
 
-        if (product?.seller !== user?._id) {
+        if (product?.seller.toString() !== user?.id.toString()) {
             res.status(400).json({
                 success: false,
-                message: "You are not authorized to perform this action.",
+                message: "You are not authorized to perform this action",
                 data: null,
             });
         }
@@ -141,6 +146,15 @@ export const updateAProduct = async (
         
         const productData = _.omit(updatedProduct, ["is_sold"]);
         
+        const notificationData = {
+            user: user?._id,
+            body: "Product has been updated. It is awaiting review by the admin",
+            type: "market",
+            title: "Product Updated"
+        }
+
+        await createNotification(notificationData)
+
         res.status(200).json({
             success: true,
             message: "Product updated successfully.",

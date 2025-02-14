@@ -6,6 +6,10 @@ import { UserRequest } from "../types/requests";
 import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import _ from "lodash";
+import { createNotification } from './notificationController';
+import { sendEmail } from '../utils/mail';
+import OTPVerification from '../models/OTPVerifivation';
+import { generateOTP } from '../utils';
 
 
 export const userProfile = async (
@@ -50,16 +54,44 @@ export const updateProfile = async(
       return handleError(res, 400, "Invalid token.");
     }
 
-    let hashedPin
-    if (req.body.pin) {
-        hashedPin = await bcrypt.hash(req.body.pin, 10);
-        req.body.pin = hashedPin
+    const isValidPassword = await bcrypt.compare(req.body.currentPassword, user.password);
+    if (!isValidPassword) {
+      return handleError(res, 400, "Invalid password.");
     }
+
+    // let hashedPin
+    // if (req.body.pin) {
+    //     hashedPin = await bcrypt.hash(req.body.pin, 10);
+    //     req.body.pin = hashedPin
+    // }
+    const data = _.omit(req.body.toObject(), ["currentPassword"]);
     
-    await User.updateOne({ _id: user_id }, { $set: req.body });
+    await User.updateOne({ _id: user_id }, { $set: data });
     user.save()
+
+    const notificationData = {
+        user: user_id,
+        body: "Your profile has been updated",
+        type: "account",
+        title: "Profile update"
+    }
+
+    await createNotification(notificationData)
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    await sendEmail(
+      user.email,
+      "Profile update Email",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>You have updated your profile successfully</p>
+       
+        <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
+        <br />
+      `
+
+    );
 
     res.status(200).json({
       success: true,
@@ -70,6 +102,168 @@ export const updateProfile = async(
     next(error);
   }
 }
+
+export const updateBankDetail = async(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user_id = getIdFromToken(req);
+
+    const user = await User.findOne({_id : user_id});
+    if (!user) {
+      return handleError(res, 400, "Invalid token.");
+    }
+
+    const {
+      withdrawalPin,
+      // action,
+      currentPassword,
+      // OTP
+    } = req.body
+
+
+    const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
+    if (!isValidPin) {
+      return handleError(res, 400, "Invalid pin.");
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!isValidPassword) {
+      return handleError(res, 400, "Invalid password.");
+    }
+    // const otp = OTPisValid(OTP, action, user)
+    // if (!otp) {
+    //   return handleError(res, 400, "Invalid OTP.");
+    // }
+
+    const data =  _.omit(req.body.toObject(), ["withdrawalPin", "currentPassword",]);
+
+
+
+    await User.updateOne({ _id: user_id }, { $set: data});
+    user.save()
+
+    const notificationData = {
+        user: user_id,
+        body: "Your bank details has been updated",
+        type: "account",
+        title: "Bank update"
+    }
+
+    await createNotification(notificationData)
+    // Exclude sensitive fields from response
+    const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    await sendEmail(
+      user.email,
+      "Bank Details Updated",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>You have updated your bank details successfully</p>
+       
+        <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
+        <br />
+      `
+
+    );
+    res.status(200).json({
+      success: true,
+      message: "User profile updated in successfully.",
+      data: userData,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+export const updatePin = async(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const user_id = getIdFromToken(req);
+
+    const user = await User.findOne({_id : user_id});
+    if (!user) {
+      return handleError(res, 400, "Invalid token.");
+    }
+
+    const {
+      withdrawalPin,
+      currentPassword,
+      new_pin,
+      confirm_pin,
+    } = req.body
+
+
+    const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
+    if (!isValidPin) {
+      return handleError(res, 400, "Invalid pin.");
+    }
+
+    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    if (!isValidPassword) {
+      return handleError(res, 400, "Invalid password.");
+    }
+
+    if (!(new_pin === confirm_pin)){
+      return handleError(res, 400, "Pin doesn't match.");
+    }
+
+    const hashedPin = await bcrypt.hash(new_pin, 10);
+    let data = {pin: hashedPin}
+
+    await User.updateOne({ _id: user_id }, { $set: data});
+    user.save()
+
+    const notificationData = {
+        user: user_id,
+        body: "Your pin has been changed",
+        type: "account",
+        title: "Pin update"
+    }
+
+    await createNotification(notificationData)
+    // Exclude sensitive fields from response
+    const userData = _.omit(user.toObject(), ["password", "pin"]);
+    await sendEmail(
+      user.email,
+      "Pin Change Email",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>You have changed your pin successfully</p>
+       
+        <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
+        <br />
+      `
+
+    );
+    res.status(200).json({
+      success: true,
+      message: "User profile updated in successfully.",
+      data: userData,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
+
+const OTPisValid = async(
+  OTP: String,
+  type: String,
+  user: IUser
+) => {
+  const otpVerification = await OTPVerification.findOne({
+    OTP,
+    type,
+    user
+  });
+  return otpVerification
+}
+
 
 export const changePassword = async(
   req: Request,
@@ -91,19 +285,43 @@ export const changePassword = async(
       return handleError(res, 400, "Invalid email or password.");
     }
 
+    // const otp = OTPisValid(req.body.OTP, req.body.type, user)
+    // if (!otp) {
+    //   return handleError(res, 400, "Invalid OTP.");
+    // }
 
     if (!(new_password === confirm_password)){
       return handleError(res, 400, "Password doesn't match.");
     }
 
-
     const hashedPassword = await bcrypt.hash(new_password, 10);
     let data = {password: hashedPassword}
     await User.updateOne({_id: user_id}, {$set: data})
     user.save()
+
+    const notificationData = {
+      user: user_id,
+      body: "Your password has beeen changed",
+      type: "account",
+      title: "Password change"
+    }
+
+    await createNotification(notificationData)
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
+    await sendEmail(
+      user.email,
+      "Password Change Email",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>You have changed your password successfully</p>
+       
+        <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
+        <br />
+      `
+
+    );
     res.status(200).json({
       success: true,
       message: "User password changed in successfully.",
@@ -112,4 +330,49 @@ export const changePassword = async(
   } catch (error) {
     next(error);
   }
+}
+
+export const requestOTP = async(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+
+  const {
+    reason,
+    type,
+  } = req.body
+  const user_id = getIdFromToken(req);
+
+  const user = await User.findOne({_id : user_id});
+  if (!user) {
+    return handleError(res, 400, "Invalid token.");
+  }
+  const OTP = generateOTP();
+  // Upsert OTP entry
+
+  await OTPVerification.updateOne(
+    { user: user._id, type: type},
+    {
+      user: user._id,
+      OTP,
+      type: type,
+      verificationType: "email",
+    },
+    { upsert: true }
+  );
+
+  // Send email
+  await sendEmail(
+    user.email,
+    "Verify EMail - OTP Verification",
+    `
+      Hi ${user?.fullName.split(" ")[0] || "User"},
+      <p>You recently requested to ${reason}. Use the OTP below:</p>
+      <h2>${OTP}</h2>
+      <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+      <p>If you didn’t request this, you can safely ignore this email.</p>
+      <br />
+    `
+  );
 }

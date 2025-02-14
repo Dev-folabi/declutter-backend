@@ -10,6 +10,6 @@ const router = Router();
 router.use("/waitlist", waitlistRoute);
 router.use("/auth", authRoute);
 router.use("/user", userRoute);
-router.use("/user", notificationsRoute);
-router.use("/user", productRoute);
+router.use("/notification", notificationsRoute);
+router.use("/product", productRoute);
 export default router;

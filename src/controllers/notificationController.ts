@@ -10,6 +10,14 @@ import { Notification } from "../models/notifications";
 import { getIdFromToken } from "../function/token"
 
 
+export const createNotification = async(
+  data : any,
+) => {
+    const notification = await Notification.create({
+        ...data 
+    })
+}
+
 
 export const getUserNotificationss = async (
     req: Request,
@@ -44,7 +52,11 @@ export const getUserSingleNotification = async (
   ) => {
     try {
       
-      const notification = await Notification.find({user: getIdFromToken(req), _id:req.params.id});
+      let notification = await Notification.findByIdAndUpdate(
+              req.params.id,
+              { $set: {is_opened:true}},
+              { new: true, runValidators: true },
+        );
 
       if (notification){
         res.status(200).json({

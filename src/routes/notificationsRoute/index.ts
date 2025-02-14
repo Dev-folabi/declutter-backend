@@ -9,7 +9,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/allnotifications:
+ * /api/notification/allnotifications:
  *   get:
  *     tags: [Notification]
  *     summary: Get user notifications
@@ -20,7 +20,7 @@ const router = express.Router();
  *       400:
  *         description: Not found
  *
- * /api/notification/id:
+ * /api/notification/notification/id:
  *   get:
  *     tags: [Notification]
  *     summary: Get single user notification

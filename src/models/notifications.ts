@@ -29,6 +29,10 @@ const NotificationSchema = new Schema<NotificationType>(
       type: String,
       required: true,
     },
+    is_read: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );
