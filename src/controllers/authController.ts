@@ -229,31 +229,36 @@ export const loginUser = async (
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid email or password.");
     }
-    
+
     // send otp if user is not verified
-    if (!user.emailVerified){
-        // Generate OTP and expiration timestamp
-        // await requestEmailVerifyOTP(user)
+    if (!user.emailVerified) {
+      // Generate OTP and expiration timestamp
+      // await requestEmailVerifyOTP(user)
 
-        const OTP = generateOTP();
+      const OTP = generateOTP();
 
-        // Upsert OTP entry
-        await OTPVerification.updateOne(
-          { user: user._id, type: "password" },
-          {
-            user: user._id,
-            OTP,
-            type: "activate account",
-            verificationType: "email",
-          },
-          { upsert: true }
-        );
+      await OTPVerification.findOneAndDelete({
+        user: user._id,
+        type: "activate account",
+      });
 
-        // Send email
-        await sendEmail(
-          user.email,
-          "Verify EMail - OTP Verification",
-          `
+      // Upsert OTP entry
+      await OTPVerification.updateOne(
+        { user: user._id, type: "password" },
+        {
+          user: user._id,
+          OTP,
+          type: "activate account",
+          verificationType: "email",
+        },
+        { upsert: true }
+      );
+
+      // Send email
+      await sendEmail(
+        user.email,
+        "Verify e-mail - OTP Verification",
+        `
             Hi ${user?.fullName.split(" ")[0] || "User"},
             <p>You recently requested to verify your email. Use the OTP below to reset it:</p>
             <h2>${OTP}</h2>
@@ -261,8 +266,12 @@ export const loginUser = async (
             <p>If you didn’t request this, you can safely ignore this email.</p>
             <br />
           `
-        );
-      return handleError(res, 400, "Your email has not been verified. Check your email for the otp");
+      );
+      return handleError(
+        res,
+        400,
+        "Your email has not been verified. Check your email for the otp"
+      );
     }
 
     // Generate token
@@ -339,8 +348,8 @@ export const verifyEmail = async (
   res: Response,
   next: NextFunction
 ) => {
-  try{
-    const {OTP, email} = req.body;
+  try {
+    const { OTP, email } = req.body;
 
     if (!OTP || !email) {
       return handleError(res, 400, "OTP and email are required.");
@@ -354,24 +363,23 @@ export const verifyEmail = async (
     const otpVerification = await OTPVerification.findOne({
       OTP,
       type: "activate account",
-      user: user
+      user: user,
     });
     if (!otpVerification) {
       return handleError(res, 400, "Invalid OTP.");
     }
 
-    user.emailVerified = true
-    user.save()
+    user.emailVerified = true;
+    user.save();
 
     res.status(200).json({
       success: true,
       message: "OTP verified.",
     });
-
   } catch (error) {
     next(error);
   }
-}
+};
 
 export const resetPassword = async (
   req: Request,
@@ -406,13 +414,13 @@ export const resetPassword = async (
     await user.save();
 
     const notificationData = {
-            user: user._id,
-            body: "You password has been changed",
-            type: "account",
-            title: "Password Change"
-        }
-    
-        await createNotification(notificationData)
+      user: user._id,
+      body: "You password has been changed",
+      type: "account",
+      title: "Password Change",
+    };
+
+    await createNotification(notificationData);
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 
@@ -424,4 +432,3 @@ export const resetPassword = async (
     next(error);
   }
 };
-
