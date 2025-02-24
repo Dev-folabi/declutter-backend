@@ -9,7 +9,7 @@ import _ from "lodash";
 import { createNotification } from './notificationController';
 import { sendEmail } from '../utils/mail';
 import OTPVerification from '../models/OTPVerifivation';
-import { generateOTP } from '../utils';
+import { generateOTP, encryptData, decryptData } from '../utils';
 
 
 export const userProfile = async (
@@ -29,6 +29,13 @@ export const userProfile = async (
     }
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    // to make sure existing implementations doesnt break
+    try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
 
     res.status(200).json({
       success: true,
@@ -64,9 +71,9 @@ export const updateProfile = async(
     //     hashedPin = await bcrypt.hash(req.body.pin, 10);
     //     req.body.pin = hashedPin
     // }
-    const data = _.omit(req.body.toObject(), ["currentPassword"]);
+    const data = _.omit(req.body, ["currentPassword"]);
     
-    await User.updateOne({ _id: user_id }, { $set: data });
+    await User.updateOne({ _id: user_id }, { $set: data }, { new: true, runValidators: true });
     user.save()
 
     const notificationData = {
@@ -79,6 +86,12 @@ export const updateProfile = async(
     await createNotification(notificationData)
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
 
     await sendEmail(
       user.email,
@@ -118,9 +131,10 @@ export const updateBankDetail = async(
 
     const {
       withdrawalPin,
-      // action,
       currentPassword,
-      // OTP
+      accountName,
+      accountNumber,
+      bankCode,
     } = req.body
 
 
@@ -133,16 +147,19 @@ export const updateBankDetail = async(
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
     }
-    // const otp = OTPisValid(OTP, action, user)
-    // if (!otp) {
-    //   return handleError(res, 400, "Invalid OTP.");
-    // }
+    
+    const encryptedAccountName = encryptData(accountName)
+    const encryptedAccountNumber = encryptData(accountNumber)
+    const encryptedbankCode = encryptData(bankCode)
+    // const data =  _.omit(req.body, ["withdrawalPin", "currentPassword",]);
+    const data = {
+      accountName : encryptedAccountName,
+      accountNumber : encryptedAccountNumber,
+      bankCode : encryptedbankCode,
+    }
 
-    const data =  _.omit(req.body.toObject(), ["withdrawalPin", "currentPassword",]);
-
-
-
-    await User.updateOne({ _id: user_id }, { $set: data});
+    
+    await User.updateOne({ _id: user_id }, { $set: data}, { new: true, runValidators: true });
     user.save()
 
     const notificationData = {
@@ -155,6 +172,13 @@ export const updateBankDetail = async(
     await createNotification(notificationData)
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+    
+    // Decrypt fields in response
+    try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
 
     await sendEmail(
       user.email,
@@ -216,7 +240,7 @@ export const updatePin = async(
     const hashedPin = await bcrypt.hash(new_pin, 10);
     let data = {pin: hashedPin}
 
-    await User.updateOne({ _id: user_id }, { $set: data});
+    await User.updateOne({ _id: user_id }, { $set: data}, { new: true, runValidators: true });
     user.save()
 
     const notificationData = {
@@ -229,6 +253,13 @@ export const updatePin = async(
     await createNotification(notificationData)
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
+
     await sendEmail(
       user.email,
       "Pin Change Email",
@@ -285,10 +316,6 @@ export const changePassword = async(
       return handleError(res, 400, "Invalid email or password.");
     }
 
-    // const otp = OTPisValid(req.body.OTP, req.body.type, user)
-    // if (!otp) {
-    //   return handleError(res, 400, "Invalid OTP.");
-    // }
 
     if (!(new_password === confirm_password)){
       return handleError(res, 400, "Password doesn't match.");
@@ -296,7 +323,7 @@ export const changePassword = async(
 
     const hashedPassword = await bcrypt.hash(new_password, 10);
     let data = {password: hashedPassword}
-    await User.updateOne({_id: user_id}, {$set: data})
+    await User.updateOne({_id: user_id}, {$set: data}, { new: true, runValidators: true })
     user.save()
 
     const notificationData = {
@@ -309,6 +336,12 @@ export const changePassword = async(
     await createNotification(notificationData)
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+   try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
 
     await sendEmail(
       user.email,

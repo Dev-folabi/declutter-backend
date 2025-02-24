@@ -33,6 +33,10 @@ const userSchema = new Schema<IUser>(
     emailVerified: { type: Boolean, default: false, required: true },
     profileImageURL: { type: String, required: false },
     sellerProfileComplete: { type: Boolean, default: false, required: true },
+    is_admin: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );

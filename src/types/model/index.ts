@@ -22,6 +22,7 @@ export interface IUser extends Document {
   emailVerified: boolean;
   sellerProfileComplete: boolean;
   profileImageURL : string;
+  is_admin: boolean;
 }
 
 export interface OTPVerificationModelType {

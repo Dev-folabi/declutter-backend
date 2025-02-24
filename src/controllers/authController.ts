@@ -9,7 +9,7 @@ import _ from "lodash";
 import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
-import { generateOTP } from "../utils";
+import { decryptData, encryptData, generateOTP } from "../utils";
 import { createNotification } from "./notificationController";
 
 export const addSchoolsBulk = async (
@@ -137,6 +137,10 @@ export const registerUser = async (
       hashedPin = await bcrypt.hash(pin, 10);
     }
 
+    // let encryptedAccountName = undefined;
+    const encryptedAccountNumber = encryptData(accountNumber)
+    const encryptedbankCode = encryptData(bankCode)
+
     // Create new user
     const newUser = await User.create({
       fullName,
@@ -145,9 +149,9 @@ export const registerUser = async (
       schoolId,
       schoolIdCardURL,
       nin,
-      accountName: role === "seller" ? fullName : undefined,
-      accountNumber,
-      bankCode,
+      accountName: role === "seller" ? encryptData(fullName) : undefined,
+      accountNumber: encryptedAccountNumber,
+      bankCode: encryptedbankCode,
       pin: hashedPin,
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",
@@ -190,6 +194,13 @@ export const registerUser = async (
 
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
+
+    try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
+    
 
     res.status(201).json({
       success: true,
@@ -270,6 +281,12 @@ export const loginUser = async (
 
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    try{
+      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
+      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
+      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
+    } catch(e) { /* to make sure existing codes doesnt break */ }
 
     res.status(200).json({
       success: true,

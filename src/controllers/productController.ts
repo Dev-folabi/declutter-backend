@@ -165,6 +165,77 @@ export const updateAProduct = async (
         }
 };
 
+export const approveAProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+
+        const user = await User.findById(getIdFromToken(req))
+
+        if (!user){
+            res.status(400).json({
+                success: false,
+                message: "Unauthenticated user cannot list a product.",
+                data: null,
+            });
+        }
+
+        if (!(user?.is_admin)){
+            res.status(400).json({
+                success: false,
+                message: "You are not authorized for this action.",
+                data: null,
+            });
+        }
+        
+        const product = await Product.findById(req.params.id);
+
+        if (!product){
+            res.status(400).json({
+                success: false,
+                message: "Product not found.",
+                data: null,
+            });
+        }
+
+        
+        const updatedProduct = await Product.findByIdAndUpdate(
+            req.params.id,
+            { $set: {is_approved: true} },
+            { new: true, runValidators: true },
+        );
+        
+        const productData = _.omit(updatedProduct, ["is_sold"]);
+        
+        const productnotificationData = {
+            user: product?.seller.toString(),
+            body: `Your Product (${product?.name}) has been approved and has been listed`,
+            type: "market",
+            title: "Product Approval"
+        }
+
+        const notificationData = {
+            user: user?._id,
+            body: `You approved the product (${product?.name})`,
+            type: "market",
+            title: "Product Approval"
+        }
+
+        await createNotification(notificationData)
+        await createNotification(productnotificationData)
+
+        res.status(200).json({
+            success: true,
+            message: "Product updated successfully.",
+            data: productData,
+          });
+        } catch (error) {
+          next(error);
+        }
+};
+
 export const getSingleUnsoldProduct = async (
     req: Request,
     res: Response,

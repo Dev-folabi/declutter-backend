@@ -1,7 +1,11 @@
 import OTPVerification from "../models/OTPVerifivation";
 import { IUser } from "../types/model";
 import { sendEmail } from "./mail";
+import dotenv from "dotenv";
 
+import crypto from 'crypto';
+
+dotenv.config();
 export function generateOTP(length: number = 6): string {
   const digits = '0123456789';
   let otp = '';
@@ -10,6 +14,32 @@ export function generateOTP(length: number = 6): string {
   }
   return otp;
 }
+
+const algorithm = 'aes-256-cbc';
+const secretKey = process.env.SECRET_KEY || ''; // 32-byte key
+const iv = crypto.randomBytes(16);
+
+// Encrypt Function
+export function encryptData(data : any) {
+    const cipher = crypto.createCipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+    let encrypted = cipher.update(data, 'utf-8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+}
+
+// Decrypt Function
+export function decryptData(encryptedData : any) {
+    console.log(encryptData);
+    const parts = encryptedData.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encryptedText = parts[1];
+
+    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
+    decrypted += decipher.final('utf-8');
+    return decrypted;
+}
+
 
 
 export const requestOTP = async(
