@@ -32,7 +32,6 @@ export const userProfile = async (
 
     // to make sure existing implementations doesnt break
     try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }
@@ -88,7 +87,6 @@ export const updateProfile = async(
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }
@@ -148,12 +146,11 @@ export const updateBankDetail = async(
       return handleError(res, 400, "Invalid password.");
     }
     
-    const encryptedAccountName = encryptData(accountName)
     const encryptedAccountNumber = encryptData(accountNumber)
     const encryptedbankCode = encryptData(bankCode)
     // const data =  _.omit(req.body, ["withdrawalPin", "currentPassword",]);
     const data = {
-      accountName : encryptedAccountName,
+      accountName,
       accountNumber : encryptedAccountNumber,
       bankCode : encryptedbankCode,
     }
@@ -175,7 +172,6 @@ export const updateBankDetail = async(
     
     // Decrypt fields in response
     try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }
@@ -255,7 +251,6 @@ export const updatePin = async(
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }
@@ -338,7 +333,6 @@ export const changePassword = async(
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
    try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }

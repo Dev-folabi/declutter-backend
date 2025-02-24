@@ -137,7 +137,6 @@ export const registerUser = async (
       hashedPin = await bcrypt.hash(pin, 10);
     }
 
-    // let encryptedAccountName = undefined;
     const encryptedAccountNumber = encryptData(accountNumber)
     const encryptedbankCode = encryptData(bankCode)
 
@@ -149,7 +148,7 @@ export const registerUser = async (
       schoolId,
       schoolIdCardURL,
       nin,
-      accountName: role === "seller" ? encryptData(fullName) : undefined,
+      accountName: role === "seller" ? fullName : undefined,
       accountNumber: encryptedAccountNumber,
       bankCode: encryptedbankCode,
       pin: hashedPin,
@@ -196,7 +195,6 @@ export const registerUser = async (
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
 
     try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }
@@ -283,7 +281,6 @@ export const loginUser = async (
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     try{
-      userData.accountName = userData.accountName !== undefined ? decryptData(userData.accountName) : undefined
       userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
       userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
     } catch(e) { /* to make sure existing codes doesnt break */ }
