@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
+import axios from "axios";
 import { UserRequest } from "../types/requests";
 import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
@@ -11,6 +12,11 @@ import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
 import { generateOTP } from "../utils";
 import { createNotification } from "./notificationController";
+import paystack from "../service/paystack";
+
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
+const PAYSTACK_BASE_URL =
+  process.env.PAYSTACK_BASE_URL || "https://api.paystack.co";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -115,19 +121,19 @@ export const registerUser = async (
       );
     }
 
-    // Check if user already exists based on email
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return handleError(res, 400, "Email already exists, please login.");
-    }
+    // // Check if user already exists based on email
+    // const existingUser = await User.findOne({ email });
+    // if (existingUser) {
+    //   return handleError(res, 400, "Email already exists, please login.");
+    // }
 
-    // Check if NIN exists (if provided)
-    if (nin) {
-      const existingNin = await User.findOne({ nin });
-      if (existingNin) {
-        return handleError(res, 400, "NIN already exists, please login.");
-      }
-    }
+    // // Check if NIN exists (if provided)
+    // if (nin) {
+    //   const existingNin = await User.findOne({ nin });
+    //   if (existingNin) {
+    //     return handleError(res, 400, "NIN already exists, please login.");
+    //   }
+    // }
 
     // Hash password and pin
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -142,17 +148,35 @@ export const registerUser = async (
       return handleError(res, 404, "school not found");
     }
 
+    let account;
+    let recipientCode;
+    if (role === "seller") {
+      const detail = await paystack.createRecipient(
+        accountNumber as string,
+        bankCode as string
+      );
+      recipientCode = detail.recipient_code;
+      account = detail.details;
+    }
+
     // Create new user
-    const newUser = await User.create({
+    const newUser: IUser = await User.create({
       fullName,
       email,
       password: hashedPassword,
       schoolId,
       schoolIdCardURL,
       nin,
-      accountName: role === "seller" ? fullName : undefined,
-      accountNumber,
-      bankCode,
+      accountDetail:
+        role === "seller"
+          ? {
+              accountName: account.account_name,
+              accountNumber,
+              bankCode,
+              bankName: account.bank_name,
+              recipientCode,
+            }
+          : undefined,
       pin: hashedPin,
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",

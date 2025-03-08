@@ -111,15 +111,14 @@ export const validateProfileUpdate = [
 ];
 
 export const validateBankUpdate = [
-  body("accountName").notEmpty().withMessage("Account name is required"),
   body("accountNumber")
     .notEmpty().withMessage("Account Number must be provided")
     .isString()
     .withMessage("Account Number must be a string"),
   body("bankCode")
-    .notEmpty().withMessage("Bandk code must be provided")
+    .notEmpty().withMessage("Bank code must be provided")
     .isString()
-    .withMessage("Bandk code must be a string"),
+    .withMessage("Bank code must be a string"),
   body("currentPassword")
     .notEmpty().withMessage("Curent Password must be provided")
     .isString()

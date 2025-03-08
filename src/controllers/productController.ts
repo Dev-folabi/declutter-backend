@@ -63,9 +63,13 @@ export const listAProduct = async (
             description,
         } = req.body;
 
+        const productId = () => {
+            return `DM-${Date.now()}`;
+        };
         const newProduct = await Product.create({
             name,
             price,
+            productId,
             category,
             location,
             description,

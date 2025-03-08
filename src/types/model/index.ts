@@ -13,21 +13,25 @@ export interface IUser extends Document {
   schoolId: Schema.Types.ObjectId;
   schoolIdCardURL?: string;
   nin?: string;
-  accountName?: string;
-  accountNumber?: string;
-  bankCode?: string;
+  accountDetail?: {
+    accountName?: string;
+    accountNumber?: string;
+    bankCode?: string;
+    bankName?: string;
+    recipientCode?: string;
+  };
   pin: string;
   role: string[];
   sellerStatus: string;
   emailVerified: boolean;
   sellerProfileComplete: boolean;
-  profileImageURL : string;
+  profileImageURL: string;
 }
 
 export interface OTPVerificationModelType {
   user: Schema.Types.ObjectId;
   OTP: string;
-  type: "password" | "transaction pin" | "activate account" | "edit profile" ;
+  type: "password" | "transaction pin" | "activate account" | "edit profile";
   verificationType: string;
 }
 
@@ -36,13 +40,24 @@ export interface NotificationType {
   body: string;
   type: "account" | "market" | "promotion";
   title: string;
-  is_read: boolean
+  is_read: boolean;
 }
 
 export interface ProductListing extends Document {
   name: string;
   price: Number;
-  category: "electronics" | "books & stationery" | "clothing & accessories" | "furniture" | "home & kitchen" | "sports & fitness equipment" | "gaming & entertainment" | "health & personal care" | "hobbies & crafts" | "miscellaneous";
+  productId: string;
+  category:
+    | "electronics"
+    | "books & stationery"
+    | "clothing & accessories"
+    | "furniture"
+    | "home & kitchen"
+    | "sports & fitness equipment"
+    | "gaming & entertainment"
+    | "health & personal care"
+    | "hobbies & crafts"
+    | "miscellaneous";
   location: string;
   description: string;
   is_approved: boolean;
@@ -54,5 +69,3 @@ export interface ProductListingImage extends Document {
   product: Schema.Types.ObjectId;
   image_url: string;
 }
-
-

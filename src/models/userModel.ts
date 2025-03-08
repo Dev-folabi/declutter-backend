@@ -2,6 +2,8 @@ import mongoose, { Schema } from "mongoose";
 import { isEmail } from "validator";
 import { IUser } from "../types/model";
 
+
+
 const userSchema = new Schema<IUser>(
   {
     fullName: { type: String, uppercase: true, required: true },
@@ -19,9 +21,13 @@ const userSchema = new Schema<IUser>(
     schoolId: { type: Schema.Types.ObjectId, required: true, ref: "School" },
     schoolIdCardURL: { type: String },
     nin: { type: String, unique: true, sparse: true },
-    accountNumber: { type: String },
-    bankCode: { type: String },
-    accountName: { type: String },
+    accountDetail: {
+      accountNumber: { type: String },
+      bankCode: { type: String },
+      bankName: { type: String },
+      accountName: { type: String },
+      recipientCode: { type: String },
+    },
     pin: { type: String },
     role: { type: [String], enum: ["seller", "buyer"], required: true },
     sellerStatus: {
@@ -34,6 +40,9 @@ const userSchema = new Schema<IUser>(
     profileImageURL: { type: String, required: false },
     sellerProfileComplete: { type: Boolean, default: false, required: true },
   },
+
+
+
   { timestamps: true }
 );
 

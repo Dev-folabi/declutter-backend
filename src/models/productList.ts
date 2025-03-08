@@ -16,6 +16,10 @@ const ProductListSchema = new Schema<ProductListing>(
       type: String,
       required: true,
     },
+    productId:{
+      type: String,
+      required: true,
+    },
     category: {
       type: String,
       enum: [
