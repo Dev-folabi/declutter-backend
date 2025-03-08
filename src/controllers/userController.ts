@@ -25,14 +25,14 @@ export const userProfile = async (
       "schoolName location"
     );
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     res.status(200).json({
       success: true,
-      message: "User profile retrieved in successfully.",
+      message: "User profile retrieved successfully.",
       data: userData,
     });
   } catch (error) {
@@ -51,7 +51,7 @@ export const updateProfile = async(
 
     const user = await User.findOne({_id : user_id});
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
     const isValidPassword = await bcrypt.compare(req.body.currentPassword, user.password);
@@ -113,7 +113,7 @@ export const updateBankDetail = async(
 
     const user = await User.findOne({_id : user_id});
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
     const {
@@ -188,7 +188,7 @@ export const updatePin = async(
 
     const user = await User.findOne({_id : user_id});
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
     const {
@@ -275,7 +275,7 @@ export const changePassword = async(
 
     const user = await User.findOne({_id : user_id});
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
     const { old_password, new_password, confirm_password } = req.body;
@@ -346,7 +346,7 @@ export const requestOTP = async(
 
   const user = await User.findOne({_id : user_id});
   if (!user) {
-    return handleError(res, 400, "Invalid token.");
+    return handleError(res, 400, "unauthorized.");
   }
   const OTP = generateOTP();
   // Upsert OTP entry

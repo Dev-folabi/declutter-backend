@@ -76,7 +76,7 @@ export const listAProduct = async (
 
         const notificationData = {
             user: user?._id,
-            body: "Product has been created. It is awaiting review by the admin",
+            body: "Product created successfully, awaiting review by the admin",
             type: "market",
             title: "Product Create"
         }

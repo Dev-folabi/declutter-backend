@@ -214,11 +214,11 @@ export const validateResetPasswordOTP = [
 ];
 
 export const validateVerifyEmailOTP = [
-  body("email")
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Invalid email address"),
+  // body("email")
+  //   .notEmpty()
+  //   .withMessage("Email is required")
+  //   .isEmail()
+  //   .withMessage("Invalid email address"),
   body("OTP")
     .notEmpty()
     .withMessage("OTP is required")

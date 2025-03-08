@@ -180,8 +180,6 @@ const router = express.Router();
  *           properties:
  *             OTP:
  *               type: string
- *             email:
- *               type: string
  *     responses:
  *       200:
  *         description: Email verified successful
