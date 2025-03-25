@@ -14,7 +14,7 @@ import {
   registerUser,
   resetPasswordOTP,
   resetPassword,
-  verifyEmail
+  verifyEmail,
 } from "../../controllers/authController";
 
 const router = express.Router();
@@ -91,7 +91,7 @@ const router = express.Router();
  *               type: string
  *             role:
  *               type: string
- *               enum: [student, seller]
+ *               enum: [buyer, seller]
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -164,7 +164,7 @@ const router = express.Router();
  *         description: Password reset successful
  *       400:
  *         description: Invalid OTP or password
- * 
+ *
  * /api/auth/verify-otp:
  *   post:
  *     tags: [Authentication]
@@ -179,8 +179,6 @@ const router = express.Router();
  *           type: object
  *           properties:
  *             OTP:
- *               type: string
- *             email:
  *               type: string
  *     responses:
  *       200:

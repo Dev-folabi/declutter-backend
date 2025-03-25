@@ -63,9 +63,13 @@ export const listAProduct = async (
             description,
         } = req.body;
 
+        const productId = () => {
+            return `DM-${Date.now()}`;
+        };
         const newProduct = await Product.create({
             name,
             price,
+            productId,
             category,
             location,
             description,
@@ -76,7 +80,7 @@ export const listAProduct = async (
 
         const notificationData = {
             user: user?._id,
-            body: "Product has been created. It is awaiting review by the admin",
+            body: "Product created successfully, awaiting review by the admin",
             type: "market",
             title: "Product Create"
         }

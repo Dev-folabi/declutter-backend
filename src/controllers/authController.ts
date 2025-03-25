@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
+import axios from "axios";
 import { UserRequest } from "../types/requests";
 import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
@@ -11,6 +12,11 @@ import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
 import { decryptData, encryptData, generateOTP } from "../utils";
 import { createNotification } from "./notificationController";
+import paystack from "../service/paystack";
+
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
+const PAYSTACK_BASE_URL =
+  process.env.PAYSTACK_BASE_URL || "https://api.paystack.co";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -115,19 +121,19 @@ export const registerUser = async (
       );
     }
 
-    // Check if user already exists based on email
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return handleError(res, 400, "Email already exists, please login.");
-    }
+    // // Check if user already exists based on email
+    // const existingUser = await User.findOne({ email });
+    // if (existingUser) {
+    //   return handleError(res, 400, "Email already exists, please login.");
+    // }
 
-    // Check if NIN exists (if provided)
-    if (nin) {
-      const existingNin = await User.findOne({ nin });
-      if (existingNin) {
-        return handleError(res, 400, "NIN already exists, please login.");
-      }
-    }
+    // // Check if NIN exists (if provided)
+    // if (nin) {
+    //   const existingNin = await User.findOne({ nin });
+    //   if (existingNin) {
+    //     return handleError(res, 400, "NIN already exists, please login.");
+    //   }
+    // }
 
     // Hash password and pin
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -137,20 +143,43 @@ export const registerUser = async (
       hashedPin = await bcrypt.hash(pin, 10);
     }
 
+    const school = await School.findById(schoolId);
+    if (!school) {
+      return handleError(res, 404, "school not found");
+    }
+
+    let account;
+    let recipientCode;
+    if (role === "seller") {
+      const detail = await paystack.createRecipient(
+        accountNumber as string,
+        bankCode as string
+      );
+      recipientCode = detail.recipient_code;
+      account = detail.details;
+    }
+
     const encryptedAccountNumber = encryptData(accountNumber)
     const encryptedbankCode = encryptData(bankCode)
 
     // Create new user
-    const newUser = await User.create({
+    const newUser: IUser = await User.create({
       fullName,
       email,
       password: hashedPassword,
       schoolId,
       schoolIdCardURL,
       nin,
-      accountName: role === "seller" ? fullName : undefined,
-      accountNumber: encryptedAccountNumber,
-      bankCode: encryptedbankCode,
+      accountDetail:
+        role === "seller"
+          ? {
+              accountName: account.account_name,
+              accountNumber,
+              bankCode,
+              bankName: account.bank_name,
+              recipientCode,
+            }
+          : undefined,
       pin: hashedPin,
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",
@@ -180,7 +209,7 @@ export const registerUser = async (
       "Verify EMail - OTP Verification",
       `
         Hi ${newUser?.fullName.split(" ")[0] || "User"},
-        <p>You recently requested to verify your email. Use the OTP below to reset it:</p>
+        <p>You recently requested to verify your email. Use the OTP below to verify it:</p>
         <h2>${OTP}</h2>
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
         <p>If you didn’t request this, you can safely ignore this email.</p>
@@ -238,40 +267,44 @@ export const loginUser = async (
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid email or password.");
     }
-    
+
     // send otp if user is not verified
-    if (!user.emailVerified){
-        // Generate OTP and expiration timestamp
-        // await requestEmailVerifyOTP(user)
+    if (!user.emailVerified) {
+      // Generate OTP and expiration timestamp
+      // await requestEmailVerifyOTP(user)
 
-        const OTP = generateOTP();
+      const OTP = generateOTP();
 
-        // Upsert OTP entry
-        await OTPVerification.updateOne(
-          { user: user._id, type: "password" },
-          {
-            user: user._id,
-            OTP,
-            type: "activate account",
-            verificationType: "email",
-          },
-          { upsert: true }
-        );
+      // Upsert OTP entry
+      await OTPVerification.updateOne(
+        { user: user._id, type: "activate account" },
+        {
+          user: user._id,
+          OTP,
+          type: "activate account",
+          verificationType: "email",
+        },
+        { upsert: true }
+      );
 
-        // Send email
-        await sendEmail(
-          user.email,
-          "Verify EMail - OTP Verification",
-          `
+      // Send email
+      await sendEmail(
+        user.email,
+        "Verify e-mail - OTP Verification",
+        `
             Hi ${user?.fullName.split(" ")[0] || "User"},
-            <p>You recently requested to verify your email. Use the OTP below to reset it:</p>
+            <p>You recently requested to verify your email. Use the OTP below to verify it:</p>
             <h2>${OTP}</h2>
             <p>This OTP is valid for <strong>30 minutes</strong>.</p>
             <p>If you didn’t request this, you can safely ignore this email.</p>
             <br />
           `
-        );
-      return handleError(res, 400, "Your email has not been verified. Check your email for the otp");
+      );
+      return handleError(
+        res,
+        400,
+        "Your email has not been verified. Check your email for the otp"
+      );
     }
 
     // Generate token
@@ -288,6 +321,51 @@ export const loginUser = async (
     res.status(200).json({
       success: true,
       message: "User logged in successfully.",
+      data: userData,
+      token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { OTP } = req.body;
+
+    if (!OTP) {
+      return handleError(res, 400, "OTP is required.");
+    }
+
+    const otpVerification = await OTPVerification.findOne({
+      OTP,
+      type: "activate account",
+    });
+    if (!otpVerification) {
+      return handleError(res, 400, "Invalid OTP.");
+    }
+
+    const user = await User.findById(otpVerification.user);
+    if (!user) {
+      return handleError(res, 404, "User not found.");
+    }
+
+    user.emailVerified = true;
+    await user.save();
+
+    // Generate token
+    const token = generateToken({ id: user.id });
+
+    // Exclude sensitive fields from response
+    const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    res.status(200).json({
+      success: true,
+      message: "Email verified successful.",
       data: userData,
       token,
     });
@@ -348,45 +426,6 @@ export const resetPasswordOTP = async (
   }
 };
 
-export const verifyEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try{
-    const {OTP, email} = req.body;
-
-    if (!OTP || !email) {
-      return handleError(res, 400, "OTP and email are required.");
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      return handleError(res, 404, "User not found.");
-    }
-
-    const otpVerification = await OTPVerification.findOne({
-      OTP,
-      type: "activate account",
-      user: user
-    });
-    if (!otpVerification) {
-      return handleError(res, 400, "Invalid OTP.");
-    }
-
-    user.emailVerified = true
-    user.save()
-
-    res.status(200).json({
-      success: true,
-      message: "OTP verified.",
-    });
-
-  } catch (error) {
-    next(error);
-  }
-}
-
 export const resetPassword = async (
   req: Request,
   res: Response,
@@ -420,13 +459,13 @@ export const resetPassword = async (
     await user.save();
 
     const notificationData = {
-            user: user._id,
-            body: "You password has been changed",
-            type: "account",
-            title: "Password Change"
-        }
-    
-        await createNotification(notificationData)
+      user: user._id,
+      body: "You password has been changed",
+      type: "account",
+      title: "Password Change",
+    };
+
+    await createNotification(notificationData);
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 
@@ -438,4 +477,3 @@ export const resetPassword = async (
     next(error);
   }
 };
-

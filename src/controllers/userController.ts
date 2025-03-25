@@ -1,4 +1,4 @@
-import { decodeToken, getIdFromToken } from './../function/token';
+import { decodeToken, getIdFromToken } from "./../function/token";
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
@@ -6,11 +6,11 @@ import { UserRequest } from "../types/requests";
 import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import _ from "lodash";
-import { createNotification } from './notificationController';
-import { sendEmail } from '../utils/mail';
-import OTPVerification from '../models/OTPVerifivation';
-import { generateOTP, encryptData, decryptData } from '../utils';
-
+import { createNotification } from "./notificationController";
+import { sendEmail } from "../utils/mail";
+import OTPVerification from "../models/OTPVerifivation";
+import { generateOTP, encryptData, decryptData } from "../utils";
+import paystack from "../service/paystack";
 
 export const userProfile = async (
   req: Request,
@@ -20,12 +20,12 @@ export const userProfile = async (
   try {
     const user_id = getIdFromToken(req);
 
-    const user = await User.findOne({_id : user_id}).populate(
+    const user = await User.findOne({ _id: user_id }).populate(
       "schoolId",
       "schoolName location"
     );
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
@@ -38,7 +38,7 @@ export const userProfile = async (
 
     res.status(200).json({
       success: true,
-      message: "User profile retrieved in successfully.",
+      message: "User profile retrieved successfully.",
       data: userData,
     });
   } catch (error) {
@@ -46,8 +46,7 @@ export const userProfile = async (
   }
 };
 
-
-export const updateProfile = async(
+export const updateProfile = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -55,12 +54,15 @@ export const updateProfile = async(
   try {
     const user_id = getIdFromToken(req);
 
-    const user = await User.findOne({_id : user_id});
+    const user = await User.findOne({ _id: user_id });
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
-    const isValidPassword = await bcrypt.compare(req.body.currentPassword, user.password);
+    const isValidPassword = await bcrypt.compare(
+      req.body.currentPassword,
+      user.password
+    );
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
     }
@@ -71,18 +73,18 @@ export const updateProfile = async(
     //     req.body.pin = hashedPin
     // }
     const data = _.omit(req.body, ["currentPassword"]);
-    
+
     await User.updateOne({ _id: user_id }, { $set: data }, { new: true, runValidators: true });
-    user.save()
+    user.save();
 
     const notificationData = {
-        user: user_id,
-        body: "Your profile has been updated",
-        type: "account",
-        title: "Profile update"
-    }
+      user: user_id,
+      body: "Your profile has been updated",
+      type: "account",
+      title: "Profile update",
+    };
 
-    await createNotification(notificationData)
+    await createNotification(notificationData);
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
@@ -101,7 +103,6 @@ export const updateProfile = async(
         <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
         <br />
       `
-
     );
 
     res.status(200).json({
@@ -112,9 +113,9 @@ export const updateProfile = async(
   } catch (error) {
     next(error);
   }
-}
+};
 
-export const updateBankDetail = async(
+export const updateBankDetail = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -122,11 +123,13 @@ export const updateBankDetail = async(
   try {
     const user_id = getIdFromToken(req);
 
-    const user = await User.findOne({_id : user_id});
+    const user = await User.findOne({ _id: user_id });
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
+    const { accountNumber, bankCode, withdrawalPin, currentPassword } =
+      req.body;
     const {
       withdrawalPin,
       currentPassword,
@@ -141,7 +144,10 @@ export const updateBankDetail = async(
       return handleError(res, 400, "Invalid pin.");
     }
 
-    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    const isValidPassword = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
     }
@@ -158,15 +164,37 @@ export const updateBankDetail = async(
     
     await User.updateOne({ _id: user_id }, { $set: data}, { new: true, runValidators: true });
     user.save()
+    // const otp = OTPisValid(OTP, action, user)
+    // if (!otp) {
+    //   return handleError(res, 400, "Invalid OTP.");
+    // }
+
+    const detail = await paystack.createRecipient(
+      accountNumber as string,
+      bankCode as string
+    );
+    const recipientCode = detail.recipient_code;
+    const account = detail.details;
+
+    const accountDetail = {
+      accountName: account.account_name,
+      accountNumber,
+      bankCode,
+      bankName: account.bank_name,
+      recipientCode,
+    };
+
+    await User.updateOne({ _id: user_id }, { accountDetail }, { upsert: true });
+    user.save();
 
     const notificationData = {
-        user: user_id,
-        body: "Your bank details has been updated",
-        type: "account",
-        title: "Bank update"
-    }
+      user: user_id,
+      body: "Your bank details has been updated",
+      type: "account",
+      title: "Bank update",
+    };
 
-    await createNotification(notificationData)
+    await createNotification(notificationData);
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
     
@@ -186,7 +214,6 @@ export const updateBankDetail = async(
         <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
         <br />
       `
-
     );
     res.status(200).json({
       success: true,
@@ -196,9 +223,9 @@ export const updateBankDetail = async(
   } catch (error) {
     next(error);
   }
-}
+};
 
-export const updatePin = async(
+export const updatePin = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -206,47 +233,44 @@ export const updatePin = async(
   try {
     const user_id = getIdFromToken(req);
 
-    const user = await User.findOne({_id : user_id});
+    const user = await User.findOne({ _id: user_id });
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
-    const {
-      withdrawalPin,
-      currentPassword,
-      new_pin,
-      confirm_pin,
-    } = req.body
-
+    const { withdrawalPin, currentPassword, new_pin, confirm_pin } = req.body;
 
     const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
     if (!isValidPin) {
       return handleError(res, 400, "Invalid pin.");
     }
 
-    const isValidPassword = await bcrypt.compare(currentPassword, user.password);
+    const isValidPassword = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
     }
 
-    if (!(new_pin === confirm_pin)){
+    if (!(new_pin === confirm_pin)) {
       return handleError(res, 400, "Pin doesn't match.");
     }
 
     const hashedPin = await bcrypt.hash(new_pin, 10);
-    let data = {pin: hashedPin}
+    let data = { pin: hashedPin };
 
-    await User.updateOne({ _id: user_id }, { $set: data}, { new: true, runValidators: true });
-    user.save()
+    await User.updateOne({ _id: user_id }, { $set: data }, { new: true, runValidators: true });
+    user.save();
 
     const notificationData = {
-        user: user_id,
-        body: "Your pin has been changed",
-        type: "account",
-        title: "Pin update"
-    }
+      user: user_id,
+      body: "Your pin has been changed",
+      type: "account",
+      title: "Pin update",
+    };
 
-    await createNotification(notificationData)
+    await createNotification(notificationData);
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
@@ -265,7 +289,6 @@ export const updatePin = async(
         <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
         <br />
       `
-
     );
     res.status(200).json({
       success: true,
@@ -275,23 +298,18 @@ export const updatePin = async(
   } catch (error) {
     next(error);
   }
-}
+};
 
-const OTPisValid = async(
-  OTP: String,
-  type: String,
-  user: IUser
-) => {
+const OTPisValid = async (OTP: String, type: String, user: IUser) => {
   const otpVerification = await OTPVerification.findOne({
     OTP,
     type,
-    user
+    user,
   });
-  return otpVerification
-}
+  return otpVerification;
+};
 
-
-export const changePassword = async(
+export const changePassword = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -299,20 +317,20 @@ export const changePassword = async(
   try {
     const user_id = getIdFromToken(req);
 
-    const user = await User.findOne({_id : user_id});
+    const user = await User.findOne({ _id: user_id });
     if (!user) {
-      return handleError(res, 400, "Invalid token.");
+      return handleError(res, 400, "unauthorized.");
     }
 
     const { old_password, new_password, confirm_password } = req.body;
-    
+
     const isValidPassword = await bcrypt.compare(old_password, user.password);
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid email or password.");
     }
 
 
-    if (!(new_password === confirm_password)){
+    if (!(new_password === confirm_password)) {
       return handleError(res, 400, "Password doesn't match.");
     }
 
@@ -325,10 +343,10 @@ export const changePassword = async(
       user: user_id,
       body: "Your password has beeen changed",
       type: "account",
-      title: "Password change"
-    }
+      title: "Password change",
+    };
 
-    await createNotification(notificationData)
+    await createNotification(notificationData);
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
@@ -347,7 +365,6 @@ export const changePassword = async(
         <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
         <br />
       `
-
     );
     res.status(200).json({
       success: true,
@@ -357,29 +374,25 @@ export const changePassword = async(
   } catch (error) {
     next(error);
   }
-}
+};
 
-export const requestOTP = async(
+export const requestOTP = async (
   req: Request,
   res: Response,
-  next: NextFunction,
+  next: NextFunction
 ) => {
-
-  const {
-    reason,
-    type,
-  } = req.body
+  const { reason, type } = req.body;
   const user_id = getIdFromToken(req);
 
-  const user = await User.findOne({_id : user_id});
+  const user = await User.findOne({ _id: user_id });
   if (!user) {
-    return handleError(res, 400, "Invalid token.");
+    return handleError(res, 400, "unauthorized.");
   }
   const OTP = generateOTP();
   // Upsert OTP entry
 
   await OTPVerification.updateOne(
-    { user: user._id, type: type},
+    { user: user._id, type: type },
     {
       user: user._id,
       OTP,
@@ -402,4 +415,4 @@ export const requestOTP = async(
       <br />
     `
   );
-}
+};

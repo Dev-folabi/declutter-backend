@@ -112,11 +112,11 @@ const router = express.Router();
  *         schema:
  *           type: object
  *           properties:
- *             accountName:
- *               type: string
  *             accountNumber:
  *               type: string
  *             bankCode:
+ *               type: string
+ *             bankName:
  *               type: string
  *             currentPassword:
  *               type: string
