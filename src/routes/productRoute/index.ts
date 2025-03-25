@@ -8,7 +8,10 @@ import {
   getSingleUnsoldProduct, 
   getAllUnsoldProduct,
   listAProduct,
-  updateAProduct
+  updateAProduct,
+  getUnsoldProductsByCategory,
+  getProductsByAdmin,
+  approveAProduct
 } from "../../controllers/productController";
 
 const router = express.Router();
@@ -31,6 +34,18 @@ const router = express.Router();
  *     tags: [Product]
  *     summary: Get all Product listings
  *     description: Get all Product listings
+ *     responses:
+ *       200:
+ *         description: All Product listings retrieved successfully
+ *       400:
+ *         description: Not found
+ *
+ *
+ * /api/product/productincategory/category:
+ *   get:
+ *     tags: [Product]
+ *     summary: Get all Product listings in a category
+ *     description: Get all Product listings in a category
  *     responses:
  *       200:
  *         description: All Product listings retrieved successfully
@@ -102,8 +117,11 @@ const router = express.Router();
 
 
 router.get("/allproducts", getAllUnsoldProduct);
+router.get("/productincategory/:category", getUnsoldProductsByCategory);
 router.get("/product/:id", getSingleUnsoldProduct);
 router.post("/createproduct", validateProductListing, listAProduct);
 router.patch("/updateproduct/:id", validateProductUpdate, updateAProduct);
+router.get("/admin/allproducts", getProductsByAdmin);
+router.patch("/admin/approveproduct/:id", validateProductUpdate, approveAProduct);
 
 export default router;

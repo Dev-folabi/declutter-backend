@@ -40,7 +40,27 @@ export function decryptData(encryptedData : any) {
     return decrypted;
 }
 
+export const decryptAccountDetail = (accountDetail: any) => {
+  if (!accountDetail) return;
 
+  if (accountDetail.accountNumber !== undefined) {
+    accountDetail.accountNumber = decryptData(accountDetail.accountNumber);
+  }
+
+  if (accountDetail.bankCode !== undefined) {
+    accountDetail.bankCode = decryptData(accountDetail.bankCode);
+  }
+
+  if (accountDetail.bankName !== undefined) {
+    accountDetail.bankName = decryptData(accountDetail.bankName);
+  }
+
+  if (accountDetail.recipientCode !== undefined) {
+    accountDetail.recipientCode = decryptData(accountDetail.recipientCode);
+  }
+
+  // accountName is just the user name
+};
 
 export const requestOTP = async(
   user: IUser,

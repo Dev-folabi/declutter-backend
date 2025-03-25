@@ -18,7 +18,7 @@ export const getAllUnsoldProduct = async (
         
         const products = await Product.find({is_sold: false, is_approved: true})
         const productsData = _.map(products, (product) =>
-            _.omit(product.toObject(), ["is_approved", "is_sold"]) // Replace with actual field names
+            _.omit(product.toObject(), ["is_approved", "is_sold"]) 
           );
         res.status(200).json({
             success: true,
@@ -169,6 +169,62 @@ export const updateAProduct = async (
         }
 };
 
+export const getSingleUnsoldProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+        const product = await Product.findById(req.params.id)
+        if (product){
+            const productData = _.omit(product?.toObject(), ["is_approved"]);
+
+            res.status(200).json({
+                success: true,
+                message: "Product retrieved successfully.",
+                data: productData,
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: "Product not found.",
+                data: null,
+            });
+        }
+        } catch (error) {
+          next(error);
+        }
+};
+
+export const getUnsoldProductsByCategory = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+        const products = await Product.find({ category : req.params.category, is_approved : true, is_sold : false})
+        if (products){
+            const productsData = _.map(products, (product) =>
+                _.omit(product.toObject(), ["is_approved", "is_sold"]) 
+              );
+            res.status(200).json({
+                success: true,
+                message: products.length > 0 ? "Product retrieved successfully." : "No product listed at the moment",
+                data: productsData,
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: "Product not found.",
+                data: null,
+            });
+        }
+        } catch (error) {
+          next(error);
+        }
+};
+
+
 export const approveAProduct = async (
     req: Request,
     res: Response,
@@ -181,7 +237,7 @@ export const approveAProduct = async (
         if (!user){
             res.status(400).json({
                 success: false,
-                message: "Unauthenticated user cannot list a product.",
+                message: "You dont have the permission to view this page.",
                 data: null,
             });
         }
@@ -240,31 +296,43 @@ export const approveAProduct = async (
         }
 };
 
-export const getSingleUnsoldProduct = async (
+
+
+export const getProductsByAdmin = async (
     req: Request,
     res: Response,
     next: NextFunction
   ) => {
     try {
-        const product = await Product.findById(req.params.id)
-        if (product){
-            const productData = _.omit(product?.toObject(), ["is_approved"]);
 
-            res.status(200).json({
-                success: true,
-                message: "Product retrieved successfully.",
-                data: productData,
-            });
-        } else {
+        const user = await User.findById(getIdFromToken(req))
+
+        if (!user){
             res.status(400).json({
                 success: false,
-                message: "Product not found.",
+                message: "You dont have the permission to view this page.",
                 data: null,
             });
         }
-        } catch (error) {
-          next(error);
+
+        if (!(user?.is_admin)){
+            res.status(400).json({
+                success: false,
+                message: "You are not authorized for this action.",
+                data: null,
+            });
         }
+        
+        const products = await Product.find()
+        const productsData = _.map(products, (product) =>
+            _.omit(product.toObject(), ["is_approved", "is_sold"]) 
+          );
+        res.status(200).json({
+            success: true,
+            message: products.length > 0 ? "Product retrieved successfully." : "No product listed at the moment",
+            data: products,
+        });
+    } catch (error) {
+      next(error);
+    }
 };
-
-

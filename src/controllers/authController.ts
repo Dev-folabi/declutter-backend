@@ -10,7 +10,7 @@ import _ from "lodash";
 import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
-import { decryptData, encryptData, generateOTP } from "../utils";
+import { decryptAccountDetail, decryptData, encryptData, generateOTP } from "../utils";
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
 
@@ -149,6 +149,11 @@ export const registerUser = async (
     }
 
     let account;
+    let encryptedAccountNumber;
+    let encryptedbankCode;
+    let encryptedBankName;
+    let encryptedRecipientCode;
+
     let recipientCode;
     if (role === "seller") {
       const detail = await paystack.createRecipient(
@@ -157,10 +162,12 @@ export const registerUser = async (
       );
       recipientCode = detail.recipient_code;
       account = detail.details;
-    }
 
-    const encryptedAccountNumber = encryptData(accountNumber)
-    const encryptedbankCode = encryptData(bankCode)
+      encryptedAccountNumber = encryptData(accountNumber);
+      encryptedbankCode = encryptData(bankCode);
+      encryptedRecipientCode = encryptData(recipientCode);
+      encryptedBankName = encryptData(account.bank_name);
+    }
 
     // Create new user
     const newUser: IUser = await User.create({
@@ -174,10 +181,10 @@ export const registerUser = async (
         role === "seller"
           ? {
               accountName: account.account_name,
-              accountNumber,
-              bankCode,
-              bankName: account.bank_name,
-              recipientCode,
+              accountNumber: encryptedAccountNumber,
+              bankCode: encryptedbankCode,
+              bankName: encryptedBankName,
+              recipientCode: encryptedRecipientCode,
             }
           : undefined,
       pin: hashedPin,
@@ -223,10 +230,9 @@ export const registerUser = async (
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
 
-    try{
-      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
-      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
-    } catch(e) { /* to make sure existing codes doesnt break */ }
+    try {
+          decryptAccountDetail(userData.accountDetail);
+        } catch(e) { /* to make sure existing codes doesnt break */ }
     
 
     res.status(201).json({
@@ -313,10 +319,10 @@ export const loginUser = async (
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
-    try{
-      userData.accountNumber = userData.accountNumber !== undefined ? decryptData(userData.accountNumber) : undefined
-      userData.bankCode = userData.bankCode  !== undefined ? decryptData(userData.bankCode) : undefined
-    } catch(e) { /* to make sure existing codes doesnt break */ }
+    try {
+          decryptAccountDetail(userData.accountDetail);
+        } catch(e) { /* to make sure existing codes doesnt break */ }
+    
 
     res.status(200).json({
       success: true,
