@@ -71,9 +71,9 @@ export const updateProfile = async (
     //     hashedPin = await bcrypt.hash(req.body.pin, 10);
     //     req.body.pin = hashedPin
     // }
-    const data = _.omit(req.body.toObject(), ["currentPassword"]);
+    const data = _.omit(req.body, ["currentPassword"]);
     
-    await User.updateOne({ _id: user_id }, { $set: data });
+    await User.updateOne({ _id: user_id }, { $set: data }, {new: true});
     user.save();
 
     const notificationData = {
@@ -174,9 +174,9 @@ export const updateBankDetail = async (
       recipientCode: encryptedRecipientCode,
     };
 
-    await User.updateOne({ _id: user_id }, { accountDetail }, { upsert: true });
+    await User.updateOne({ _id: user_id }, { accountDetail }, { new: true, upsert: true });
     user.save();
-    
+
     const notificationData = {
       user: user_id,
       body: "Your bank details has been updated",
