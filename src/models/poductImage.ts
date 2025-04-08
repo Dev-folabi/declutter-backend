@@ -21,4 +21,4 @@ const ProductImageSchema = new Schema<ProductListingImage>(
 );
 
 
-export const ProductImage = model<ProductListingImage>("Product", ProductImageSchema);
+export const ProductImage = model<ProductListingImage>("ProductImage", ProductImageSchema);

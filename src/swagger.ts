@@ -14,7 +14,8 @@ const swaggerDefinition = {
   },
   servers: [
     {
-      url: "https://auth-microservice-stss.onrender.com",
+      // url: "https://auth-microservice-stss.onrender.com",
+      url: "http://localhost:9000"
     },
   ],
 };

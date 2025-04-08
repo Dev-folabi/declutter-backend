@@ -44,9 +44,17 @@ export interface NotificationType {
   is_read: boolean;
 }
 
-export interface ProductListing extends Document {
+export interface ContactUsModelType {
+  body: string;
+  fullName: string;
+  email: string;
+  issue: "account" | "payment" | "orders" | "others";
+  is_closed: boolean;
+}
+
+export interface ProductListingType extends Document {
   name: string;
-  price: Number;
+  price: number;
   productId: string;
   category:
     | "electronics"
@@ -63,10 +71,49 @@ export interface ProductListing extends Document {
   description: string;
   is_approved: boolean;
   is_sold: boolean;
+  is_reserved: boolean;
   seller: Schema.Types.ObjectId;
 }
 
 export interface ProductListingImage extends Document {
   product: Schema.Types.ObjectId;
   image_url: string;
+}
+
+// Interface for CartItem
+export interface ICartItem extends Document {
+  product: Schema.Types.ObjectId;
+  cart: Schema.Types.ObjectId;
+  quantity: number;
+  price: number;
+}
+
+// Interface for Cart
+export interface ICart extends Document {
+  user: Schema.Types.ObjectId;
+  items: ICartItem[];
+  totalPrice: number;
+}
+
+// Interface for OrderItem
+export interface IOrderItem extends Document {
+  product: Schema.Types.ObjectId;
+  order: Schema.Types.ObjectId;
+  quantity: number;
+  price: number;
+}
+
+// Interface for Order
+export interface IOrder extends Document {
+  user: Schema.Types.ObjectId;
+  // items: IOrderItem[];
+  totalPrice: number;
+}
+
+// Interface for Order
+export interface IWeListened extends Document {
+  name: string;
+  statement: string;
+  school: string;
+  is_active: boolean;
 }

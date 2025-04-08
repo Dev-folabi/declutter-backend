@@ -73,8 +73,8 @@ export const updateProfile = async (
     // }
     const data = _.omit(req.body, ["currentPassword"]);
     
-    await User.updateOne({ _id: user_id }, { $set: data }, {new: true});
-    user.save();
+    const updatedUser = await User.findByIdAndUpdate(user_id, { $set: data }, {new: true});
+    // user.save();
 
     const notificationData = {
       user: user_id,
@@ -85,7 +85,7 @@ export const updateProfile = async (
 
     await createNotification(notificationData);
     // Exclude sensitive fields from response
-    const userData = _.omit(user.toObject(), ["password", "pin"]);
+    const userData = _.omit(updatedUser?.toObject(), ["password", "pin"]);
 
     try {
       decryptAccountDetail(userData.accountDetail);

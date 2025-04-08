@@ -1,4 +1,4 @@
-import { ProductListing } from './../types/model/index';
+import { ProductListingType } from './../types/model/index';
 import { Product } from '../models/productList';
 import { Request, Response, NextFunction } from "express";
 import bcrypt from "bcrypt";
@@ -15,8 +15,34 @@ export const getAllUnsoldProduct = async (
     next: NextFunction
   ) => {
     try {
-        
-        const products = await Product.find({is_sold: false, is_approved: true})
+        let query : any = { ...req.query };
+        query.is_sold = false;
+        query.is_approved = true;
+
+        // Remove pagination fields
+        delete query.page;
+        delete query.limit;
+
+
+        const search = req.query.search || "";
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Add search functionality to query if there's a search term
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+                { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
+                { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+            ];
+        }
+
+        // Remove search from query as it's not a field in the document
+        delete query.search;
+
+        const products = await Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
+        // const products = await Product.find({is_sold: false, is_approved: true})
         const productsData = _.map(products, (product) =>
             _.omit(product.toObject(), ["is_approved", "is_sold"]) 
           );
@@ -202,7 +228,35 @@ export const getUnsoldProductsByCategory = async (
     next: NextFunction
   ) => {
     try {
-        const products = await Product.find({ category : req.params.category, is_approved : true, is_sold : false})
+
+        let query : any = { ...req.query };
+        query.is_sold = false;
+        query.is_approved = true;
+        query.category = req.params.category;
+
+        // Remove pagination fields
+        delete query.page;
+        delete query.limit;
+
+
+        const search = req.query.search || "";
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Add search functionality to query if there's a search term
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+                { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
+                { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+            ];
+        }
+
+        // Remove search from query as it's not a field in the document
+        delete query.search;
+
+        const products = await Product.find({query}).skip(skip).limit(limit).sort({ createdAt: -1 });
         if (products){
             const productsData = _.map(products, (product) =>
                 _.omit(product.toObject(), ["is_approved", "is_sold"]) 
@@ -297,7 +351,6 @@ export const approveAProduct = async (
 };
 
 
-
 export const getProductsByAdmin = async (
     req: Request,
     res: Response,
@@ -323,7 +376,30 @@ export const getProductsByAdmin = async (
             });
         }
         
-        const products = await Product.find()
+        let query = { ...req.query };
+ 
+        delete query.page;
+        delete query.limit;
+
+
+        const search = req.query.search || "";
+        const page = Number(query.page) || 1;
+        const limit = Number(query.limit) || 10;
+     
+        const skip = (page - 1) * limit;
+
+        // Add search functionality to query if there's a search term
+        if (search) {
+            query.$or = [
+            { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+            { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
+            { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+            ];
+        }
+        delete query.search;
+        
+
+        const products = await Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
         const productsData = _.map(products, (product) =>
             _.omit(product.toObject(), ["is_approved", "is_sold"]) 
           );
@@ -331,6 +407,55 @@ export const getProductsByAdmin = async (
             success: true,
             message: products.length > 0 ? "Product retrieved successfully." : "No product listed at the moment",
             data: products,
+        });
+    } catch (error) {
+      next(error);
+    }
+};
+
+
+
+export const getAllLongUnsoldProduct = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
+    try {
+        let query : any = { ...req.query };
+        query.is_sold = false;
+        query.is_approved = true;
+
+        // Remove pagination fields
+        delete query.page;
+        delete query.limit;
+
+
+        const search = req.query.search || "";
+        const page = Number(req.query.page) || 1;
+        const limit = Number(req.query.limit) || 10;
+        const skip = (page - 1) * limit;
+
+        // Add search functionality to query if there's a search term
+        if (search) {
+            query.$or = [
+                { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+                { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
+                { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+            ];
+        }
+
+        // Remove search from query as it's not a field in the document
+        delete query.search;
+
+        const products = await Product.find(query).skip(skip).limit(limit).sort({ createdAt: 1 });
+        // const products = await Product.find({is_sold: false, is_approved: true})
+        const productsData = _.map(products, (product) =>
+            _.omit(product.toObject(), ["is_approved", "is_sold"]) 
+          );
+        res.status(200).json({
+            success: true,
+            message: products.length > 0 ? "Product retrieved successfully." : "No product listed at the moment",
+            data: productsData,
         });
     } catch (error) {
       next(error);
