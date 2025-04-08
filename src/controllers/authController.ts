@@ -1,14 +1,22 @@
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
+import axios from "axios";
 import { UserRequest } from "../types/requests";
+import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import { generateToken } from "../function/token";
 import _ from "lodash";
 import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
-import { generateOTP } from "../utils";
+import { decryptAccountDetail, decryptData, encryptData, generateOTP } from "../utils";
+import { createNotification } from "./notificationController";
+import paystack from "../service/paystack";
+
+const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
+const PAYSTACK_BASE_URL =
+  process.env.PAYSTACK_BASE_URL || "https://api.paystack.co";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -113,19 +121,19 @@ export const registerUser = async (
       );
     }
 
-    // Check if user already exists based on email
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return handleError(res, 400, "Email already exists, please login.");
-    }
+    // // Check if user already exists based on email
+    // const existingUser = await User.findOne({ email });
+    // if (existingUser) {
+    //   return handleError(res, 400, "Email already exists, please login.");
+    // }
 
-    // Check if NIN exists (if provided)
-    if (nin) {
-      const existingNin = await User.findOne({ nin });
-      if (existingNin) {
-        return handleError(res, 400, "NIN already exists, please login.");
-      }
-    }
+    // // Check if NIN exists (if provided)
+    // if (nin) {
+    //   const existingNin = await User.findOne({ nin });
+    //   if (existingNin) {
+    //     return handleError(res, 400, "NIN already exists, please login.");
+    //   }
+    // }
 
     // Hash password and pin
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -135,17 +143,50 @@ export const registerUser = async (
       hashedPin = await bcrypt.hash(pin, 10);
     }
 
+    const school = await School.findById(schoolId);
+    if (!school) {
+      return handleError(res, 404, "school not found");
+    }
+
+    let account;
+    let encryptedAccountNumber;
+    let encryptedbankCode;
+    let encryptedBankName;
+    let encryptedRecipientCode;
+
+    let recipientCode;
+    if (role === "seller") {
+      const detail = await paystack.createRecipient(
+        accountNumber as string,
+        bankCode as string
+      );
+      recipientCode = detail.recipient_code;
+      account = detail.details;
+
+      encryptedAccountNumber = encryptData(accountNumber);
+      encryptedbankCode = encryptData(bankCode);
+      encryptedRecipientCode = encryptData(recipientCode);
+      encryptedBankName = encryptData(account.bank_name);
+    }
+
     // Create new user
-    const newUser = await User.create({
+    const newUser: IUser = await User.create({
       fullName,
       email,
       password: hashedPassword,
       schoolId,
       schoolIdCardURL,
       nin,
-      accountName: role === "seller" ? fullName : undefined,
-      accountNumber,
-      bankCode,
+      accountDetail:
+        role === "seller"
+          ? {
+              accountName: account.account_name,
+              accountNumber: encryptedAccountNumber,
+              bankCode: encryptedbankCode,
+              bankName: encryptedBankName,
+              recipientCode: encryptedRecipientCode,
+            }
+          : undefined,
       pin: hashedPin,
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",
@@ -154,17 +195,51 @@ export const registerUser = async (
 
     const populatedUser = await newUser.populate("schoolId");
 
-    // Generate token
-    const token = generateToken({ id: populatedUser.id });
+    // Generate OTP and expiration timestamp
+    const OTP = generateOTP();
+
+    // Upsert OTP entry
+    await OTPVerification.updateOne(
+      { user: newUser._id, type: "activate account" },
+      {
+        user: newUser._id,
+        OTP,
+        type: "activate account",
+        verificationType: "email",
+      },
+      { upsert: true }
+    );
+
+    // Send email
+    await sendEmail(
+      newUser.email,
+      "Verify EMail - OTP Verification",
+      `
+        Hi ${newUser?.fullName.split(" ")[0] || "User"},
+        <p>You recently requested to verify your email. Use the OTP below to verify it:</p>
+        <h2>${OTP}</h2>
+        <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <br />
+      `
+    );
+
+    // Generate token // todo: do not login user yet until email is verified
+    // const token = generateToken({ id: populatedUser.id });
 
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
+
+    try {
+          decryptAccountDetail(userData.accountDetail);
+        } catch(e) { /* to make sure existing codes doesnt break */ }
+    
 
     res.status(201).json({
       success: true,
       message: "User created successfully.",
       data: userData,
-      token,
+      // token,
     });
   } catch (error) {
     next(error);
@@ -199,6 +274,95 @@ export const loginUser = async (
       return handleError(res, 400, "Invalid email or password.");
     }
 
+    // send otp if user is not verified
+    if (!user.emailVerified) {
+      // Generate OTP and expiration timestamp
+      // await requestEmailVerifyOTP(user)
+
+      const OTP = generateOTP();
+
+      // Upsert OTP entry
+      await OTPVerification.updateOne(
+        { user: user._id, type: "activate account" },
+        {
+          user: user._id,
+          OTP,
+          type: "activate account",
+          verificationType: "email",
+        },
+        { upsert: true }
+      );
+
+      // Send email
+      await sendEmail(
+        user.email,
+        "Verify e-mail - OTP Verification",
+        `
+            Hi ${user?.fullName.split(" ")[0] || "User"},
+            <p>You recently requested to verify your email. Use the OTP below to verify it:</p>
+            <h2>${OTP}</h2>
+            <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+            <p>If you didn’t request this, you can safely ignore this email.</p>
+            <br />
+          `
+      );
+      return handleError(
+        res,
+        400,
+        "Your email has not been verified. Check your email for the otp"
+      );
+    }
+
+    // Generate token
+    const token = generateToken({ id: user.id });
+
+    // Exclude sensitive fields from response
+    const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    try {
+          decryptAccountDetail(userData.accountDetail);
+        } catch(e) { /* to make sure existing codes doesnt break */ }
+    
+
+    res.status(200).json({
+      success: true,
+      message: "User logged in successfully.",
+      data: userData,
+      token,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { OTP } = req.body;
+
+    if (!OTP) {
+      return handleError(res, 400, "OTP is required.");
+    }
+
+    const otpVerification = await OTPVerification.findOne({
+      OTP,
+      type: "activate account",
+    });
+    if (!otpVerification) {
+      return handleError(res, 400, "Invalid OTP.");
+    }
+
+    const user = await User.findById(otpVerification.user);
+    if (!user) {
+      return handleError(res, 404, "User not found.");
+    }
+
+    user.emailVerified = true;
+    await user.save();
+
     // Generate token
     const token = generateToken({ id: user.id });
 
@@ -207,7 +371,7 @@ export const loginUser = async (
 
     res.status(200).json({
       success: true,
-      message: "User logged in successfully.",
+      message: "Email verified successful.",
       data: userData,
       token,
     });
@@ -300,6 +464,14 @@ export const resetPassword = async (
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
+    const notificationData = {
+      user: user._id,
+      body: "You password has been changed",
+      type: "account",
+      title: "Password Change",
+    };
+
+    await createNotification(notificationData);
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 

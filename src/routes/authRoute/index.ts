@@ -5,6 +5,7 @@ import {
   validateRegister,
   validateResetPassword,
   validateResetPasswordOTP,
+  validateVerifyEmailOTP,
 } from "../../middlewares/validators";
 import {
   addSchoolsBulk,
@@ -13,6 +14,7 @@ import {
   registerUser,
   resetPasswordOTP,
   resetPassword,
+  verifyEmail,
 } from "../../controllers/authController";
 
 const router = express.Router();
@@ -89,7 +91,7 @@ const router = express.Router();
  *               type: string
  *             role:
  *               type: string
- *               enum: [student, seller]
+ *               enum: [buyer, seller]
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -162,6 +164,27 @@ const router = express.Router();
  *         description: Password reset successful
  *       400:
  *         description: Invalid OTP or password
+ *
+ * /api/auth/verify-otp:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Verify Email
+ *     description: Verify user email using OTP
+ *     parameters:
+ *       - in: body
+ *         name: verifyOtp
+ *         description: OTP and email to verify user’s email
+ *         required: true
+ *         schema:
+ *           type: object
+ *           properties:
+ *             OTP:
+ *               type: string
+ *     responses:
+ *       200:
+ *         description: Email verified successful
+ *       400:
+ *         description: User not found
  */
 
 router.post("/school", validateAddSchoolsBulk, addSchoolsBulk);
@@ -171,5 +194,6 @@ router.post("/signup", validateRegister, registerUser);
 router.post("/login", validateLogin, loginUser);
 router.post("/reset-password-otp", validateResetPasswordOTP, resetPasswordOTP);
 router.post("/reset-password", validateResetPassword, resetPassword);
+router.post("/verify-otp", validateVerifyEmailOTP, verifyEmail);
 
 export default router;

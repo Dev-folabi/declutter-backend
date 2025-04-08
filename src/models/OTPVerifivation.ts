@@ -17,6 +17,7 @@ const OTPVerify = new Schema<OTPVerificationModelType>(
       enum: [
         "password",
         "transaction pin",
+        "activate account"
       ],
       default: "password",
     },

@@ -9,5 +9,6 @@ export interface UserRequest {
     nin?: string;
     accountNumber?: string;
     bankCode?: string;
+    bankName?: string;
     pin?: string;
   }
