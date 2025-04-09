@@ -14,10 +14,6 @@ import { decryptAccountDetail, decryptData, encryptData, generateOTP } from "../
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
-const PAYSTACK_BASE_URL =
-  process.env.PAYSTACK_BASE_URL || "https://api.paystack.co";
-
 export const addSchoolsBulk = async (
   req: Request,
   res: Response,
@@ -122,18 +118,18 @@ export const registerUser = async (
     }
 
     // // Check if user already exists based on email
-    // const existingUser = await User.findOne({ email });
-    // if (existingUser) {
-    //   return handleError(res, 400, "Email already exists, please login.");
-    // }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return handleError(res, 400, "Email already exists, please login.");
+    }
 
     // // Check if NIN exists (if provided)
-    // if (nin) {
-    //   const existingNin = await User.findOne({ nin });
-    //   if (existingNin) {
-    //     return handleError(res, 400, "NIN already exists, please login.");
-    //   }
-    // }
+    if (nin) {
+      const existingNin = await User.findOne({ nin });
+      if (existingNin) {
+        return handleError(res, 400, "NIN already exists, please login.");
+      }
+    }
 
     // Hash password and pin
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -224,8 +220,6 @@ export const registerUser = async (
       `
     );
 
-    // Generate token // todo: do not login user yet until email is verified
-    // const token = generateToken({ id: populatedUser.id });
 
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
@@ -239,7 +233,6 @@ export const registerUser = async (
       success: true,
       message: "User created successfully.",
       data: userData,
-      // token,
     });
   } catch (error) {
     next(error);

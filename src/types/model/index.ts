@@ -83,7 +83,6 @@ export interface ProductListingImage extends Document {
 // Interface for CartItem
 export interface ICartItem extends Document {
   product: Schema.Types.ObjectId;
-  cart: Schema.Types.ObjectId;
   quantity: number;
   price: number;
 }
@@ -94,6 +93,21 @@ export interface ICart extends Document {
   items: ICartItem[];
   totalPrice: number;
 }
+
+// // Interface for CartItem
+// export interface ICartItem extends Document {
+//   product: Schema.Types.ObjectId;
+//   cart: Schema.Types.ObjectId;
+//   quantity: number;
+//   price: number;
+// }
+
+// // Interface for Cart
+// export interface ICart extends Document {
+//   user: Schema.Types.ObjectId;
+//   items: ICartItem[];
+//   totalPrice: number;
+// }
 
 // Interface for OrderItem
 export interface IOrderItem extends Document {

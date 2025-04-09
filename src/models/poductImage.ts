@@ -1,7 +1,4 @@
-// import mongoose, { Schema } from "mongoose";
-// import { isEmail } from "validator";
 import { ProductListingImage } from "../types/model";
-
 
 import { Schema, model } from "mongoose";
 
@@ -20,5 +17,7 @@ const ProductImageSchema = new Schema<ProductListingImage>(
   { timestamps: true }
 );
 
-
-export const ProductImage = model<ProductListingImage>("ProductImage", ProductImageSchema);
+export const ProductImage = model<ProductListingImage>(
+  "ProductImage",
+  ProductImageSchema
+);
