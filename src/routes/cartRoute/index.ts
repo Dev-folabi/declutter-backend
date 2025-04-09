@@ -1,10 +1,9 @@
 import express from "express";
 import {
-    getUserCart,
-    orderCheckout,
-    removeItemFromCart,
-    addToCart,
-    updateCartItem,
+  getUserCart,
+  removeItemFromCart,
+  addToCart,
+  updateCartItem,
 } from "../../controllers/cartController";
 
 const router = express.Router();
@@ -27,19 +26,6 @@ const router = express.Router();
  *         description: Cart retrieved successfully.
  *       400:
  *         description: Unauthenticated user or other errors.
- */
-
-/**
- * @swagger
- * /api/cart/checkout:
- *   post:
- *     summary: Checkout the user's cart
- *     tags: [Cart]
- *     responses:
- *       201:
- *         description: Order created successfully.
- *       400:
- *         description: Unauthenticated user or cart is empty.
  */
 
 /**
@@ -110,9 +96,7 @@ const router = express.Router();
  *         description: Product not found in the cart or unauthenticated user.
  */
 
-
 router.get("/", getUserCart);
-router.post("/checkout", orderCheckout);
 router.delete("/remove/:product_id", removeItemFromCart);
 router.post("/add", addToCart);
 
