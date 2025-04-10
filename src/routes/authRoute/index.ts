@@ -16,6 +16,7 @@ import {
   resetPassword,
   verifyEmail,
 } from "../../controllers/authController";
+import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -187,7 +188,7 @@ const router = express.Router();
  *         description: User not found
  */
 
-router.post("/school", validateAddSchoolsBulk, addSchoolsBulk);
+router.post("/school", validateAddSchoolsBulk, verifyToken, authorizeRoles('admin'),  addSchoolsBulk);
 router.get("/schools", getSchools);
 
 router.post("/signup", validateRegister, registerUser);

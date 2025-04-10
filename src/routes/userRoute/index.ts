@@ -4,17 +4,18 @@ import {
   validateProfileUpdate,
   validateRequestOtp,
   validateBankUpdate,
-  validateChangePin
+  validateChangePin,
 } from "../../middlewares/validators";
 
-import { 
+import {
   changePassword,
   requestOTP,
   updateBankDetail,
-  updateProfile, 
+  updateProfile,
   userProfile,
-  updatePin
+  updatePin,
 } from "../../controllers/userController";
+import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -162,14 +163,33 @@ const router = express.Router();
  *         description: User profile retrieved successfully
  */
 
-
-
-
-router.get("/profile", userProfile);
-router.patch("/update-profile", validateProfileUpdate, updateProfile);
-router.patch("/changepassword", validateChangePassword, changePassword);
+router.get("/profile", verifyToken, userProfile);
+router.patch(
+  "/update-profile",
+  validateProfileUpdate,
+  verifyToken,
+  updateProfile
+);
+router.patch(
+  "/changepassword",
+  validateChangePassword,
+  verifyToken,
+  changePassword
+);
 router.post("/requestotp", validateRequestOtp, requestOTP);
-router.patch("/updateBank", validateBankUpdate, updateBankDetail);
-router.patch("/updatePin", validateChangePin, updatePin);
+router.patch(
+  "/updateBank",
+  validateBankUpdate,
+  verifyToken,
+  authorizeRoles("seller"),
+  updateBankDetail
+);
+router.patch(
+  "/updatePin",
+  validateChangePin,
+  verifyToken,
+  authorizeRoles("seller"),
+  updatePin
+);
 
 export default router;

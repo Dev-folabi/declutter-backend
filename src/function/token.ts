@@ -5,7 +5,9 @@ import dotenv from "dotenv";
 dotenv.config();
 
 interface TokenPayload {
-  id: string;
+  _id: string;
+  role: string[];
+  is_admin: boolean;
 }
 const JWT = process.env.JWT_SECRET_KEY as string;
 
@@ -15,10 +17,9 @@ export const generateToken = (payload: TokenPayload): string => {
   });
 };
 
-export const decodeToken = (token: string): string => {
+export const decodeToken = (token: string): TokenPayload => {
   try {
-    const decoded = jwt.verify(token, JWT) as TokenPayload;
-    return decoded.id;
+    return jwt.verify(token, JWT) as TokenPayload;
   } catch (error) {
     throw new Error("Invalid token");
   }
@@ -38,7 +39,7 @@ export const getIdFromToken = (req: Request): string => {
 
     const token = parts[1];
     const decoded = jwt.verify(token, JWT) as TokenPayload;
-    return decoded.id;
+    return decoded._id;
   } catch (error: any) {
     throw new Error(`Invalid token sent`);
   }

@@ -307,7 +307,7 @@ export const loginUser = async (
     }
 
     // Generate token
-    const token = generateToken({ id: user.id });
+    const token = generateToken({ _id: user.id, role: user.role, is_admin: user.is_admin});
 
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
@@ -357,7 +357,7 @@ export const verifyEmail = async (
     await user.save();
 
     // Generate token
-    const token = generateToken({ id: user.id });
+    const token =  generateToken({ _id: user.id, role: user.role, is_admin: user.is_admin });
 
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);

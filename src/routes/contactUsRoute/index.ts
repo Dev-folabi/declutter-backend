@@ -1,15 +1,14 @@
 import express from "express";
 
-
-import { 
+import {
   sendContactUsMessage,
   getContactMessages,
   updateContactus,
   getSingleContactMessages,
 } from "../../controllers/contactUsController";
+import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
-
 
 /**
  * @swagger
@@ -34,7 +33,7 @@ const router = express.Router();
  *             issue:
  *               type: string
  *               enum: [account, payment, order, others]
- *       
+ *
  *     responses:
  *       200:
  *         description: Message successfully marked as closed
@@ -63,7 +62,7 @@ const router = express.Router();
  *                       enum: [account, payment, order, others]
  *       404:
  *         description: Message not found
- * 
+ *
  * /api/admin/update-contact-us/{id}:
  *   patch:
  *     summary: Mark a contact message as closed
@@ -105,7 +104,7 @@ const router = express.Router();
  *                       enum: [account, payment, order, others]
  *       404:
  *         description: Message not found
- * 
+ *
  * /api/admin/single-contact-us/{id}:
  *   get:
  *     summary: Get a contact us message
@@ -147,7 +146,7 @@ const router = express.Router();
  *                       enum: [account, payment, order, others]
  *       404:
  *         description: Message not found
- * 
+ *
  * /api/admin/all-contact-us:
  *   get:
  *     summary: Get a contact us message
@@ -184,11 +183,24 @@ const router = express.Router();
  *         description: Message not found
  */
 
-
-
 router.post("/contact-us", sendContactUsMessage);
-router.get("/admin/all-contact-us", getContactMessages);
-router.get("/admin/single-contact-us/:id", getSingleContactMessages);
-router.patch("/admin/update-contact-us/:id", updateContactus);
+router.get(
+  "/admin/all-contact-us",
+  verifyToken,
+  authorizeRoles("admin"),
+  getContactMessages
+);
+router.get(
+  "/admin/single-contact-us/:id",
+  verifyToken,
+  authorizeRoles("admin"),
+  getSingleContactMessages
+);
+router.patch(
+  "/admin/update-contact-us/:id",
+  verifyToken,
+  authorizeRoles("admin"),
+  updateContactus
+);
 
 export default router;

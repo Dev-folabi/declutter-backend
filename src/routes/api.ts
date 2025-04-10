@@ -10,15 +10,16 @@ import weListenedRoute from "../routes/weListenedRoute"
 import orderRoute from "../routes/orderRoute"
 import cartRoute from "../routes/cartRoute"
 import contactUsRoute from "../routes/contactUsRoute"
+import { verifyToken } from "../middlewares/authMiddleware";
 const router = Router();
 
 router.use("/waitlist", waitlistRoute);
 router.use("/auth", authRoute);
 router.use("/user", userRoute);
-router.use("/notification", notificationsRoute);
+router.use("/notification", verifyToken, notificationsRoute);
 router.use("/product", productRoute);
-router.use("/order", orderRoute);
-router.use("/cart", cartRoute);
+router.use("/order", verifyToken, orderRoute);
+router.use("/cart", verifyToken, cartRoute);
 router.use("/welistened", weListenedRoute);
 router.use("/contactus", contactUsRoute);
 router.use('/payment', paymentRoute);

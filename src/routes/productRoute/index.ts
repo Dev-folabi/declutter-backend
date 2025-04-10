@@ -4,16 +4,17 @@ import {
   validateProductUpdate,
 } from "../../middlewares/validators";
 
-import { 
-  getSingleUnsoldProduct, 
+import {
+  getSingleUnsoldProduct,
   getAllUnsoldProduct,
   listAProduct,
   updateAProduct,
   getUnsoldProductsByCategory,
   getProductsByAdmin,
   approveAProduct,
-  getAllLongUnsoldProduct
+  getAllLongUnsoldProduct,
 } from "../../controllers/productController";
+import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
@@ -82,7 +83,7 @@ const router = express.Router();
  *         description: Product created successfully
  *       400:
  *         description: Invalid data
- * 
+ *
  * /api/product/updateproduct/id:
  *   patch:
  *     tags: [Product]
@@ -112,7 +113,7 @@ const router = express.Router();
  *         description: Product updated successfully
  *       400:
  *         description: Invalid data
- * 
+ *
  * /api/product/admin/approveproduct/:id:
  *   patch:
  *     tags: [Product]
@@ -126,13 +127,13 @@ const router = express.Router();
  *         schema:
  *           type: object
  *           properties:
- * 
+ *
  *     responses:
  *       200:
  *         description: Product approved successfully
  *       400:
  *         description: Invalid data
- * 
+ *
  * /api/product/admin/allproducts:
  *   get:
  *     tags: [Product]
@@ -143,7 +144,7 @@ const router = express.Router();
  *         description: All Product listings retrieved successfully
  *       400:
  *         description: Not found
- * 
+ *
  * /api/product/to-own:
  *   get:
  *     tags: [Product]
@@ -156,16 +157,36 @@ const router = express.Router();
  *         description: Not found
  */
 
-
-
-
 router.get("/allproducts", getAllUnsoldProduct);
 router.get("/to-own", getAllLongUnsoldProduct);
 router.get("/productincategory/:category", getUnsoldProductsByCategory);
 router.get("/product/:id", getSingleUnsoldProduct);
-router.post("/createproduct", validateProductListing, listAProduct);
-router.patch("/updateproduct/:id", validateProductUpdate, updateAProduct);
-router.get("/admin/allproducts", getProductsByAdmin);
-router.patch("/admin/approveproduct/:id", validateProductUpdate, approveAProduct);
+router.post(
+  "/createproduct",
+  validateProductListing,
+  verifyToken,
+  authorizeRoles("seller"),
+  listAProduct
+);
+router.patch(
+  "/updateproduct/:id",
+  validateProductUpdate,
+  verifyToken,
+  authorizeRoles("seller"),
+  updateAProduct
+);
+router.get(
+  "/admin/allproducts",
+  verifyToken,
+  authorizeRoles("admin"),
+  getProductsByAdmin
+);
+router.patch(
+  "/admin/approveproduct/:id",
+  validateProductUpdate,
+  verifyToken,
+  authorizeRoles("admin"),
+  approveAProduct
+);
 
 export default router;
