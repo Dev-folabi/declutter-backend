@@ -92,7 +92,7 @@ export const listAProduct = async (
     const newProduct = await Product.create({
       name,
       price,
-      productId,
+      productId: productId(),
       category,
       location,
       description,

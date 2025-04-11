@@ -10,7 +10,12 @@ import _ from "lodash";
 import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
-import { decryptAccountDetail, decryptData, encryptData, generateOTP } from "../utils";
+import {
+  decryptAccountDetail,
+  decryptData,
+  encryptData,
+  generateOTP,
+} from "../utils";
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
 
@@ -220,18 +225,17 @@ export const registerUser = async (
       `
     );
 
-
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
 
     try {
-          if (userData.accountDetail) {
-            decryptAccountDetail(userData.accountDetail);
-          }
-        } catch(e) { /* to make sure existing codes doesnt break */ }
-    
+      if (userData.accountDetail) {
+        decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
-        
     res.status(201).json({
       success: true,
       message: "User created successfully.",
@@ -310,17 +314,19 @@ export const loginUser = async (
     }
 
     // Generate token
-    const token = generateToken({ _id: user.id, role: user.role, is_admin: user.is_admin});
+    const token = generateToken({
+      _id: user.id,
+      role: user.role,
+      is_admin: user.is_admin,
+    });
 
     // Exclude sensitive fields from response
-    const userData = _.omit(user.toObject(), ["password", "pin",]);
+    const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     if (userData.accountDetail) {
-  userData.accountDetail = decryptAccountDetail(userData.accountDetail);
-}
+      userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+    }
 
-
-    
     res.status(200).json({
       success: true,
       message: "User logged in successfully.",
@@ -361,7 +367,11 @@ export const verifyEmail = async (
     await user.save();
 
     // Generate token
-    const token =  generateToken({ _id: user.id, role: user.role, is_admin: user.is_admin });
+    const token = generateToken({
+      _id: user.id,
+      role: user.role,
+      is_admin: user.is_admin,
+    });
 
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);

@@ -69,7 +69,7 @@ const router = express.Router();
  *       500:
  *         description: Internal server error
  *
- * /api/payment/verify/{reference}:
+ * /api/payment/verify:
  *   get:
  *     tags: [Payment]
  *     summary: Verify payment
@@ -163,7 +163,7 @@ router.get("/account-details", getAccountDetails);
 
 // Payment-related endpoints (requires authentication)
 router.post("/initiate/:order_id", verifyToken, initiateOrderPayment);
-router.get("/verify/:reference", verifyToken, verifyPayment);
+router.get("/verify", verifyToken, verifyPayment);
 
 // Webhook (does not require auth)
 router.post("/webhook", handlePaystackWebhook);

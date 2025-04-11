@@ -132,7 +132,7 @@ export const verifyPayment = async (
   res: Response,
   next: NextFunction
 ) => {
-  const { reference } = req.params;
+  const { reference } = req.query;
   const userId = (req as any).user._id;
 
   try {
@@ -166,7 +166,7 @@ export const verifyPayment = async (
       return;
     }
 
-    const paymentData = await paystack.verifyPayment(reference);
+    const paymentData = await paystack.verifyPayment(reference as string);
     if (paymentData.status !== "success") {
       res.status(400).json({
         success: false,
@@ -264,6 +264,7 @@ export const handlePaystackWebhook = async (
   next: NextFunction
 ) => {
   const payload = req.body;
+  console.log("payload:", req.body)
   const signature = req.headers["x-paystack-signature"] as string;
 
   try {
