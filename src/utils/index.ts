@@ -40,26 +40,24 @@ export function decryptData(encryptedData : any) {
     return decrypted;
 }
 
-export const decryptAccountDetail = (accountDetail: any) => {
+interface AccountDetail {
+  accountNumber?: string;
+  bankCode?: string;
+  bankName?: string;
+  recipientCode?: string;
+  // Add other properties as needed
+}
+
+export const decryptAccountDetail = (accountDetail: AccountDetail ) => {
   if (!accountDetail) return;
 
-  if (accountDetail.accountNumber !== undefined) {
-    accountDetail.accountNumber = decryptData(accountDetail.accountNumber);
-  }
-
-  if (accountDetail.bankCode !== undefined) {
-    accountDetail.bankCode = decryptData(accountDetail.bankCode);
-  }
-
-  if (accountDetail.bankName !== undefined) {
-    accountDetail.bankName = decryptData(accountDetail.bankName);
-  }
-
-  if (accountDetail.recipientCode !== undefined) {
-    accountDetail.recipientCode = decryptData(accountDetail.recipientCode);
-  }
+  accountDetail.accountNumber = accountDetail.accountNumber ? decryptData(accountDetail.accountNumber) : accountDetail.accountNumber;
+  accountDetail.bankCode = accountDetail.bankCode ? decryptData(accountDetail.bankCode) : accountDetail.bankCode;
+  accountDetail.bankName = accountDetail.bankName ? decryptData(accountDetail.bankName) : accountDetail.bankName;
+  accountDetail.recipientCode = accountDetail.recipientCode ? decryptData(accountDetail.recipientCode) : accountDetail.recipientCode;
 
   // accountName is just the user name
+  return accountDetail; // Return the modified object
 };
 
 export const requestOTP = async(
@@ -88,7 +86,7 @@ export const requestOTP = async(
         <p>You recently requested to ${reason}. Use the OTP below:</p>
         <h2>${OTP}</h2>
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
         <br />
       `
     );

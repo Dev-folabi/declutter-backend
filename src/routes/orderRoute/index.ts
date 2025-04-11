@@ -9,10 +9,14 @@ const router = express.Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Orders
+ *   description: Order management and operations
+ *
  * /api/order/orders/{order_id}/items:
  *   get:
  *     summary: Retrieve items for a specific order
- *     description: Fetches all items associated with a specific order for an authenticated user.
+ *     description: Fetches all items in a user's specific order.
  *     tags:
  *       - Orders
  *     parameters:
@@ -21,7 +25,9 @@ const router = express.Router();
  *         required: true
  *         schema:
  *           type: string
- *         description: The ID of the order whose items you want to retrieve.
+ *         description: The ID of the order.
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved order items.
@@ -30,12 +36,8 @@ const router = express.Router();
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Order items retrieved successfully."
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Order items retrieved successfully." }
  *                 data:
  *                   type: array
  *                   items:
@@ -43,27 +45,18 @@ const router = express.Router();
  *                     properties:
  *                       product:
  *                         $ref: '#/components/schemas/Product'
- *                       quantity:
- *                         type: number
- *                         example: 2
- *                       price:
- *                         type: number
- *                         example: 5000
+ *                       quantity: { type: number, example: 2 }
+ *                       price: { type: number, example: 5000 }
  *       400:
- *         description: User is not authenticated.
+ *         description: Authentication error.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "You need to be authenticated to perform this action."
- *                 data:
- *                   type: null
+ *                 success: { type: boolean, example: false }
+ *                 message: { type: string, example: "You need to be authenticated to perform this action." }
+ *                 data: { type: null }
  *       404:
  *         description: Order not found or access denied.
  *         content:
@@ -71,54 +64,36 @@ const router = express.Router();
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Order not found or you do not have access to this order."
- *                 data:
- *                   type: null
- */
-
-/**
- * @swagger
+ *                 success: { type: boolean, example: false }
+ *                 message: { type: string, example: "Order not found or you do not have access to this order." }
+ *                 data: { type: null }
+ *
  * /api/order:
  *   get:
- *     summary: Retrieve all order items for a user (My Orders / Order History)
- *     description: Retrieves all orders placed by the authenticated user, including product details in each order.
+ *     summary: Retrieve all orders for the authenticated user
+ *     description: Returns a list of all orders placed by the user.
  *     tags:
  *       - Orders
  *     security:
- *       - bearerAuth: []  # If you're using JWT authentication
+ *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Successfully retrieved order items.
+ *         description: Successfully retrieved orders.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Orders retrieved successfully."
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Orders retrieved successfully." }
  *                 data:
  *                   type: array
  *                   items:
  *                     type: object
  *                     properties:
- *                       _id:
- *                         type: string
- *                         example: "6612a97c3d87a8b5c9c3456f"
- *                       user:
- *                         type: string
- *                         example: "660e5b1234567f18c9d123ab"
- *                       totalPrice:
- *                         type: number
- *                         example: 300
+ *                       _id: { type: string, example: "6612a97c3d87a8b5c9c3456f" }
+ *                       user: { type: string, example: "660e5b1234567f18c9d123ab" }
+ *                       totalPrice: { type: number, example: 300 }
  *                       items:
  *                         type: array
  *                         items:
@@ -127,133 +102,86 @@ const router = express.Router();
  *                             product:
  *                               type: object
  *                               properties:
- *                                 _id:
- *                                   type: string
- *                                   example: "660e5b6c234567890abcdef1"
- *                                 title:
- *                                   type: string
- *                                   example: "Bluetooth Headphones"
- *                                 price:
- *                                   type: number
- *                                   example: 150
- *                                 image:
- *                                   type: string
- *                                   example: "headphones.jpg"
- *                             quantity:
- *                               type: number
- *                               example: 2
- *                             price:
- *                               type: number
- *                               example: 300
- *                       createdAt:
- *                         type: string
- *                         format: date-time
- *                         example: "2025-04-09T14:00:00.000Z"
+ *                                 _id: { type: string, example: "660e5b6c234567890abcdef1" }
+ *                                 title: { type: string, example: "Bluetooth Headphones" }
+ *                                 price: { type: number, example: 150 }
+ *                                 image: { type: string, example: "headphones.jpg" }
+ *                             quantity: { type: number, example: 2 }
+ *                             price: { type: number, example: 300 }
+ *                       createdAt: { type: string, format: date-time, example: "2025-04-09T14:00:00.000Z" }
  *       401:
- *         description: User is not authenticated.
+ *         description: Unauthorized user.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "You need to be authenticated to perform this action."
- *                 data:
- *                   type: null
- */
-
-/**
- * @swagger
+ *                 success: { type: boolean, example: false }
+ *                 message: { type: string, example: "You need to be authenticated to perform this action." }
+ *                 data: { type: null }
+ *
  * /api/order/checkout:
  *   post:
- *     summary: Checkout user's cart and create an order
- *     description: Converts all items in the authenticated user's cart into an order, reserves the products, and prepares for payment.
+ *     summary: Checkout and place a new order
+ *     description: Converts all cart items into an order and reserves the products.
  *     tags:
  *       - Orders
  *     security:
- *       - bearerAuth: []  # Assuming you're using JWT-based auth
+ *       - bearerAuth: []
  *     responses:
  *       201:
- *         description: Order created successfully and products reserved.
+ *         description: Order placed successfully.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: true
- *                 message:
- *                   type: string
- *                   example: "Order created successfully."
+ *                 success: { type: boolean, example: true }
+ *                 message: { type: string, example: "Order created successfully." }
  *                 data:
  *                   type: object
  *                   properties:
- *                     _id:
- *                       type: string
- *                       example: "6619b97c6b12a3a0c7123456"
- *                     user:
- *                       type: string
- *                       example: "660e5b1234567f18c9d123ab"
- *                     totalPrice:
- *                       type: number
- *                       example: 500
+ *                     _id: { type: string, example: "6619b97c6b12a3a0c7123456" }
+ *                     user: { type: string, example: "660e5b1234567f18c9d123ab" }
+ *                     totalPrice: { type: number, example: 500 }
  *                     items:
  *                       type: array
  *                       items:
  *                         type: object
  *                         properties:
- *                           product:
- *                             type: string
- *                             example: "660e5b6c234567890abcdef1"
- *                           quantity:
- *                             type: number
- *                             example: 2
- *                           price:
- *                             type: number
- *                             example: 250
- *                     createdAt:
- *                       type: string
- *                       format: date-time
- *                       example: "2025-04-09T14:00:00.000Z"
+ *                           product: { type: string, example: "660e5b6c234567890abcdef1" }
+ *                           quantity: { type: number, example: 2 }
+ *                           price: { type: number, example: 250 }
+ *                     createdAt: { type: string, format: date-time, example: "2025-04-09T14:00:00.000Z" }
  *       400:
- *         description: Bad request - cart is empty or product not found.
+ *         description: Cart is empty or contains invalid products.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Cart is empty."
- *                 data:
- *                   type: null
+ *                 success: { type: boolean, example: false }
+ *                 message: { type: string, example: "Cart is empty." }
+ *                 data: { type: null }
  *       401:
- *         description: Unauthorized - user is not authenticated.
+ *         description: Unauthorized user.
  *         content:
  *           application/json:
  *             schema:
  *               type: object
  *               properties:
- *                 success:
- *                   type: boolean
- *                   example: false
- *                 message:
- *                   type: string
- *                   example: "Unauthenticated user cannot list a product."
- *                 data:
- *                   type: null
+ *                 success: { type: boolean, example: false }
+ *                 message: { type: string, example: "Unauthenticated user cannot create an order." }
+ *                 data: { type: null }
  */
 
+// Get all orders for the authenticated user
 router.get("/", getUserOrders);
-router.get("/orders/:order_id/items/", getOrderItems);
+
+// Get items in a specific order
+router.get("/orders/:order_id/items", getOrderItems);
+
+// Checkout cart and create an order
 router.post("/checkout", orderCheckout);
 
 export default router;

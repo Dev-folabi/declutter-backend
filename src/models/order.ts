@@ -25,6 +25,12 @@ const OrderSchema: Schema = new Schema<IOrder>(
     },
     items: [OrderItemSchema],
     totalPrice: { type: Number, required: false, min: 0 },
+  status: { 
+    type: String, 
+    required: true, 
+    enum: ["pending", "paid", "failed", "refunded"], 
+    default: "pending" 
+  },
   },
   { timestamps: true }
 );

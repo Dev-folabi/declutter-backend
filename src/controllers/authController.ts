@@ -225,10 +225,13 @@ export const registerUser = async (
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
 
     try {
-          decryptAccountDetail(userData.accountDetail);
+          if (userData.accountDetail) {
+            decryptAccountDetail(userData.accountDetail);
+          }
         } catch(e) { /* to make sure existing codes doesnt break */ }
     
 
+        
     res.status(201).json({
       success: true,
       message: "User created successfully.",
@@ -310,13 +313,14 @@ export const loginUser = async (
     const token = generateToken({ _id: user.id, role: user.role, is_admin: user.is_admin});
 
     // Exclude sensitive fields from response
-    const userData = _.omit(user.toObject(), ["password", "pin"]);
+    const userData = _.omit(user.toObject(), ["password", "pin",]);
 
-    try {
-          decryptAccountDetail(userData.accountDetail);
-        } catch(e) { /* to make sure existing codes doesnt break */ }
+    if (userData.accountDetail) {
+  userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+}
+
+
     
-
     res.status(200).json({
       success: true,
       message: "User logged in successfully.",

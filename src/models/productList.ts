@@ -1,7 +1,4 @@
-// import mongoose, { Schema } from "mongoose";
-// import { isEmail } from "validator";
 import { ProductListingType } from "../types/model";
-
 
 import { Schema, model } from "mongoose";
 
@@ -16,7 +13,7 @@ const ProductListSchema = new Schema<ProductListingType>(
       type: String,
       required: true,
     },
-    productId:{
+    productId: {
       type: String,
       required: true,
     },
@@ -32,9 +29,9 @@ const ProductListSchema = new Schema<ProductListingType>(
         "gaming & entertainment",
         "health & personal care",
         "hobbies & crafts",
-        "miscellaneous"
+        "miscellaneous",
       ],
-      required: true
+      required: true,
     },
     location: {
       type: String,
@@ -59,10 +56,13 @@ const ProductListSchema = new Schema<ProductListingType>(
     is_reserved: {
       type: Boolean,
       default: false,
+    },
+    hasSettled: {
+      type: Boolean,
+      default: false,
     }
   },
   { timestamps: true }
 );
-
 
 export const Product = model<ProductListingType>("Product", ProductListSchema);

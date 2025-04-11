@@ -27,6 +27,8 @@ const userSchema = new Schema<IUser>(
       bankName: { type: String },
       accountName: { type: String },
       recipientCode: { type: String },
+      balance: { type: Number, default: 0 },
+      pendingBalance: { type: Number, default: 0 }
     },
     pin: { type: String },
     role: { type: [String], enum: ["seller", "buyer"], required: true },

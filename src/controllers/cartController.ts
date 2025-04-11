@@ -1,10 +1,18 @@
-import { ICartItem } from "./../types/model/index";
-import { Product } from "../models/productList";
 import { Request, Response, NextFunction } from "express";
-import _ from "lodash";
 import { getIdFromToken } from "../function/token";
 import { User } from "../models/userModel";
 import { Cart } from "../models/cart";
+import { Product } from "../models/productList";
+import { ICartItem } from "../types/model/index";
+
+/** Utility to get or create a cart */
+const getOrCreateCart = async (userId: string) => {
+  let cart = await Cart.findOne({ user: userId });
+  if (!cart) {
+    cart = await Cart.create({ user: userId, items: [], totalPrice: 0 });
+  }
+  return cart;
+};
 
 export const getUserCart = async (
   req: Request,
@@ -12,77 +20,24 @@ export const getUserCart = async (
   next: NextFunction
 ) => {
   try {
-    const user = await User.findById(getIdFromToken(req));
+    const userId = getIdFromToken(req);
+    const user = await User.findById(userId);
 
     if (!user) {
-      res.status(400).json({
+      res.status(401).json({
         success: false,
-        message: "Unauthenticated user cannot list a product.",
+        message: "Unauthorized. Please log in.",
         data: null,
       });
+      return;
     }
-    let cart = await Cart.findOne({ user: user?._id });
-    if (!cart) {
-      cart = await Cart.create({
-        user: user?._id,
-        items: [],
-        totalPrice: 0,
-      });
-    }
+
+    const cart = await getOrCreateCart(user._id as string);
 
     res.status(200).json({
       success: true,
       message: "Cart retrieved successfully.",
       data: cart,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const removeItemFromCart = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById(getIdFromToken(req));
-
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "Unauthenticated user cannot list a product.",
-        data: null,
-      });
-    }
-    const { product_id } = req.params;
-
-    let cart = await Cart.findOne({ user: user?._id });
-    if (!cart) {
-      cart = await Cart.create({
-        user: user?._id,
-        totalPrice: 0,
-      });
-    }
-
-    const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === product_id
-    );
-    if (itemIndex === -1) {
-      res.status(404).json({
-        success: false,
-        message: "Item not found in the cart.",
-        data: null,
-      });
-      return;
-    }
-    cart.items.splice(itemIndex, 1);
-    const updatedCart = await cart.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Item has been removed from your cart successfully.",
-      data: updatedCart,
     });
   } catch (error) {
     next(error);
@@ -97,17 +52,16 @@ export const addToCart = async (
   try {
     const userId = getIdFromToken(req);
     const user = await User.findById(userId);
-
     if (!user) {
-      res.status(400).json({
+      res.status(401).json({
         success: false,
-        message: "Unauthenticated user cannot list a product.",
+        message: "Unauthorized. Please log in.",
         data: null,
       });
       return;
     }
 
-    const { product_id, quantity } = req.body;
+    const { product_id, quantity = 1 } = req.body;
 
     const product = await Product.findOne({
       _id: product_id,
@@ -117,50 +71,82 @@ export const addToCart = async (
     });
 
     if (!product) {
-      res.status(400).json({
+      res.status(404).json({
         success: false,
-        message: "Product not found.",
+        message: "Product not found or unavailable.",
         data: null,
       });
       return;
     }
 
-    let cart = await Cart.findOne({ user: user._id });
-
-    if (!cart) {
-      cart = new Cart({
-        user: user._id,
-        items: [],
-        totalPrice: 0,
-      });
-    }
-    const existingItemIndex = cart.items.findIndex(
+    const cart = await getOrCreateCart(user._id as string);
+    const existingIndex = cart.items.findIndex(
       (item) => item.product.toString() === (product._id as string)
     );
+    const totalItemPrice = quantity * Number(product.price);
 
-    const qtyToAdd = quantity || 1;
-    const totalItemPrice = Number(product.price) * qtyToAdd;
-
-    if (existingItemIndex > -1) {
-      // Update existing item
-      cart.items[existingItemIndex].quantity += qtyToAdd;
-      cart.items[existingItemIndex].price += totalItemPrice;
+    if (existingIndex > -1) {
+      cart.items[existingIndex].quantity += quantity;
+      cart.items[existingIndex].price += totalItemPrice;
     } else {
-      // Add new item
       cart.items.push({
         product: product._id,
-        quantity: qtyToAdd,
+        quantity,
         price: totalItemPrice,
       } as ICartItem);
     }
 
     cart.totalPrice += totalItemPrice;
-
     await cart.save();
 
     res.status(201).json({
       success: true,
       message: "Product added to cart successfully.",
+      data: cart,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const removeItemFromCart = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = getIdFromToken(req);
+    const user = await User.findById(userId);
+    if (!user) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized. Please log in.",
+        data: null,
+      });
+      return;
+    }
+    const { product_id } = req.params;
+    const cart = await getOrCreateCart(user._id as string);
+    const itemIndex = cart.items.findIndex(
+      (item) => item.product.toString() === product_id.toString()
+    );
+
+    if (itemIndex === -1) {
+      res.status(404).json({
+        success: false,
+        message: "Item not found in the cart.",
+        data: null,
+      });
+      return;
+    }
+
+    cart.items.splice(itemIndex, 1);
+    cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price, 0);
+    await cart.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Item removed from cart successfully.",
       data: cart,
     });
   } catch (error) {
@@ -176,11 +162,10 @@ export const updateCartItem = async (
   try {
     const userId = getIdFromToken(req);
     const user = await User.findById(userId);
-
     if (!user) {
-      res.status(400).json({
+      res.status(401).json({
         success: false,
-        message: "Unauthenticated user cannot update a cart item.",
+        message: "Unauthorized. Please log in.",
         data: null,
       });
       return;
@@ -188,10 +173,10 @@ export const updateCartItem = async (
 
     const { product_id, quantity } = req.body;
 
-    if (!product_id || !quantity || quantity < 1) {
+    if (!product_id || !Number.isInteger(quantity) || quantity < 1) {
       res.status(400).json({
         success: false,
-        message: "Product ID and a valid quantity are required.",
+        message: "Valid product_id and quantity (integer >= 1) are required.",
         data: null,
       });
       return;
@@ -204,16 +189,15 @@ export const updateCartItem = async (
     });
 
     if (!product) {
-      res.status(400).json({
+      res.status(404).json({
         success: false,
-        message: "Product not found.",
+        message: "Product not found or unavailable.",
         data: null,
       });
       return;
     }
 
     const cart = await Cart.findOne({ user: user._id });
-
     if (!cart) {
       res.status(404).json({
         success: false,
@@ -222,32 +206,24 @@ export const updateCartItem = async (
       });
       return;
     }
+
     const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === (product as any)._id.toString()
+      (item) => item.product.toString() === (product._id as string)
     );
 
     if (itemIndex === -1) {
-      res.status(400).json({
+      res.status(404).json({
         success: false,
-        message: "Can't find the product in your cart.",
+        message: "Product not found in cart.",
         data: null,
       });
       return;
     }
 
-    // Calculate total price from scratch
-    let newTotalPrice = 0;
-
-    // Update the quantity and price of the item
     cart.items[itemIndex].quantity = quantity;
     cart.items[itemIndex].price = quantity * Number(product.price);
 
-    // Recalculate total cart price
-    cart.items.forEach((item) => {
-      newTotalPrice += item.price;
-    });
-
-    cart.totalPrice = newTotalPrice;
+    cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price, 0);
     await cart.save();
 
     res.status(200).json({

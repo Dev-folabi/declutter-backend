@@ -1,5 +1,3 @@
-// import mongoose, { Schema } from "mongoose";
-// import { isEmail } from "validator";
 import { IUser, NotificationType } from "../types/model";
 
 

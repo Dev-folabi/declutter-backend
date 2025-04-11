@@ -32,8 +32,12 @@ export const userProfile = async (
 
     // to make sure existing implementations doesnt break
     try {
-      decryptAccountDetail(userData.accountDetail);
-    } catch(e) { /* to make sure existing codes doesnt break */ }
+      if (userData.accountDetail) {
+        userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
     res.status(200).json({
       success: true,
@@ -72,8 +76,12 @@ export const updateProfile = async (
     //     req.body.pin = hashedPin
     // }
     const data = _.omit(req.body, ["currentPassword"]);
-    
-    const updatedUser = await User.findByIdAndUpdate(user_id, { $set: data }, {new: true});
+
+    const updatedUser = await User.findByIdAndUpdate(
+      user_id,
+      { $set: data },
+      { new: true }
+    );
     // user.save();
 
     const notificationData = {
@@ -88,8 +96,12 @@ export const updateProfile = async (
     const userData = _.omit(updatedUser?.toObject(), ["password", "pin"]);
 
     try {
-      decryptAccountDetail(userData.accountDetail);
-    } catch(e) { /* to make sure existing codes doesnt break */ }
+      if (userData.accountDetail) {
+        userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
     await sendEmail(
       user.email,
@@ -132,8 +144,7 @@ export const updateBankDetail = async (
       accountName,
       accountNumber,
       bankCode,
-    } = req.body
-
+    } = req.body;
 
     const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
     if (!isValidPin) {
@@ -147,7 +158,7 @@ export const updateBankDetail = async (
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
     }
-    
+
     // const otp = OTPisValid(OTP, action, user)
     // if (!otp) {
     //   return handleError(res, 400, "Invalid OTP.");
@@ -165,7 +176,6 @@ export const updateBankDetail = async (
     const encryptedRecipientCode = encryptData(recipientCode);
     const encryptedBankName = encryptData(account.bank_name);
 
-
     const accountDetail = {
       accountName: account.account_name,
       accountNumber: encryptedAccountNumber,
@@ -174,7 +184,11 @@ export const updateBankDetail = async (
       recipientCode: encryptedRecipientCode,
     };
 
-    await User.updateOne({ _id: user_id }, { accountDetail }, { new: true, upsert: true });
+    await User.updateOne(
+      { _id: user_id },
+      { accountDetail },
+      { new: true, upsert: true }
+    );
     user.save();
 
     const notificationData = {
@@ -187,11 +201,15 @@ export const updateBankDetail = async (
     await createNotification(notificationData);
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
-    
+
     // Decrypt fields in response
     try {
-      decryptAccountDetail(userData.accountDetail);
-    } catch(e) { /* to make sure existing codes doesnt break */ }
+      if (userData.accountDetail) {
+        userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
     await sendEmail(
       user.email,
@@ -249,7 +267,11 @@ export const updatePin = async (
     const hashedPin = await bcrypt.hash(new_pin, 10);
     let data = { pin: hashedPin };
 
-    await User.updateOne({ _id: user_id }, { $set: data }, { new: true, runValidators: true });
+    await User.updateOne(
+      { _id: user_id },
+      { $set: data },
+      { new: true, runValidators: true }
+    );
     user.save();
 
     const notificationData = {
@@ -264,8 +286,12 @@ export const updatePin = async (
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     try {
-      decryptAccountDetail(userData.accountDetail);
-    } catch(e) { /* to make sure existing codes doesnt break */ }
+      if (userData.accountDetail) {
+        userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
     await sendEmail(
       user.email,
@@ -317,15 +343,18 @@ export const changePassword = async (
       return handleError(res, 400, "Invalid email or password.");
     }
 
-
     if (!(new_password === confirm_password)) {
       return handleError(res, 400, "Password doesn't match.");
     }
 
     const hashedPassword = await bcrypt.hash(new_password, 10);
-    let data = {password: hashedPassword}
-    await User.updateOne({_id: user_id}, {$set: data}, { new: true, runValidators: true })
-    user.save()
+    let data = { password: hashedPassword };
+    await User.updateOne(
+      { _id: user_id },
+      { $set: data },
+      { new: true, runValidators: true }
+    );
+    user.save();
 
     const notificationData = {
       user: user_id,
@@ -339,9 +368,12 @@ export const changePassword = async (
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     try {
-      decryptAccountDetail(userData.accountDetail);
-    } catch(e) { /* to make sure existing codes doesnt break */ }
-
+      if (userData.accountDetail) {
+        userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
     await sendEmail(
       user.email,

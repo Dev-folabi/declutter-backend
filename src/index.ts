@@ -6,6 +6,7 @@ import routes from "./routes/api";
 import connectDB from "./db";
 import { errorHandler } from "./error/errorHandler";
 import swaggerRouter from './swagger';
+import "./cronJob/cron"
 
 // Dotenv config
 dotenv.config();

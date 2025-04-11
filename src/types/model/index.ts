@@ -19,6 +19,8 @@ export interface IUser extends Document {
     bankCode?: string;
     bankName?: string;
     recipientCode?: string;
+    balance?: number;
+    pendingBalance?: number;
   };
   pin: string;
   role: string[];
@@ -72,6 +74,7 @@ export interface ProductListingType extends Document {
   is_approved: boolean;
   is_sold: boolean;
   is_reserved: boolean;
+  hasSettled: boolean;
   seller: Schema.Types.ObjectId;
 }
 
@@ -106,6 +109,7 @@ export interface IOrder extends Document {
   user: Schema.Types.ObjectId;
   items: IOrderItem[];
   totalPrice: number;
+  status: string;
 }
 
 // Interface for Order
