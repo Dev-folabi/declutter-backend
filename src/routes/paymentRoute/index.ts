@@ -77,7 +77,7 @@ const router = express.Router();
  *     security:
  *       - bearerAuth: []
  *     parameters:
- *       - in: path
+ *       - in: query
  *         name: reference
  *         required: true
  *         schema:

@@ -264,9 +264,7 @@ export const handlePaystackWebhook = async (
   next: NextFunction
 ) => {
   const payload = req.body;
-  console.log({req})
-  console.log("payload:", req.body)
-  const signature = req.headers["x-paystack-signature"] as string;
+  const signature = req.headers["X-Paystack-Signature"] as string;
 
   try {
     if (!verifyWebhookSignature(payload, signature)) {
