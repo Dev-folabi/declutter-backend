@@ -4,6 +4,7 @@ import { User } from "../models/userModel";
 import { Cart } from "../models/cart";
 import { Product } from "../models/productList";
 import { ICartItem } from "../types/model/index";
+import { handleError } from "../error/errorHandler";
 
 /** Utility to get or create a cart */
 const getOrCreateCart = async (userId: string) => {
@@ -78,7 +79,10 @@ export const addToCart = async (
       });
       return;
     }
-
+    if (product.seller.toString() === userId) {
+      handleError(res, 400, "You can't buy your own product");
+      return;
+    }
     const cart = await getOrCreateCart(user._id as string);
     const existingIndex = cart.items.findIndex(
       (item) => item.product.toString() === (product._id as string)

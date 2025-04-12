@@ -58,6 +58,7 @@ export interface ProductListingType extends Document {
   name: string;
   price: number;
   productId: string;
+  productImage: string[];
   category:
     | "electronics"
     | "books & stationery"
@@ -76,11 +77,6 @@ export interface ProductListingType extends Document {
   is_reserved: boolean;
   hasSettled: boolean;
   seller: Schema.Types.ObjectId;
-}
-
-export interface ProductListingImage extends Document {
-  product: Schema.Types.ObjectId;
-  image_url: string;
 }
 
 // Interface for CartItem

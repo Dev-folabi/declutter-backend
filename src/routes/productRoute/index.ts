@@ -88,6 +88,7 @@ const router = express.Router();
  *               - location
  *               - description
  *               - category
+ *               - productImage
  *             properties:
  *               name:
  *                 type: string
@@ -110,6 +111,10 @@ const router = express.Router();
  *                   - health & personal care
  *                   - hobbies & crafts
  *                   - miscellaneous
+ *                 productImage:
+ *                  type: array
+ *                  items:
+ *                    type: string
  *     responses:
  *       200:
  *         description: Product created successfully

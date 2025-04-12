@@ -2,6 +2,7 @@ import { ProductListingType } from "../types/model";
 
 import { Schema, model } from "mongoose";
 
+
 const ProductListSchema = new Schema<ProductListingType>(
   {
     seller: {
@@ -17,6 +18,10 @@ const ProductListSchema = new Schema<ProductListingType>(
       type: String,
       required: true,
     },
+    productImage: [
+     { type: String,
+      required: true},
+    ],
     category: {
       type: String,
       enum: [

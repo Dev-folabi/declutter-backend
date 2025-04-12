@@ -259,6 +259,15 @@ export const validateProductListing = [
     .isString().withMessage("Product location must be string")
     .notEmpty().withMessage("Product location is required")
     .withMessage("location must be a string"),
+  body("productImage")
+    .isArray()
+    .withMessage("Product images must be an array")
+    .notEmpty()
+    .withMessage("At least three product images are required.")
+    .isArray({ min: 3 })
+    .withMessage("At least three product images are required.")
+    .isString()
+    .withMessage("Each product image must be a string"),
   body("description")
     .isString()
     .notEmpty().withMessage("Product description is required")

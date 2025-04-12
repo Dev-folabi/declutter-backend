@@ -84,7 +84,16 @@ export const listAProduct = async (
       });
     }
 
-    const { name, category, price, location, description } = req.body;
+    const { name, category, price, productImage, location, description } = req.body;
+
+    if (productImage.length < 3) {
+      res.status(400).json({
+        success: false,
+        message: "At least three product images are required.",
+        data: null,
+      });
+      return;
+    }
 
     const productId = () => {
       return `DM-${Date.now()}`;
@@ -97,6 +106,7 @@ export const listAProduct = async (
       location,
       description,
       seller: user?._id,
+      productImage
     });
 
     const productData = _.omit(newProduct.toObject(), ["is_sold"]);
