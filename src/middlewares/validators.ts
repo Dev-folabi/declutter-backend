@@ -265,9 +265,7 @@ export const validateProductListing = [
     .notEmpty()
     .withMessage("At least three product images are required.")
     .isArray({ min: 3 })
-    .withMessage("At least three product images are required.")
-    .isString()
-    .withMessage("Each product image must be a string"),
+    .withMessage("At least three product images are required."),
   body("description")
     .isString()
     .notEmpty().withMessage("Product description is required")
@@ -318,6 +316,13 @@ export const validateProductUpdate = [
     .withMessage("Description must be a string")
     .notEmpty()
     .withMessage("Description cannot be empty"),
+
+  check("productImage")
+    .if((value, { req }) => req.body.productImage)
+    .isArray()
+    .withMessage("Product images must be an array")
+    .notEmpty()
+    .withMessage("At least one product image is required"),
 
   handleValidationErrors,
 ];
