@@ -63,7 +63,6 @@ export const moveFundsAfterFiveDays = async () => {
           amount: creditAmount,
           transactionType: "credit",
           description: `Released earnings for sold product: "${product.name}"`,
-          charges: 0,
           status: "completed",
           transactionDate: new Date(),
         });

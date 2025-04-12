@@ -24,7 +24,7 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
       enum: ["pending", "completed", "failed", "refund"],
       default: "pending",
     },
-    charges: { type: Number, required: true, min: 0 },
+    charges: { type: Number, min: 0 },
     transactionType: {
       type: String,
       required: true,
