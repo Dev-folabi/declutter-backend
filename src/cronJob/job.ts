@@ -41,9 +41,13 @@ export const moveFundsAfterFiveDays = async () => {
 
         // Ensure there's enough pending balance
         if ((seller.accountDetail.pendingBalance || 0) < creditAmount) continue;
-        
+
         // Move from pending to available balance
-        if (seller.accountDetail && typeof seller.accountDetail.pendingBalance === 'number' && typeof seller.accountDetail.balance === 'number') {
+        if (
+          seller.accountDetail &&
+          typeof seller.accountDetail.pendingBalance === "number" &&
+          typeof seller.accountDetail.balance === "number"
+        ) {
           seller.accountDetail.pendingBalance -= creditAmount;
           seller.accountDetail.balance += creditAmount;
           await seller.save();
@@ -59,6 +63,7 @@ export const moveFundsAfterFiveDays = async () => {
           amount: creditAmount,
           transactionType: "credit",
           description: `Released earnings for sold product: "${product.name}"`,
+          charges: 0,
           status: "completed",
           transactionDate: new Date(),
         });
@@ -75,10 +80,11 @@ export const moveFundsAfterFiveDays = async () => {
           sendEmail(seller.email!, "Earnings Released", message),
         ]);
 
-        console.log(`✅ Released NGN ${creditAmount} to seller (${seller.email})`);
+        console.log(
+          `✅ Released NGN ${creditAmount} to seller (${seller.email})`
+        );
       }
     }
-
   } catch (err: any) {
     console.error("❌ Error in balance release job:", err.message);
   }

@@ -104,7 +104,7 @@ export const initiateOrderPayment = async (
 
     // Record the transaction in the database
     const transaction = new Transaction({
-      userId: order.user.toString(),
+      userId: (order.user as any)._id,
       amount: order.totalPrice,
       transactionDate: new Date(),
       status: "pending",
@@ -158,7 +158,7 @@ export const verifyPayment = async (
       return;
     }
 
-    if (transaction.userId.toString() !== userId) {
+    if (transaction.userId.toString() !== userId.toString()) {
       res.status(403).json({
         success: false,
         message: "You do not have permission to verify this payment.",
@@ -224,10 +224,6 @@ export const verifyPayment = async (
             (seller.accountDetail.pendingBalance || 0) + creditAmount;
           await seller.save();
 
-          console.log(
-            `Notified seller ${seller.email}: Product "${product.name}" sold. Ref: ${reference}`
-          );
-
           const notificationData = {
             user: seller._id,
             body: `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
@@ -264,7 +260,9 @@ export const handlePaystackWebhook = async (
   next: NextFunction
 ) => {
   const payload = req.body;
-  const signature = req.headers["X-Paystack-Signature"] as string;
+  const signature =
+    (req.headers["x-paystack-signature"] as string) ||
+    (req.headers["X-Paystack-Signature"] as string);
 
   try {
     if (!verifyWebhookSignature(payload, signature)) {
