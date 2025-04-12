@@ -9,7 +9,7 @@ import { ProductListingType } from "../types/model";
 import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import bcrypt from "bcrypt";
-import { decryptAccountDetail } from "../utils";
+import { decryptAccountDetail, encryptData } from "../utils";
 
 const environment = getEnvironment();
 
@@ -486,7 +486,18 @@ export const withdrawFunds = async (
     });
 
     // Deduct from balance
-    user.accountDetail.balance -= amount;
+    const deductBalance = (user.accountDetail.balance -= amount);
+
+    user.accountDetail = {
+      balance: deductBalance,
+      pendingBalance: user.accountDetail.pendingBalance,
+      accountName: user.accountDetail.accountName,
+      accountNumber: encryptData(accountDetail.accountNumber),
+      bankCode: encryptData(accountDetail.bankCode),
+      bankName: encryptData(accountDetail.bankName),
+      recipientCode: encryptData(recipientCode),
+    };
+
     await user.save();
 
     const bodyMsg = `You have successfully withdrawn NGN ${amount}. Reference: ${reference}`;
