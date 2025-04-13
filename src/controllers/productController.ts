@@ -268,7 +268,7 @@ export const getUnsoldProductsByCategory = async (
     // Remove search from query as it's not a field in the document
     delete query.search;
 
-    const products = await Product.find({ query })
+    const products = await Product.find(query)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
