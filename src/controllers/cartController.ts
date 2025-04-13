@@ -8,7 +8,7 @@ import { handleError } from "../error/errorHandler";
 
 /** Utility to get or create a cart */
 const getOrCreateCart = async (userId: string) => {
-  let cart = await Cart.findOne({ user: userId }).populate("items.product", "name price image");
+  let cart = await Cart.findOne({ user: userId }).populate("items.product", "name productImage");
   if (!cart) {
     cart = await Cart.create({ user: userId, items: [], totalPrice: 0 });
   }
