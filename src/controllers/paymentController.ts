@@ -105,7 +105,7 @@ export const initiateOrderPayment = async (
     // Record the transaction in the database
     const transaction = new Transaction({
       userId: (order.user as any)._id,
-      amount: order.totalPrice,
+      amount: order.totalPrice - charges,
       transactionDate: new Date(),
       status: "pending",
       charges,
