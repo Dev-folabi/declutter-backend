@@ -1,7 +1,11 @@
 import OTPVerification from "../models/OTPVerifivation";
 import { IUser } from "../types/model";
 import { sendEmail } from "./mail";
+import dotenv from "dotenv";
 
+import crypto from 'crypto';
+
+dotenv.config();
 export function generateOTP(length: number = 6): string {
   const digits = '0123456789';
   let otp = '';
@@ -11,6 +15,50 @@ export function generateOTP(length: number = 6): string {
   return otp;
 }
 
+const algorithm = 'aes-256-cbc';
+const secretKey = process.env.SECRET_KEY || ''; // 32-byte key
+const iv = crypto.randomBytes(16);
+
+// Encrypt Function
+export function encryptData(data : any) {
+    const cipher = crypto.createCipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+    let encrypted = cipher.update(data, 'utf-8', 'hex');
+    encrypted += cipher.final('hex');
+    return iv.toString('hex') + ':' + encrypted;
+}
+
+// Decrypt Function
+export function decryptData(encryptedData : any) {
+    console.log(encryptData);
+    const parts = encryptedData.split(':');
+    const iv = Buffer.from(parts[0], 'hex');
+    const encryptedText = parts[1];
+
+    const decipher = crypto.createDecipheriv(algorithm, Buffer.from(secretKey, 'hex'), iv);
+    let decrypted = decipher.update(encryptedText, 'hex', 'utf-8');
+    decrypted += decipher.final('utf-8');
+    return decrypted;
+}
+
+interface AccountDetail {
+  accountNumber?: string;
+  bankCode?: string;
+  bankName?: string;
+  recipientCode?: string;
+  // Add other properties as needed
+}
+
+export const decryptAccountDetail = (accountDetail: AccountDetail ) => {
+  if (!accountDetail) return;
+
+  accountDetail.accountNumber = accountDetail.accountNumber ? decryptData(accountDetail.accountNumber) : accountDetail.accountNumber;
+  accountDetail.bankCode = accountDetail.bankCode ? decryptData(accountDetail.bankCode) : accountDetail.bankCode;
+  accountDetail.bankName = accountDetail.bankName ? decryptData(accountDetail.bankName) : accountDetail.bankName;
+  accountDetail.recipientCode = accountDetail.recipientCode ? decryptData(accountDetail.recipientCode) : accountDetail.recipientCode;
+
+  // accountName is just the user name
+  return accountDetail; // Return the modified object
+};
 
 export const requestOTP = async(
   user: IUser,
@@ -38,7 +86,7 @@ export const requestOTP = async(
         <p>You recently requested to ${reason}. Use the OTP below:</p>
         <h2>${OTP}</h2>
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
         <br />
       `
     );

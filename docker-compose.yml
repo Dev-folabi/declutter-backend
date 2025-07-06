@@ -1,0 +1,13 @@
+services:
+  app:
+    build: .
+    container_name: declutmart
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env
+    volumes:
+      - .:/app 
+      - /app/node_modules
+    restart: unless-stopped
+   

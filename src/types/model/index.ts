@@ -19,6 +19,8 @@ export interface IUser extends Document {
     bankCode?: string;
     bankName?: string;
     recipientCode?: string;
+    balance?: number;
+    pendingBalance?: number;
   };
   pin: string;
   role: string[];
@@ -26,6 +28,7 @@ export interface IUser extends Document {
   emailVerified: boolean;
   sellerProfileComplete: boolean;
   profileImageURL: string;
+  is_admin: boolean;
 }
 
 export interface OTPVerificationModelType {
@@ -43,10 +46,19 @@ export interface NotificationType {
   is_read: boolean;
 }
 
-export interface ProductListing extends Document {
+export interface ContactUsModelType {
+  body: string;
+  fullName: string;
+  email: string;
+  issue: "account" | "payment" | "orders" | "others";
+  is_closed: boolean;
+}
+
+export interface ProductListingType extends Document {
   name: string;
-  price: Number;
+  price: number;
   productId: string;
+  productImage: string[];
   category:
     | "electronics"
     | "books & stationery"
@@ -62,10 +74,44 @@ export interface ProductListing extends Document {
   description: string;
   is_approved: boolean;
   is_sold: boolean;
+  is_reserved: boolean;
+  hasSettled: boolean;
   seller: Schema.Types.ObjectId;
 }
 
-export interface ProductListingImage extends Document {
+// Interface for CartItem
+export interface ICartItem extends Document {
   product: Schema.Types.ObjectId;
-  image_url: string;
+  quantity: number;
+  price: number;
+}
+
+// Interface for Cart
+export interface ICart extends Document {
+  user: Schema.Types.ObjectId;
+  items: ICartItem[];
+  totalPrice: number;
+}
+
+// Interface for OrderItem
+export interface IOrderItem extends Document {
+  product: Schema.Types.ObjectId;
+  quantity: number;
+  price: number;
+}
+
+// Interface for Order
+export interface IOrder extends Document {
+  user: Schema.Types.ObjectId;
+  items: IOrderItem[];
+  totalPrice: number;
+  status: string;
+}
+
+// Interface for Order
+export interface IWeListened extends Document {
+  name: string;
+  statement: string;
+  school: string;
+  is_active: boolean;
 }

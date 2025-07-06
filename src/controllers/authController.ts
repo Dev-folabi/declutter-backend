@@ -10,13 +10,14 @@ import _ from "lodash";
 import { School } from "../models/schoolsModel";
 import OTPVerification from "../models/OTPVerifivation";
 import { sendEmail } from "../utils/mail";
-import { generateOTP } from "../utils";
+import {
+  decryptAccountDetail,
+  decryptData,
+  encryptData,
+  generateOTP,
+} from "../utils";
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
-
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY!;
-const PAYSTACK_BASE_URL =
-  process.env.PAYSTACK_BASE_URL || "https://api.paystack.co";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -122,18 +123,18 @@ export const registerUser = async (
     }
 
     // // Check if user already exists based on email
-    // const existingUser = await User.findOne({ email });
-    // if (existingUser) {
-    //   return handleError(res, 400, "Email already exists, please login.");
-    // }
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return handleError(res, 400, "Email already exists, please login.");
+    }
 
     // // Check if NIN exists (if provided)
-    // if (nin) {
-    //   const existingNin = await User.findOne({ nin });
-    //   if (existingNin) {
-    //     return handleError(res, 400, "NIN already exists, please login.");
-    //   }
-    // }
+    if (nin) {
+      const existingNin = await User.findOne({ nin });
+      if (existingNin) {
+        return handleError(res, 400, "NIN already exists, please login.");
+      }
+    }
 
     // Hash password and pin
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -149,6 +150,11 @@ export const registerUser = async (
     }
 
     let account;
+    let encryptedAccountNumber;
+    let encryptedbankCode;
+    let encryptedBankName;
+    let encryptedRecipientCode;
+
     let recipientCode;
     if (role === "seller") {
       const detail = await paystack.createRecipient(
@@ -157,6 +163,11 @@ export const registerUser = async (
       );
       recipientCode = detail.recipient_code;
       account = detail.details;
+
+      encryptedAccountNumber = encryptData(accountNumber);
+      encryptedbankCode = encryptData(bankCode);
+      encryptedRecipientCode = encryptData(recipientCode);
+      encryptedBankName = encryptData(account.bank_name);
     }
 
     // Create new user
@@ -171,10 +182,10 @@ export const registerUser = async (
         role === "seller"
           ? {
               accountName: account.account_name,
-              accountNumber,
-              bankCode,
-              bankName: account.bank_name,
-              recipientCode,
+              accountNumber: encryptedAccountNumber,
+              bankCode: encryptedbankCode,
+              bankName: encryptedBankName,
+              recipientCode: encryptedRecipientCode,
             }
           : undefined,
       pin: hashedPin,
@@ -214,17 +225,21 @@ export const registerUser = async (
       `
     );
 
-    // Generate token // todo: do not login user yet until email is verified
-    // const token = generateToken({ id: populatedUser.id });
-
     // Exclude sensitive fields from response
     const userData = _.omit(populatedUser.toObject(), ["password", "pin"]);
+
+    try {
+      if (userData.accountDetail) {
+        decryptAccountDetail(userData.accountDetail);
+      }
+    } catch (e) {
+      /* to make sure existing codes doesnt break */
+    }
 
     res.status(201).json({
       success: true,
       message: "User created successfully.",
       data: userData,
-      // token,
     });
   } catch (error) {
     next(error);
@@ -299,10 +314,18 @@ export const loginUser = async (
     }
 
     // Generate token
-    const token = generateToken({ id: user.id });
+    const token = generateToken({
+      _id: user.id,
+      role: user.role,
+      is_admin: user.is_admin,
+    });
 
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
+
+    if (userData.accountDetail) {
+      userData.accountDetail = decryptAccountDetail(userData.accountDetail);
+    }
 
     res.status(200).json({
       success: true,
@@ -344,7 +367,11 @@ export const verifyEmail = async (
     await user.save();
 
     // Generate token
-    const token = generateToken({ id: user.id });
+    const token = generateToken({
+      _id: user.id,
+      role: user.role,
+      is_admin: user.is_admin,
+    });
 
     // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);

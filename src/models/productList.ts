@@ -1,11 +1,9 @@
-// import mongoose, { Schema } from "mongoose";
-// import { isEmail } from "validator";
-import { ProductListing } from "../types/model";
-
+import { ProductListingType } from "../types/model";
 
 import { Schema, model } from "mongoose";
 
-const ProductListSchema = new Schema<ProductListing>(
+
+const ProductListSchema = new Schema<ProductListingType>(
   {
     seller: {
       type: Schema.Types.ObjectId,
@@ -16,10 +14,14 @@ const ProductListSchema = new Schema<ProductListing>(
       type: String,
       required: true,
     },
-    productId:{
+    productId: {
       type: String,
       required: true,
     },
+    productImage: [
+     { type: String,
+      required: true},
+    ],
     category: {
       type: String,
       enum: [
@@ -32,9 +34,9 @@ const ProductListSchema = new Schema<ProductListing>(
         "gaming & entertainment",
         "health & personal care",
         "hobbies & crafts",
-        "miscellaneous"
+        "miscellaneous",
       ],
-      required: true
+      required: true,
     },
     location: {
       type: String,
@@ -56,9 +58,16 @@ const ProductListSchema = new Schema<ProductListing>(
       type: Boolean,
       default: false,
     },
+    is_reserved: {
+      type: Boolean,
+      default: false,
+    },
+    hasSettled: {
+      type: Boolean,
+      default: false,
+    }
   },
   { timestamps: true }
 );
 
-
-export const Product = model<ProductListing>("Product", ProductListSchema);
+export const Product = model<ProductListingType>("Product", ProductListSchema);

@@ -14,6 +14,6 @@
     "noImplicitAny": true,             // Ensures all variables have a defined type
     "strictNullChecks": true           // Avoids issues with null or undefined values
   },
-  "include": ["src/**/*"],             // Includes all TypeScript files in `src/`
+  "include": ["src/**/*", "src/cronJob"],             // Includes all TypeScript files in `src/`
   "exclude": ["node_modules", "dist"]  // Excludes `node_modules` and output folder
 }

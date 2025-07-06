@@ -4,106 +4,244 @@ import {
   validateProductUpdate,
 } from "../../middlewares/validators";
 
-import { 
-  getSingleUnsoldProduct, 
+import {
+  getSingleUnsoldProduct,
   getAllUnsoldProduct,
   listAProduct,
-  updateAProduct
+  updateAProduct,
+  getUnsoldProductsByCategory,
+  getProductsByAdmin,
+  approveAProduct,
+  getAllLongUnsoldProduct,
 } from "../../controllers/productController";
+import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 
 const router = express.Router();
 
 /**
  * @swagger
+ * tags:
+ *   - name: Product
+ *     description: Manage product listings
+ *
  * /api/product/allproducts:
  *   get:
  *     tags: [Product]
- *     summary: Get all Product listings
- *     description: Get all Product listings
+ *     summary: Get all product listings
+ *     description: Retrieve all product listings
  *     responses:
  *       200:
- *         description: All Product listings retrieved successfully
+ *         description: All product listings retrieved successfully
  *       400:
- *         description: Not found
+ *         description: Error retrieving products
  *
- * /api/product/product/id:
+ * /api/product/product/{id}:
  *   get:
  *     tags: [Product]
- *     summary: Get all Product listings
- *     description: Get all Product listings
+ *     summary: Get a single product by ID
+ *     description: Retrieve details of a product using its ID
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
  *     responses:
  *       200:
- *         description: All Product listings retrieved successfully
+ *         description: Product retrieved successfully
  *       400:
- *         description: Not found
+ *         description: Product not found
+ *
+ * /api/product/productincategory/{category}:
+ *   get:
+ *     tags: [Product]
+ *     summary: Get all products in a specific category
+ *     description: Retrieve product listings by category
+ *     parameters:
+ *       - in: path
+ *         name: category
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product category
+ *     responses:
+ *       200:
+ *         description: Product listings retrieved successfully
+ *       400:
+ *         description: Category not found
  *
  * /api/product/createproduct:
  *   post:
  *     tags: [Product]
- *     summary: List a Product
- *     description: Create a new product to sell
- *     parameters:
- *       - in: body
- *         name: updateProduct
- *         description: Update a product
- *         required: false
- *         schema:
- *           type: object
- *           properties:
- *             name:
- *               type: string
- *             price:
- *               type: string
- *             location:
- *               type: string
- *             description:
- *               type: string
- *             category:
- *               type: string
- *               enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *     summary: Create a new product listing
+ *     description: Add a product to the marketplace
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - price
+ *               - location
+ *               - description
+ *               - category
+ *               - productImage
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum:
+ *                   - electronics
+ *                   - books & stationery
+ *                   - clothing & accessories
+ *                   - furniture
+ *                   - home & kitchen
+ *                   - sports & fitness equipment
+ *                   - gaming & entertainment
+ *                   - health & personal care
+ *                   - hobbies & crafts
+ *                   - miscellaneous
+ *                 productImage:
+ *                  type: array
+ *                  items:
+ *                    type: string
  *     responses:
  *       200:
  *         description: Product created successfully
  *       400:
  *         description: Invalid data
- * 
- * /api/product/updateproduct/id:
+ *
+ * /api/product/updateproduct/{id}:
  *   patch:
  *     tags: [Product]
- *     summary: Update a Product
- *     description: Update a product
+ *     summary: Update a product listing
+ *     description: Modify an existing product
  *     parameters:
- *       - in: body
- *         name: updateProduct
- *         description: Update a product
- *         required: false
+ *       - in: path
+ *         name: id
+ *         required: true
  *         schema:
- *           type: object
- *           properties:
- *             name:
- *               type: string
- *             price:
- *               type: string
- *             location:
- *               type: string
- *             description:
- *               type: string
- *             category:
- *               type: string
- *               enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *           type: string
+ *         description: Product ID
+ *     requestBody:
+ *       required: false
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *               price:
+ *                 type: string
+ *               location:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum:
+ *                   - electronics
+ *                   - books & stationery
+ *                   - clothing & accessories
+ *                   - furniture
+ *                   - home & kitchen
+ *                   - sports & fitness equipment
+ *                   - gaming & entertainment
+ *                   - health & personal care
+ *                   - hobbies & crafts
+ *                   - miscellaneous
+ *                 productImage:
+ *                  type: array
+ *                  items:
+ *                    type: string
  *     responses:
  *       200:
  *         description: Product updated successfully
  *       400:
  *         description: Invalid data
+ *
+ * /api/product/admin/approveproduct/{id}:
+ *   patch:
+ *     tags: [Product]
+ *     summary: Approve a product
+ *     description: Admin approves a product listing
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: Product ID
+ *     responses:
+ *       200:
+ *         description: Product approved successfully
+ *       400:
+ *         description: Approval failed or product not found
+ *
+ * /api/product/admin/allproducts:
+ *   get:
+ *     tags: [Product]
+ *     summary: Get all product listings as admin
+ *     description: Retrieve all products from admin perspective
+ *     responses:
+ *       200:
+ *         description: All product listings retrieved successfully
+ *       400:
+ *         description: Not found
+ *
+ * /api/product/to-own:
+ *   get:
+ *     tags: [Product]
+ *     summary: Get all products listed for a long time
+ *     description: Retrieve products that have been listed for a long duration
+ *     responses:
+ *       200:
+ *         description: Product listings retrieved successfully
+ *       400:
+ *         description: Not found
  */
 
-
-
-
 router.get("/allproducts", getAllUnsoldProduct);
+router.get("/to-own", getAllLongUnsoldProduct);
+router.get("/productincategory/:category", getUnsoldProductsByCategory);
 router.get("/product/:id", getSingleUnsoldProduct);
-router.post("/createproduct", validateProductListing, listAProduct);
-router.patch("/updateproduct/:id", validateProductUpdate, updateAProduct);
+router.post(
+  "/createproduct",
+  validateProductListing,
+  verifyToken,
+  authorizeRoles("seller"),
+  listAProduct
+);
+router.patch(
+  "/updateproduct/:id",
+  validateProductUpdate,
+  verifyToken,
+  authorizeRoles("seller"),
+  updateAProduct
+);
+router.get(
+  "/admin/allproducts",
+  verifyToken,
+  authorizeRoles("admin"),
+  getProductsByAdmin
+);
+router.patch(
+  "/admin/approveproduct/:id",
+  validateProductUpdate,
+  verifyToken,
+  authorizeRoles("admin"),
+  approveAProduct
+);
 
 export default router;
