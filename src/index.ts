@@ -3,6 +3,7 @@ import morgan from "morgan";
 import cors from "cors";
 import dotenv from "dotenv";
 import routes from "./routes/api";
+import adminRoutes from "./routes/authRoute/adminAuthRoute"
 import connectDB from "./db";
 import { errorHandler } from "./error/errorHandler";
 import swaggerRouter from './swagger';
@@ -28,10 +29,15 @@ app.get("/", (req: Request, res: Response) => {
 });
 
 app.use("/api", routes);
+app.use("/api/admin", adminRoutes);
 app.use('/', swaggerRouter);
 
 app.use("*", (req: Request, res: Response) => {
-  res.status(404).send("Error 404");
+  // res.status(404).send("Error 404");
+  res.status(404).json({
+    message: `Route ${req.originalUrl} not found`,
+  });
+
 });
 
 // Error handler
