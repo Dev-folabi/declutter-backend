@@ -141,7 +141,6 @@ export const validateLogin = [
     .withMessage("Password is required")
     .isString()
     .withMessage("Password must be string"),
-  handleValidationErrors,
 ];
 
 export const validateChangePassword = [
@@ -326,3 +325,24 @@ export const validateProductUpdate = [
 
   handleValidationErrors,
 ];
+
+export const validateAdminRegister = [
+  body("fullName").notEmpty().withMessage("Full name is required"),
+  body("email").notEmpty().withMessage("Email is required").isEmail().withMessage("Invalid email address"),
+  body("password")
+  .notEmpty()
+  .withMessage("Password is required")
+  .isStrongPassword()
+  .withMessage("Password must be 8 characters containing atleast a special character, a number, an uppercase and lowercase letter")
+  .isLength({ min: 8 })
+  .withMessage("Password must be at least 8 characters long"),
+  body("role")
+    .notEmpty()
+    .withMessage("Role is required")
+    .isIn(["SUPER_ADMIN", "SUPPORT_AGENT"])
+    .withMessage("Invalid role. Role must be either 'SUPER_ADMIN' or 'SUPPORT_AGENT'")
+    .isString()
+    .withMessage("Role must be a string"),
+  handleValidationErrors,
+
+]
