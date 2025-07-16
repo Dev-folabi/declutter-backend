@@ -8,6 +8,7 @@ const OTPVerify = new Schema<OTPVerificationModelType>(
       ref: "User",
       required: true,
     },
+    admin: { type: Schema.Types.ObjectId, ref: "Admin", required: true }, 
     OTP: {
       type: String,
       required: true,
