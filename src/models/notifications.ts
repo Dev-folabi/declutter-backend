@@ -1,15 +1,25 @@
-import { IUser, NotificationType } from "../types/model";
+import { IUser, IAdmin, NotificationType } from "../types/model";
 
 
 import { Schema, model } from "mongoose";
 
 const NotificationSchema = new Schema<NotificationType>(
   {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+    // user: {
+    //   type: Schema.Types.ObjectId,
+    //   ref: "User", 
+    //   required: true,
+    // },
+      recipient: {
+        type: Schema.Types.ObjectId,
+        required: true,
+        refPath: "recipientModel", // dynamically resolves to 'User' or 'Admin'
+      },
+      recipientModel: {
+        type: String,
+        required: true,
+        enum: ["User", "Admin"],
+      },
     body: {
       type: String,
       required: true,
