@@ -167,7 +167,7 @@ export const loginAdmin = async (
     const adminData = _.omit(admin.toObject(), ["password"]);
     res.status(200).json({
       success: true,
-      message: "Email verified successful.",
+      message: "Login successful.",
       data: adminData,
       token,
     });
