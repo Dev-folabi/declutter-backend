@@ -1,13 +1,12 @@
-import express, { Express, NextFunction, Request, Response } from "express";
-import morgan from "morgan";
-import cors from "cors";
-import dotenv from "dotenv";
-import routes from "./routes/api";
-import adminRoutes from "./routes/authRoute/adminAuthRoute"
-import connectDB from "./db";
-import { errorHandler } from "./error/errorHandler";
+import express, { Express, NextFunction, Request, Response } from 'express';
+import morgan from 'morgan';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import routes from './routes/api';
+import connectDB from './db';
+import { errorHandler } from './error/errorHandler';
 import swaggerRouter from './swagger';
-import "./cronJob/cron"
+import './cronJob/cron';
 
 // Dotenv config
 dotenv.config();
@@ -21,23 +20,21 @@ const port = process.env.PORT || 6000;
 // Middlewares
 app.use(cors());
 app.use(express.json());
-app.use(morgan("combined"));
+app.use(morgan('combined'));
 
 // Routes
-app.get("/", (req: Request, res: Response) => {
-  res.send({ message: "Declut-Mart Express + TypeScript Server" });
+app.get('/', (req: Request, res: Response) => {
+  res.send({ message: 'Declut-Mart Express + TypeScript Server' });
 });
 
-app.use("/api", routes);
-app.use("/api/admin", adminRoutes);
+app.use('/api', routes);
 app.use('/', swaggerRouter);
 
-app.use("*", (req: Request, res: Response) => {
+app.use('*', (req: Request, res: Response) => {
   // res.status(404).send("Error 404");
   res.status(404).json({
     message: `Route ${req.originalUrl} not found`,
   });
-
 });
 
 // Error handler
