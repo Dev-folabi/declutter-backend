@@ -29,17 +29,21 @@ export interface IUser extends Document {
   sellerProfileComplete: boolean;
   profileImageURL: string;
   is_admin: boolean;
+  isSuspended: boolean;
 }
 
 export interface OTPVerificationModelType {
   user: Schema.Types.ObjectId;
+  admin: Schema.Types.ObjectId;
   OTP: string;
   type: "password" | "transaction pin" | "activate account" | "edit profile";
   verificationType: string;
 }
 
 export interface NotificationType {
-  user: Schema.Types.ObjectId;
+  // user: Schema.Types.ObjectId;
+  recipient: IUser["_id"] | IAdmin["_id"];
+  recipientModel: "User" | "Admin";
   body: string;
   type: "account" | "market" | "promotion";
   title: string;
@@ -114,4 +118,18 @@ export interface IWeListened extends Document {
   statement: string;
   school: string;
   is_active: boolean;
+}
+
+// interface for Admin 
+export interface IAdmin extends Document {
+  fullName: string;
+  email: string;
+  password: string;
+  role: "SUPER_ADMIN" | "SUPPORT_AGENT";
+  // isMFAEnabled: boolean;
+  // mfaSecret?: string;
+  // isSuspended: boolean;
+  emailVerified: boolean;
+  otp?: string;
+  otpExpires?: Date;
 }
