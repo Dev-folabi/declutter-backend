@@ -1,5 +1,6 @@
 import OTPVerification from "../models/OTPVerifivation";
 import { IUser } from "../types/model";
+import { IAdmin } from "../types/model";
 import { sendEmail } from "./mail";
 import dotenv from "dotenv";
 

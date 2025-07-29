@@ -48,22 +48,18 @@ export const registerAdmin = async (
 
   // Upsert OTP for this admin
   await OTPVerification.updateOne(
+    { admin: newAdmin._id, type: "activate account", verificationType: "email" },
     {
-      'owner.id': newAdmin._id,
-      'owner.type': 'Admin',
-      type: 'activate account',
-    },
-    {
-      owner: {
-        id: newAdmin._id,
-        type: 'Admin',
+      $set: {
+        admin: newAdmin._id,
+        OTP,
+        type: "activate account",
+        verificationType: "email",
       },
-      OTP,
-      type: 'activate account',
-      verificationType: 'email',
     },
     { upsert: true }
   );
+
 
     // Send OTP email
     const firstName = fullName.split(" ")[0];
@@ -131,22 +127,12 @@ export const loginAdmin = async (
 
       // Upsert OTP entry
       await OTPVerification.updateOne(
+        { admin: admin._id, type: "activate account" },
         {
-          'owner.id': admin._id,
-          "owner.type": "Admin",
-          type: 'activate account',
-          verificationType: 'email',
-        },
-        {
-          $set: {
-            OTP,
-            type: "activate account",
-            verificationType: "email",
-            owner: {
-              id: admin._id,
-              type: 'Admin',
-            },
-          },
+          user: admin._id,
+          OTP,
+          type: "activate account",
+          verificationType: "email",
         },
         { upsert: true }
       );
@@ -211,7 +197,7 @@ export const verifyAdminEmail = async (
       return handleError(res, 400, "Invalid OTP.");
     }
 
-    const admin = await Admin.findById(otpVerification.owner?.id);
+    const admin = await Admin.findById(otpVerification.admin);
     if (!admin) {
       return handleError(res, 404, "Admin not found.");
     }
@@ -260,22 +246,12 @@ export const resetAdminPasswordOTP = async (
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
+      { admin: admin._id, type: "password" },
       {
-        'owner.id': admin._id,
-        'owner.type': 'Admin',
-        type: 'password',
-        verificationType: 'email',
-      },
-      {
-        $set: {
-          OTP,
-          type: 'password',
-          verificationType: 'email',
-          owner: {
-            id: admin._id,
-            type: 'Admin',
-          },
-        },  
+        admin: admin._id,
+        OTP,
+        type: "password",
+        verificationType: "email",
       },
       { upsert: true }
     );
@@ -321,15 +297,13 @@ export const resetAdminPassword = async (
     const otpVerification = await OTPVerification.findOne({
       OTP,
       type: "password",
-      'owner.type': 'Admin',
-      verificationType: "email",
     });
     if (!otpVerification) {
       return handleError(res, 400, "Invalid OTP.");
     }
 
     // Find admin
-    const admin = await Admin.findById(otpVerification.owner?.id);
+    const admin = await Admin.findById(otpVerification.admin);
     if (!admin) {
       return handleError(res, 404, "Admin not found.");
     }
