@@ -138,10 +138,11 @@ export interface IAdmin extends Document {
   fullName: string;
   email: string;
   password: string;
-  role: 'SUPER_ADMIN' | 'SUPPORT_AGENT';
+  role: 'super_admin' | 'admin' | 'support_agent';
   emailVerified: boolean;
   otp?: string;
   otpExpires?: Date;
+  is_admin: boolean;
 }
 
 // interface for admin activity log

@@ -1,11 +1,11 @@
-import express from 'express';
+import express from "express";
 import {
   registerAdmin,
   loginAdmin,
   verifyAdminEmail,
   resetAdminPasswordOTP,
   resetAdminPassword,
-} from '../../controllers/admin/authController';
+} from "../../controllers/admin/authController";
 
 import {
   validateAdminRegister,
@@ -13,12 +13,12 @@ import {
   validateVerifyEmailOTP,
   validateResetPassword,
   validateResetPasswordOTP,
-} from '../../middlewares/validators';
+} from "../../middlewares/validators";
 
 const router = express.Router();
 /**
  * @swagger
- * /api/admin/signup:
+ * /api/admin/auth/signup:
  *   post:
  *     summary: Register a new admin
  *     tags: [Admin Authentication]
@@ -46,7 +46,7 @@ const router = express.Router();
  *       '400':
  *         description: Invalid registration data or missing required fields for the role
  *
- * /api/admin/login:
+ * /api/admin/auth/login:
  *   post:
  *     summary: Login as an admin
  *     tags: [Admin Authentication]
@@ -70,7 +70,7 @@ const router = express.Router();
  *       '401':
  *         description: Invalid credentials
  *
- * /api/admin/verify-otp:
+ * /api/admin/auth/verify-otp:
  *   post:
  *     summary: Verify email using OTP
  *     tags: [Admin Authentication]
@@ -90,7 +90,7 @@ const router = express.Router();
  *       '400':
  *         description: Invalid OTP
  *
- * /api/admin/reset-password-otp:
+ * /api/admin/auth/reset-password-otp:
  *   post:
  *     summary: Request OTP to reset password
  *     tags: [Admin Authentication]
@@ -111,7 +111,8 @@ const router = express.Router();
  *       '404':
  *         description: Admin not found
  *
- * /api/admin/reset-password:
+ * /api/admin/auth/reset-password:
+
  *   post:
  *     summary: Reset password using OTP
  *     tags: [Admin Authentication]
@@ -136,12 +137,15 @@ const router = express.Router();
  *         description: Admin not found
  */
 
-
 // Admin-only routes
-router.post('/signup', validateAdminRegister, registerAdmin);
-router.post('/login', validateLogin, loginAdmin);
-router.post('/reset-password-otp', validateResetPasswordOTP, resetAdminPasswordOTP);
-router.post('/reset-password', validateResetPassword, resetAdminPassword);
-router.post('/verify-otp', validateVerifyEmailOTP, verifyAdminEmail);
+router.post("/signup", validateAdminRegister, registerAdmin);
+router.post("/login", validateLogin, loginAdmin);
+router.post(
+  "/reset-password-otp",
+  validateResetPasswordOTP,
+  resetAdminPasswordOTP
+);
+router.post("/reset-password", validateResetPassword, resetAdminPassword);
+router.post("/verify-otp", validateVerifyEmailOTP, verifyAdminEmail);
 
 export default router;

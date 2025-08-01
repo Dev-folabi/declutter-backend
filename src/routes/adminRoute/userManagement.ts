@@ -1,12 +1,13 @@
-import express from 'express';
+import express from "express";
 import {
   getAllUsers,
   verifyUserDocuments,
   updateUserStatus,
-} from '../../controllers/admin/userManagement';
-import {validateVerificationRequest} from '../../middlewares/validators'
-import {validateStatusUpdate} from '../../middlewares/validators'
-import { protectAdmin } from '../../middlewares/authMiddleware';
+} from "../../controllers/admin/userManagement";
+import { validateVerificationRequest } from "../../middlewares/validators";
+import { validateStatusUpdate } from "../../middlewares/validators";
+import { authorizeRoles } from "../../middlewares/authMiddleware";
+import { ADMIN_ONLY_ROLES } from "../../constant";
 
 const router = express.Router();
 /**
@@ -65,7 +66,7 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized
  *
- * /api/admin/users/verify-docs/{userId}:
+ * /api/admin/users/{userId}/verify-docs:
  *   post:
  *     tags: [User Management]
  *     summary: Verify or reject user documents
@@ -104,7 +105,7 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized
  *
- * /api/admin/users/status/{userId}:
+ * /api/admin/users/{userId}/status:
  *   patch:
  *     tags: [User Management]
  *     summary: Activate or suspend user account
@@ -145,8 +146,18 @@ const router = express.Router();
  *         description: Unauthorized
  */
 
-router.get('/', protectAdmin, getAllUsers);
-router.patch('/:userId/verify-docs', protectAdmin, validateVerificationRequest,  verifyUserDocuments);
-router.patch('/:userId/status', protectAdmin, validateStatusUpdate, updateUserStatus);
+router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
+router.patch(
+  "/:userId/verify-docs",
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  validateVerificationRequest,
+  verifyUserDocuments
+);
+router.patch(
+  "/:userId/status",
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  validateStatusUpdate,
+  updateUserStatus
+);
 
 export default router;

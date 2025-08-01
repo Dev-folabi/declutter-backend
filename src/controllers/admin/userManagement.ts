@@ -5,7 +5,6 @@ import { AdminActivityLog } from '../../models/adminAction';
 import { sendEmail } from '../../utils/mail';
 import { paginated_result } from '../../utils/pagination';
 import _ from 'lodash';
-import { IAdminActivityLog } from '../../types/model';
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {

@@ -7,6 +7,7 @@ import {
   getSingleContactMessages,
 } from "../../controllers/contactUsController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
+import { ADMIN_ONLY_ROLES } from "../../constant";
 
 const router = express.Router();
 
@@ -151,19 +152,19 @@ router.post("/contact-us", sendContactUsMessage);
 router.get(
   "/admin/all-contact-us",
   verifyToken,
-  authorizeRoles("admin"),
+  authorizeRoles(...ADMIN_ONLY_ROLES),
   getContactMessages
 );
 router.get(
   "/admin/single-contact-us/:id",
   verifyToken,
-  authorizeRoles("admin"),
+  authorizeRoles(...ADMIN_ONLY_ROLES),
   getSingleContactMessages
 );
 router.patch(
   "/admin/update-contact-us/:id",
   verifyToken,
-  authorizeRoles("admin"),
+  authorizeRoles(...ADMIN_ONLY_ROLES),
   updateContactus
 );
 
