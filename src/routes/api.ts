@@ -25,6 +25,7 @@ router.use('/cart', verifyToken, cartRoute);
 router.use('/welistened', weListenedRoute);
 router.use('/contactus', contactUsRoute);
 router.use('/payment', paymentRoute);
-router.use('/admin', adminRoute, userManagementRoute);
+router.use('/admin', adminRoute);
+router.use('/admin/users', userManagementRoute)
 
 export default router;

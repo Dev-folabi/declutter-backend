@@ -61,62 +61,44 @@ export const decryptAccountDetail = (accountDetail: AccountDetail ) => {
   return accountDetail; // Return the modified object
 };
 
-// export const requestOTP = async(
-//   user: IUser,
-//   admin: IAdmin,
-//   reason: String
-// ) => {
-//   const OTP = generateOTP();
-//     // Upsert OTP entry
-//     await OTPVerification.updateOne(
-//       { user: user._id, type: "password" },
-//       {admin: admin._id, type: "activate account"},
-//       {
-//         user: user._id,
-//         OTP,
-//         type: "activate account",
-//         verificationType: "email",
-//       },
-//       { upsert: true }
-//     );
-
-
-//     // Send email
-//     await sendEmail(
-//       user.email,
-//       "Verify EMail - OTP Verification",
-//       `
-//         Hi ${user?.fullName.split(" ")[0] || "User"},
-//         <p>You recently requested to ${reason}. Use the OTP below:</p>
-//         <h2>${OTP}</h2>
-//         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-//         <p>If you didn't request this, you can safely ignore this email.</p>
-//         <br />
-//       `
-//     );
-// }
 export const requestOTP = async (
   user: IUser | null,
   admin: IAdmin | null,
-  reason: string
+  reason: string,
+  type: "activate account" | "password"
 ) => {
   const OTP = generateOTP();
 
-  const filter: any = {
-    type: "activate account",
-    verificationType: "email",
-  };
+  // const filter: any = {
+  //   type,
+  //   verificationType: "email",
+  // };
+  if (!user && !admin ) {
+    throw new Error("Either user or admin must be provided for the otp request")
+  }
 
-  if (user) filter.user = user._id;
-  if (admin) filter.admin = admin._id;
+  const owner = {
+    id: user? user._id : admin!._id,
+    type: user ? "User" : "Admin",
+  }
+
+  // filter to find an existing otp for the user or admin
+  const filter = {
+    "owner.id": owner.id,
+    "owner.type": owner.type,
+    type,
+    verificationType: "email",
+  }
+
+  // if (user) filter.user = user._id;
+  // if (admin) filter.admin = admin._id;
 
   const update = {
     $set: {
       OTP,
-      type: "activate account",
+      type,
       verificationType: "email",
-      ...(user && { user: user._id }),
-      ...(admin && { admin: admin._id }),
+      owner,
     },
   };
 
