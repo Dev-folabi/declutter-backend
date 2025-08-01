@@ -1,5 +1,5 @@
-import { extend } from "lodash";
-import { Date, Document, Schema } from "mongoose";
+import { extend } from 'lodash';
+import {  Document, Schema, Types } from 'mongoose';
 
 export interface ISchool extends Document {
   schoolName: string;
@@ -29,19 +29,28 @@ export interface IUser extends Document {
   sellerProfileComplete: boolean;
   profileImageURL: string;
   is_admin: boolean;
+  status: 'active' | 'inactive' | 'suspended';
+  verificationStatus: 'pending' | 'verified' | 'rejected';
+  adminComments?: string;
+  isSuspended: boolean;
 }
 
 export interface OTPVerificationModelType {
-  user: Schema.Types.ObjectId;
+  owner:{
+    id: Schema.Types.ObjectId,
+    type: 'User' | "Admin"
+  }
   OTP: string;
-  type: "password" | "transaction pin" | "activate account" | "edit profile";
+  type: 'password' | 'transaction pin' | 'activate account' | 'edit profile';
   verificationType: string;
 }
 
 export interface NotificationType {
-  user: Schema.Types.ObjectId;
+  // user: Schema.Types.ObjectId;
+  recipient: IUser['_id'] | IAdmin['_id'];
+  recipientModel: 'User' | 'Admin';
   body: string;
-  type: "account" | "market" | "promotion";
+  type: 'account' | 'market' | 'promotion';
   title: string;
   is_read: boolean;
 }
@@ -50,7 +59,7 @@ export interface ContactUsModelType {
   body: string;
   fullName: string;
   email: string;
-  issue: "account" | "payment" | "orders" | "others";
+  issue: 'account' | 'payment' | 'orders' | 'others';
   is_closed: boolean;
 }
 
@@ -59,24 +68,32 @@ export interface ProductListingType extends Document {
   price: number;
   productId: string;
   productImage: string[];
+  productVideos: string[];
   category:
-    | "electronics"
-    | "books & stationery"
-    | "clothing & accessories"
-    | "furniture"
-    | "home & kitchen"
-    | "sports & fitness equipment"
-    | "gaming & entertainment"
-    | "health & personal care"
-    | "hobbies & crafts"
-    | "miscellaneous";
+    | 'electronics'
+    | 'books & stationery'
+    | 'clothing & accessories'
+    | 'furniture'
+    | 'home & kitchen'
+    | 'sports & fitness equipment'
+    | 'gaming & entertainment'
+    | 'health & personal care'
+    | 'hobbies & crafts'
+    | 'miscellaneous';
   location: string;
   description: string;
   is_approved: boolean;
+  rejection_reason?: string;
   is_sold: boolean;
   is_reserved: boolean;
   hasSettled: boolean;
   seller: Schema.Types.ObjectId;
+  status: 'approved' | 'pending' | 'rejected' | 'flagged' | 'removed';
+  flags: {
+    reason: string;
+    flaggedBy: Types.ObjectId;
+    date: Date;
+  }[];
 }
 
 // Interface for CartItem
@@ -114,4 +131,26 @@ export interface IWeListened extends Document {
   statement: string;
   school: string;
   is_active: boolean;
+}
+
+// interface for Admin
+export interface IAdmin extends Document {
+  fullName: string;
+  email: string;
+  password: string;
+  role: 'super_admin' | 'admin' | 'support_agent';
+  emailVerified: boolean;
+  otp?: string;
+  otpExpires?: Date;
+  is_admin: boolean;
+}
+
+// interface for admin activity log
+export interface IAdminActivityLog extends Document {
+  admin: Schema.Types.ObjectId;
+  user: Schema.Types.ObjectId;
+  action: string;
+  note?: string;
+  createdAt?: Date;
+  updatedAt?: Date;
 }

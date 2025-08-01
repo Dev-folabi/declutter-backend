@@ -201,9 +201,16 @@ export const registerUser = async (
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
-      { user: newUser._id, type: "activate account" },
       {
-        user: newUser._id,
+        "owner.id": newUser._id,
+        "owner.type": "User",
+        type: "activate account",
+      },
+      {
+        owner: {
+          id: newUser._id,
+          type: "User",
+        },
         OTP,
         type: "activate account",
         verificationType: "email",
@@ -283,12 +290,22 @@ export const loginUser = async (
 
       // Upsert OTP entry
       await OTPVerification.updateOne(
-        { user: user._id, type: "activate account" },
         {
-          user: user._id,
-          OTP,
+          "owner.id": user._id,
+          "owner.type": "User",
           type: "activate account",
           verificationType: "email",
+        },
+        {
+          $set: {
+            OTP,
+            type: "activate account",
+            verificationType: "email",
+            owner: {
+              id: user._id,
+              type: "User",
+            },
+          },
         },
         { upsert: true }
       );
@@ -350,15 +367,18 @@ export const verifyEmail = async (
       return handleError(res, 400, "OTP is required.");
     }
 
+    // Look for OTP tied specifically to a User
     const otpVerification = await OTPVerification.findOne({
       OTP,
       type: "activate account",
+      "owner.type": "User",
     });
+
     if (!otpVerification) {
       return handleError(res, 400, "Invalid OTP.");
     }
 
-    const user = await User.findById(otpVerification.user);
+    const user = await User.findById(otpVerification.owner?.id);
     if (!user) {
       return handleError(res, 404, "User not found.");
     }
@@ -378,7 +398,7 @@ export const verifyEmail = async (
 
     res.status(200).json({
       success: true,
-      message: "Email verified successful.",
+      message: "Email verified successfully.",
       data: userData,
       token,
     });
@@ -406,12 +426,22 @@ export const resetPasswordOTP = async (
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
-      { user: user._id, type: "password" },
       {
-        user: user._id,
-        OTP,
+        "owner.id": user._id,
+        "owner.type": "User",
         type: "password",
         verificationType: "email",
+      },
+      {
+        $set: {
+          OTP,
+          type: "password",
+          verificationType: "email",
+          owner: {
+            id: user._id,
+            type: "User",
+          },
+        },
       },
       { upsert: true }
     );
@@ -456,13 +486,20 @@ export const resetPassword = async (
     const otpVerification = await OTPVerification.findOne({
       OTP,
       type: "password",
+      "owner.type": "User",
+      verificationType: "email",
     });
     if (!otpVerification) {
       return handleError(res, 400, "Invalid OTP.");
     }
 
+    const userId = otpVerification.owner?.id;
+    if (!userId) {
+      return handleError(res, 400, "User ID not found in OTP record.");
+    }
+
     // Find user
-    const user = await User.findById(otpVerification.user);
+    const user = await User.findById(otpVerification.owner?.id);
     if (!user) {
       return handleError(res, 404, "User not found.");
     }

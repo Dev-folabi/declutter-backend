@@ -15,6 +15,7 @@ import {
   getAllLongUnsoldProduct,
 } from "../../controllers/productController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
+import { ADMIN_ONLY_ROLES } from "../../constant";
 
 const router = express.Router();
 
@@ -233,14 +234,14 @@ router.patch(
 router.get(
   "/admin/allproducts",
   verifyToken,
-  authorizeRoles("admin"),
+  authorizeRoles(...ADMIN_ONLY_ROLES),
   getProductsByAdmin
 );
 router.patch(
   "/admin/approveproduct/:id",
   validateProductUpdate,
   verifyToken,
-  authorizeRoles("admin"),
+  authorizeRoles(...ADMIN_ONLY_ROLES),
   approveAProduct
 );
 
