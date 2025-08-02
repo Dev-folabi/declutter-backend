@@ -359,9 +359,9 @@ export const validateAdminRegister = [
   body("role")
     .notEmpty()
     .withMessage("Role is required")
-    .isIn(["super admin", "admin", "support agent"])
+    .isIn(["super_admin", "admin", "support_agent"])
     .withMessage(
-      "Invalid role. Role must be either 'super admin', 'admin', or 'support agent'"
+      "Invalid role. Role must be either 'super_admin', 'admin', or 'support_agent'"
     )
     .isString()
     .withMessage("Role must be a string"),

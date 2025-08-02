@@ -39,7 +39,7 @@ const router = express.Router();
  *                 type: string
  *               role:
  *                 type: string
- *                 enum: [SUPER_ADMIN, SUPPORT_AGENT]
+ *                 enum: [super_admin, admin, support_agent]
  *     responses:
  *       '201':
  *         description: Admin registered successfully
