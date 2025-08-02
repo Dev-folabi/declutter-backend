@@ -10,6 +10,7 @@ import { createNotification } from "../notificationController";
 import bcrypt from "bcrypt";
 import { generateToken } from "../../function/token";
 import _ from "lodash";
+import { ADMIN_ONLY_ROLES } from "../../constant";
 
 // signup logic for the admin
 export const registerAdmin = async (
@@ -20,7 +21,7 @@ export const registerAdmin = async (
     try {
         const {fullName, email, password, role } = req.body;
         // Basic validation for admin
-        if(!["SUPER_ADMIN", "SUPPORT_AGENT"].includes(role)) {
+        if(![...ADMIN_ONLY_ROLES].includes(role)) {
             handleError(res, 400, "Invalid role. Must be SUPER_ADMIN or SUPPORT_AGENT");
             return
         }
