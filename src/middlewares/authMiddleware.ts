@@ -21,7 +21,11 @@ export const verifyToken = (
       role: decoded.role,
       is_admin: decoded.is_admin,
     };
-
+     (req as any).admin = {
+      _id: decoded._id,
+      role: decoded.role,
+      is_admin: decoded.is_admin
+     }
     next();
   } catch (error) {
     res.status(401).json({ message: "Invalid token" });

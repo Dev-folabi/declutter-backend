@@ -67,7 +67,7 @@ const router = express.Router();
  *         description: Unauthorized
  *
  * /api/admin/users/{userId}/verify-docs:
- *   post:
+ *   patch:
  *     tags: [User Management]
  *     summary: Verify or reject user documents
  *     description: Admin verifies or rejects a user's uploaded documents and sends an email notification.
