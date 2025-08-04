@@ -11,12 +11,14 @@ import orderRoute from '../routes/orderRoute';
 import cartRoute from '../routes/cartRoute';
 import contactUsRoute from '../routes/contactUsRoute';
 import userManagementRoute from './adminRoute/userManagement';
+import productManagementRoute from '../routes/adminRoute/productManagementRoute';
 import { verifyToken } from '../middlewares/authMiddleware';
 const router = Router();
 
 const adminRouter = Router();
 adminRouter.use('/auth', adminAuthRoute);
 adminRouter.use('/users', verifyToken, userManagementRoute);
+adminRouter.use('/product', productManagementRoute);
 
 
 router.use('/waitlist', waitlistRoute);

@@ -1,8 +1,5 @@
-import express from "express";
-import {
-  validateProductListing,
-  validateProductUpdate,
-} from "../../middlewares/validators";
+import express from 'express';
+import { validateProductListing, validateProductUpdate } from '../../middlewares/validators';
 
 import {
   getSingleUnsoldProduct,
@@ -10,8 +7,6 @@ import {
   listAProduct,
   updateAProduct,
   getUnsoldProductsByCategory,
-  getProductsByAdmin,
-  approveAProduct,
   getAllLongUnsoldProduct,
 } from "../../controllers/productController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
@@ -213,36 +208,36 @@ const router = express.Router();
  *         description: Not found
  */
 
-router.get("/allproducts", getAllUnsoldProduct);
-router.get("/to-own", getAllLongUnsoldProduct);
-router.get("/productincategory/:category", getUnsoldProductsByCategory);
-router.get("/product/:id", getSingleUnsoldProduct);
+router.get('/allproducts', getAllUnsoldProduct);
+router.get('/to-own', getAllLongUnsoldProduct);
+router.get('/productincategory/:category', getUnsoldProductsByCategory);
+router.get('/product/:id', getSingleUnsoldProduct);
 router.post(
-  "/createproduct",
+  '/createproduct',
   validateProductListing,
   verifyToken,
-  authorizeRoles("seller"),
+  authorizeRoles('seller'),
   listAProduct
 );
 router.patch(
-  "/updateproduct/:id",
+  '/updateproduct/:id',
   validateProductUpdate,
   verifyToken,
-  authorizeRoles("seller"),
+  authorizeRoles('seller'),
   updateAProduct
 );
-router.get(
-  "/admin/allproducts",
-  verifyToken,
-  authorizeRoles(...ADMIN_ONLY_ROLES),
-  getProductsByAdmin
-);
-router.patch(
-  "/admin/approveproduct/:id",
-  validateProductUpdate,
-  verifyToken,
-  authorizeRoles(...ADMIN_ONLY_ROLES),
-  approveAProduct
-);
+// router.get(
+//   "/admin/allproducts",
+//   verifyToken,
+//   authorizeRoles(...ADMIN_ONLY_ROLES),
+//   getProductsByAdmin
+// );
+// router.patch(
+//   '/admin/approveproduct/:id',
+//   validateProductUpdate,
+//   verifyToken,
+//   authorizeRoles(...ADMIN_ONLY_ROLES),
+//   approveAProduct
+// );
 
 export default router;
