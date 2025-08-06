@@ -1,8 +1,5 @@
-import express from "express";
-import {
-  validateProductListing,
-  validateProductUpdate,
-} from "../../middlewares/validators";
+import express from 'express';
+import { validateProductListing, validateProductUpdate } from '../../middlewares/validators';
 
 import {
   getSingleUnsoldProduct,
@@ -10,8 +7,6 @@ import {
   listAProduct,
   updateAProduct,
   getUnsoldProductsByCategory,
-  getProductsByAdmin,
-  approveAProduct,
   getAllLongUnsoldProduct,
 } from "../../controllers/productController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
@@ -172,34 +167,6 @@ const router = express.Router();
  *       400:
  *         description: Invalid data
  *
- * /api/product/admin/approveproduct/{id}:
- *   patch:
- *     tags: [Product]
- *     summary: Approve a product
- *     description: Admin approves a product listing
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Product ID
- *     responses:
- *       200:
- *         description: Product approved successfully
- *       400:
- *         description: Approval failed or product not found
- *
- * /api/product/admin/allproducts:
- *   get:
- *     tags: [Product]
- *     summary: Get all product listings as admin
- *     description: Retrieve all products from admin perspective
- *     responses:
- *       200:
- *         description: All product listings retrieved successfully
- *       400:
- *         description: Not found
  *
  * /api/product/to-own:
  *   get:
@@ -213,36 +180,24 @@ const router = express.Router();
  *         description: Not found
  */
 
-router.get("/allproducts", getAllUnsoldProduct);
-router.get("/to-own", getAllLongUnsoldProduct);
-router.get("/productincategory/:category", getUnsoldProductsByCategory);
-router.get("/product/:id", getSingleUnsoldProduct);
+router.get('/allproducts', getAllUnsoldProduct);
+router.get('/to-own', getAllLongUnsoldProduct);
+router.get('/productincategory/:category', getUnsoldProductsByCategory);
+router.get('/product/:id', getSingleUnsoldProduct);
 router.post(
-  "/createproduct",
+  '/createproduct',
   validateProductListing,
   verifyToken,
-  authorizeRoles("seller"),
+  authorizeRoles('seller'),
   listAProduct
 );
 router.patch(
-  "/updateproduct/:id",
+  '/updateproduct/:id',
   validateProductUpdate,
   verifyToken,
-  authorizeRoles("seller"),
+  authorizeRoles('seller'),
   updateAProduct
 );
-router.get(
-  "/admin/allproducts",
-  verifyToken,
-  authorizeRoles(...ADMIN_ONLY_ROLES),
-  getProductsByAdmin
-);
-router.patch(
-  "/admin/approveproduct/:id",
-  validateProductUpdate,
-  verifyToken,
-  authorizeRoles(...ADMIN_ONLY_ROLES),
-  approveAProduct
-);
+
 
 export default router;
