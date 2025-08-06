@@ -167,34 +167,6 @@ const router = express.Router();
  *       400:
  *         description: Invalid data
  *
- * /api/product/admin/approveproduct/{id}:
- *   patch:
- *     tags: [Product]
- *     summary: Approve a product
- *     description: Admin approves a product listing
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Product ID
- *     responses:
- *       200:
- *         description: Product approved successfully
- *       400:
- *         description: Approval failed or product not found
- *
- * /api/product/admin/allproducts:
- *   get:
- *     tags: [Product]
- *     summary: Get all product listings as admin
- *     description: Retrieve all products from admin perspective
- *     responses:
- *       200:
- *         description: All product listings retrieved successfully
- *       400:
- *         description: Not found
  *
  * /api/product/to-own:
  *   get:
@@ -226,18 +198,6 @@ router.patch(
   authorizeRoles('seller'),
   updateAProduct
 );
-// router.get(
-//   "/admin/allproducts",
-//   verifyToken,
-//   authorizeRoles(...ADMIN_ONLY_ROLES),
-//   getProductsByAdmin
-// );
-// router.patch(
-//   '/admin/approveproduct/:id',
-//   validateProductUpdate,
-//   verifyToken,
-//   authorizeRoles(...ADMIN_ONLY_ROLES),
-//   approveAProduct
-// );
+
 
 export default router;

@@ -30,14 +30,15 @@ const router = Express.Router();
  *           schema:
  *             type: object
  *             required:
- *               - action
+ *               - isApproved
  *             properties:
- *               action:
- *                 type: string
- *                 enum: [approve, reject]
+ *               isApproved:
+ *                 type: boolean
+ *                 enum: [true, false]
+ *                 description: Set to true to approve or false to reject
  *               reason:
  *                 type: string
- *                 description: Required if action is 'reject'
+ *                 description: Required when rejecting the product (isApproved: false)
  *     responses:
  *       200:
  *         description: Product successfully moderated
@@ -53,6 +54,26 @@ const router = Express.Router();
  *     tags: [Admin Product Management]
  *     summary: Get all product listings as admin
  *     description: Retrieve all products from admin perspective
+ *     security:
+ *      - bearerAuth: []
+ *     parameters: 
+ *      - in: query
+ *        name: page
+ *     schema:
+ *       type: integer
+ *       default: 1
+ *      description: Page number for pagination
+ *    - in: query
+ *      name: limit
+ *     schema:
+ *      type: integer
+ *      default: 10
+ *    description: Number of products per page
+ *    - in: query
+ *      name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to match name, category, or description
  *     responses:
  *       200:
  *         description: All product listings retrieved successfully
@@ -102,20 +123,17 @@ const router = Express.Router();
 
 
 router.patch('/moderate-product/:id',
-  verifyToken,
   authorizeRoles(...ADMIN_ONLY_ROLES), 
   validateModeration, 
   moderateProductListing
 );
 
 router.get('/allproducts', 
-  verifyToken,  
   authorizeRoles(...ADMIN_ONLY_ROLES), 
   getProductsByAdmin
 );
 
 router.patch('/flag/:productId', 
-  verifyToken,
   authorizeRoles(...ADMIN_ONLY_ROLES),  
   validateFlagOrRemove, 
   flagOrRemoveListing

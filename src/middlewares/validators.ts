@@ -418,9 +418,10 @@ export const validateModeration = [
     .notEmpty().withMessage('Product ID is required')
     .isMongoId().withMessage('Invalid product ID'),
 
-  body('status')
-    .notEmpty().withMessage('Status is required')
-    .isIn(['approved', 'rejected']).withMessage('Invalid status'),
+  body('isApproved')
+    .notEmpty().withMessage('Approval status is required')
+    .isBoolean().withMessage('isApproved must be a boolean'),  
+  handleValidationErrors,
 ];
 
 export const validateFlagOrRemove = [
@@ -431,4 +432,5 @@ export const validateFlagOrRemove = [
   body('action')
     .notEmpty().withMessage('Action is required')
     .isIn(['flag', 'remove']).withMessage('Action must be either "flag" or "remove"'),
+  handleValidationErrors,
 ];

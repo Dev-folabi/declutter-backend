@@ -18,7 +18,7 @@ const router = Router();
 const adminRouter = Router();
 adminRouter.use('/auth', adminAuthRoute);
 adminRouter.use('/users', verifyToken, userManagementRoute);
-adminRouter.use('/product', productManagementRoute);
+adminRouter.use('/product', verifyToken, productManagementRoute);
 
 
 router.use('/waitlist', waitlistRoute);

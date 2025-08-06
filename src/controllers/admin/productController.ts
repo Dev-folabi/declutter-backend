@@ -7,6 +7,7 @@ import { User } from '../../models/userModel';
 import { Admin } from '../../models/adminModel';
 import { createNotification } from '../notificationController';
 import { sendEmail } from '../../utils/mail'
+import { paginated_result } from '../../utils/pagination';
 
 export const moderateProductListing = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -19,7 +20,7 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
             })
             return;
         }
-        const {action, reason} = req.body
+        const {isApproved, reason} = req.body
         const productId = req.params.id
         const product = await Product.findById(productId).populate('seller');
         if (!product) {
@@ -30,8 +31,9 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
             })
             return
         }
+
         let updatedProduct;
-        if (action === 'approve') {
+        if (isApproved === true ) {
             updatedProduct = await Product.findByIdAndUpdate(
                 productId,
                 {
@@ -41,9 +43,9 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
                     status: 'approved'
                   }
                 },
-                { new: true, runValidators: true }
+                { new: true}
             )
-        } else if (action === 'reject') {
+        } else if (isApproved === false) {
            if(!reason || reason.trim() === '') {
             res.status(400).json({
                 success: false,
@@ -60,15 +62,16 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
                 status : 'rejected'
               }
             },
-            {new:true, runValidators: true}
+            {new:true}
            )
         } else {
-            res.status(400).json({
-                success: false,
-                message: "Ïnvalid  action. Must be either 'approved' or 'rejected'"
-            })
-            return;
+          res.status(400).json({
+              success: false,
+              message: "Ïnvalid  action. Must be either true or false"
+          })
+          return;
         }
+          
         if (!updatedProduct) {
             res.status(500).json({
               success: false,
@@ -78,6 +81,9 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
         }
         // notifications and emails
         const productName = product.name;
+        const actionText = isApproved ? 'approve' : 'reject';
+        const statusText = isApproved ? 'approved' : 'rejected';
+        const titleText = isApproved ? 'Approval' : 'Rejection';
         const seller = await User.findById(product.seller)
         
         const notifications = [
@@ -86,33 +92,32 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
                 // user: admin._id,
                 recipient: admin._id,
                 recipientModel: 'Admin',
-                body: `You have ${action}ed the product (${productName})`,
+                body: `You have ${statusText} the product (${productName})`,
                 type: 'market',
-                title: `Product ${action === 'approve' ? 'Approval' : 'Rejection'}`,
+                title: `Product ${titleText}`,
             }),
 
             createNotification({
-                // user: product.seller.toString(),
                 recipient: (product.seller as any)._id,
                 recipientModel: 'User',
-                body: action ==='approve'? `Your product (${productName}) has been approved and listed.`
+                body: isApproved ? `Your product (${productName}) has been approved and listed.`
                 : `Your product (${productName}) was rejected. Reason: ${reason}`,
                 type: 'market',
-                title: `Product ${action === 'approve' ? 'Approved' : 'Rejected'}`,
+                title: `Product ${titleText}`,
             }),
 
             // send email to the admin
             sendEmail(
                 admin.email,
-                `Product ${action === 'approve' ? 'Approval' : 'Rejection'} Notification`,
-                `You ${action}d the product (${productName}).`
+                `Product ${titleText} Notification`,
+                `You ${statusText} the product (${productName}).`
             ),
 
             // send email to the seller 
             sendEmail(
                 seller?.email!,
-                `Product ${action === 'approve' ? 'Approval' : 'Rejection'} Notification`,
-                action === 'approve'
+                `Product ${titleText} Notification`,
+                isApproved
                 ?  `Your product ${productName} has been approved and listed.`
                 : `Your product ${productName} was rejected. Reason: ${reason}`
             )
@@ -120,11 +125,9 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
         // wait for all notifications to be sent 
         await Promise.all(notifications);
 
-        // omit sensitive data from the response
-        // const responseProduct = _.omit(updatedProduct.toObject(), ['is_sold']);
         res.status(200).json({
             success: true,
-            message: `Product ${action}ed successfully.`,
+            message: `Product ${actionText}ed successfully.`,
             data: updatedProduct,
         })
         return;
@@ -134,54 +137,72 @@ export const moderateProductListing = async (req: Request, res: Response, next: 
       }
 }
     
+
 export const getProductsByAdmin = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-      const admin = await Admin.findById(getIdFromToken(req));
-  
-      if (!admin) {
-         res.status(400).json({
-          success: false,
-          message: 'You dont have the permission to view this page.',
-          data: null,
-        });
-        return;
-      }
-  
-      let query = { ...req.query };
-  
-      delete query.page;
-      delete query.limit;
-  
-      const search = req.query.search || '';
-      const page = Number(query.page) || 1;
-      const limit = Number(query.limit) || 10;
-  
-      const skip = (page - 1) * limit;
-  
-      // Add search functionality to query if there's a search term
-      if (search) {
-        query.$or = [
-          { name: { $regex: search, $options: 'i' } }, // Search by product name (case insensitive)
-          { category: { $regex: search, $options: 'i' } }, // Search by category (case insensitive)
-          { description: { $regex: search, $options: 'i' } }, // Search by description (case insensitive)
-        ];
-      }
-      delete query.search;
-  
-      const products = await Product.find(query).skip(skip).limit(limit).sort({ createdAt: -1 });
-      const productsData = _.map(products, (product) =>
-        _.omit(product.toObject(), ['is_approved', 'is_sold'])
-      );
-      res.status(200).json({
-        success: true,
-        message:
-          products.length > 0 ? 'Product retrieved successfully.' : 'No product listed at the moment',
-        data: productsData,
+  try {
+    const admin = await Admin.findById(getIdFromToken(req));
+
+    if (!admin) {
+      res.status(400).json({
+        success: false,
+        message: 'You don’t have the permission to view this page.',
+        data: null,
       });
-    } catch (error) {
-      next(error);
+      return;
     }
+
+    const { search = '' } = req.query;
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Build dynamic query object
+    let query: any = { ...req.query };
+    delete query.page;
+    delete query.limit;
+    delete query.search;
+
+    if (search) {
+      query.$or = [
+        { name: { $regex: search, $options: 'i' } },
+        { category: { $regex: search, $options: 'i' } },
+        { description: { $regex: search, $options: 'i' } },
+      ];
+    }
+
+    // Count total matching documents
+    const totalProducts = await Product.countDocuments(query);
+
+    const products = await Product.find(query)
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    const productsData = _.map(products, (product) =>
+      _.omit(product.toObject(), ['is_approved', 'is_sold'])
+    );
+
+    // Use your pagination utility
+    const paginatedData = paginated_result(
+      page,
+      limit,
+      totalProducts,
+      productsData
+    );
+
+    res.status(200).json({
+      success: true,
+      message:
+        products.length > 0
+          ? 'Products retrieved successfully.'
+          : 'No products listed at the moment.',
+      data: paginatedData,
+    });
+  } catch (error) {
+    next(error);
+  }
 };
+
    
 // flag or remove user listins 
 export const flagOrRemoveListing = async (req: Request, res: Response) => {
@@ -286,5 +307,4 @@ export const flagOrRemoveListing = async (req: Request, res: Response) => {
 };
   
      
-
 
