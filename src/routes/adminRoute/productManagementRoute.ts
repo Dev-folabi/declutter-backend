@@ -38,7 +38,8 @@ const router = Express.Router();
  *                 description: Set to true to approve or false to reject
  *               reason:
  *                 type: string
- *                 description: Required when rejecting the product (isApproved: false)
+ *                 description: "Required when rejecting the product (isApproved: false)"
+
  *     responses:
  *       200:
  *         description: Product successfully moderated
@@ -49,28 +50,28 @@ const router = Express.Router();
  *       404:
  *         description: Product or Admin not found
  * 
- *  /api/admin/product/allproducts:
+ * /api/admin/product/allproducts:
  *   get:
  *     tags: [Admin Product Management]
  *     summary: Get all product listings as admin
  *     description: Retrieve all products from admin perspective
  *     security:
- *      - bearerAuth: []
+ *       - bearerAuth: []
  *     parameters: 
- *      - in: query
- *        name: page
- *     schema:
- *       type: integer
- *       default: 1
- *      description: Page number for pagination
- *    - in: query
- *      name: limit
- *     schema:
- *      type: integer
- *      default: 10
- *    description: Number of products per page
- *    - in: query
- *      name: search
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of products per page
+ *       - in: query
+ *         name: search
  *         schema:
  *           type: string
  *         description: Search term to match name, category, or description
@@ -79,7 +80,6 @@ const router = Express.Router();
  *         description: All product listings retrieved successfully
  *       400:
  *         description: Not found
- *
  * 
  * /api/admin/product/flag/{productId}:
  *   patch:
@@ -117,7 +117,6 @@ const router = Express.Router();
  *       404:
  *         description: Product not found
  */
-
 
 
 
