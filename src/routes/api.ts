@@ -7,11 +7,13 @@ import notificationsRoute from '../routes/notificationsRoute';
 import productRoute from '../routes/productRoute';
 import paymentRoute from '../routes/paymentRoute';
 import weListenedRoute from '../routes/weListenedRoute';
+import transactionRoute from '../routes/adminRoute/transactionRoute'
 import orderRoute from '../routes/orderRoute';
 import cartRoute from '../routes/cartRoute';
 import contactUsRoute from '../routes/contactUsRoute';
 import userManagementRoute from './adminRoute/userManagement';
 import productManagementRoute from '../routes/adminRoute/productManagementRoute';
+import disputeRoute from '../routes/adminRoute/disputeRoute';
 import { verifyToken } from '../middlewares/authMiddleware';
 const router = Router();
 
@@ -19,6 +21,8 @@ const adminRouter = Router();
 adminRouter.use('/auth', adminAuthRoute);
 adminRouter.use('/users', verifyToken, userManagementRoute);
 adminRouter.use('/product', verifyToken, productManagementRoute);
+adminRouter.use('/transactions', verifyToken, transactionRoute)
+// adminRouter.use('/disputes', verifyToken, disputeRoute )
 
 
 router.use('/waitlist', waitlistRoute);
