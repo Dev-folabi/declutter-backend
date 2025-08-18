@@ -1,8 +1,8 @@
-import { Request, Response, NextFunction} from "express";
+import { Request, Response, NextFunction } from "express";
 import { Admin } from "../../models/adminModel";
 import { IAdmin } from "../../types/model/index";
 import { handleError } from "../../error/errorHandler";
-import OTPVerification from "../../models/OTPVerifivation"
+import OTPVerification from "../../models/OTPVerifivation";
 import { sendEmail } from "../../utils/mail";
 import { generateOTP } from "../../utils";
 import { AdminRequest } from "../../types/requests";
@@ -14,57 +14,60 @@ import { ADMIN_ONLY_ROLES } from "../../constant";
 
 // signup logic for the admin
 export const registerAdmin = async (
-    req: Request<{}, {}, AdminRequest>,
-    res: Response,
+  req: Request<{}, {}, AdminRequest>,
+  res: Response,
   next: NextFunction
 ) => {
-    try {
-        const {fullName, email, password, role } = req.body;
-        // Basic validation for admin
-        if(![...ADMIN_ONLY_ROLES].includes(role)) {
-            handleError(res, 400, "Invalid role. Must be SUPER_ADMIN or SUPPORT_AGENT");
-            return
-        }
-        // check if the  admin email is registered 
-        const existingAdmin = await Admin.findOne({email})
-        if (existingAdmin) {
-            handleError(res, 400, "Email already exists, please login.");
-            return;
-        }
- 
-       // Hash password
+  try {
+    const { fullName, email, password, role } = req.body;
+    // Basic validation for admin
+    if (![...ADMIN_ONLY_ROLES].includes(role)) {
+      handleError(
+        res,
+        400,
+        "Invalid role. Must be SUPER_ADMIN or SUPPORT_AGENT"
+      );
+      return;
+    }
+    // check if the  admin email is registered
+    const existingAdmin = await Admin.findOne({ email });
+    if (existingAdmin) {
+      handleError(res, 400, "Email already exists, please login.");
+      return;
+    }
+
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
-    
+
     // Create AMIN
     const newAdmin: IAdmin = await Admin.create({
-        fullName,
+      fullName,
       email,
       password: hashedPassword,
-      role
-
-    })
+      role,
+    });
 
     // Generate OTP and expiration timestamp
     const OTP = generateOTP();
 
-  // Upsert OTP for this admin
-  await OTPVerification.updateOne(
-    {
-      'owner.id': newAdmin._id,
-      'owner.type': 'Admin',
-      type: 'activate account',
-    },
-    {
-      owner: {
-        id: newAdmin._id,
-        type: 'Admin',
+    // Upsert OTP for this admin
+    await OTPVerification.updateOne(
+      {
+        "owner.id": newAdmin._id,
+        "owner.type": "Admin",
+        type: "activate account",
       },
-      OTP,
-      type: 'activate account',
-      verificationType: 'email',
-    },
-    { upsert: true }
-  );
+      {
+        owner: {
+          id: newAdmin._id,
+          type: "Admin",
+        },
+        OTP,
+        type: "activate account",
+        verificationType: "email",
+      },
+      { upsert: true }
+    );
 
     // Send OTP email
     const firstName = fullName.split(" ")[0];
@@ -80,22 +83,21 @@ export const registerAdmin = async (
         <br/>
       `
     );
-    
+
     // Send success response
     res.status(201).json({
-        success: true,
-        message: "Admin registered successfully. OTP sent to email.",
-        data: newAdmin,
-      });
+      success: true,
+      message: "Admin registered successfully. OTP sent to email.",
+      data: newAdmin,
+    });
+  } catch (error: any) {
+    console.error("Admin registration error:", error);
+    handleError(res, 500, "Something went wrong during registration.");
+    return;
+  }
+};
 
-    } catch(error: any) {
-        console.error("Admin registration error:", error);
-        handleError(res, 500, "Something went wrong during registration.");
-        return;
-    }
-}
-
-// login admin 
+// login admin
 
 export const loginAdmin = async (
   req: Request,
@@ -103,27 +105,27 @@ export const loginAdmin = async (
   next: NextFunction
 ) => {
   try {
-    const {email, password} = req.body;
+    const { email, password } = req.body;
 
-  // Check if email and password are provided
-  if (!email || !password) {
-    return handleError(res, 400, "Email and password are required.");
-  }
-  //  find admin by email
-  const admin = await Admin.findOne({ email });
-  if (!admin) {
-    handleError(res, 404, "Admin not found");
-    return;
-  }
-  // Compare passwords
-  const isMatch = await bcrypt.compare(password, admin.password);
+    // Check if email and password are provided
+    if (!email || !password) {
+      return handleError(res, 400, "Email and password are required.");
+    }
+    //  find admin by email
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      handleError(res, 404, "Admin not found");
+      return;
+    }
+    // Compare passwords
+    const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       handleError(res, 401, "Invalid credentials");
       return;
     }
 
-     // send otp if admin is not verified
-     if (!admin.emailVerified) {
+    // send otp if admin is not verified
+    if (!admin.emailVerified) {
       // Generate OTP and expiration timestamp
       // await requestEmailVerifyOTP(user)
       console.log("Login endpoint hit:", req.body);
@@ -133,10 +135,10 @@ export const loginAdmin = async (
       // Upsert OTP entry
       await OTPVerification.updateOne(
         {
-          'owner.id': admin._id,
+          "owner.id": admin._id,
           "owner.type": "Admin",
-          type: 'activate account',
-          verificationType: 'email',
+          type: "activate account",
+          verificationType: "email",
         },
         {
           $set: {
@@ -145,7 +147,7 @@ export const loginAdmin = async (
             verificationType: "email",
             owner: {
               id: admin._id,
-              type: 'Admin',
+              type: "Admin",
             },
           },
         },
@@ -189,7 +191,7 @@ export const loginAdmin = async (
   } catch (error) {
     next(error);
   }
-}
+};
 
 // verify admin email
 export const verifyAdminEmail = async (
@@ -262,21 +264,21 @@ export const resetAdminPasswordOTP = async (
     // Upsert OTP entry
     await OTPVerification.updateOne(
       {
-        'owner.id': admin._id,
-        'owner.type': 'Admin',
-        type: 'password',
-        verificationType: 'email',
+        "owner.id": admin._id,
+        "owner.type": "Admin",
+        type: "password",
+        verificationType: "email",
       },
       {
         $set: {
           OTP,
-          type: 'password',
-          verificationType: 'email',
+          type: "password",
+          verificationType: "email",
           owner: {
             id: admin._id,
-            type: 'Admin',
+            type: "Admin",
           },
-        },  
+        },
       },
       { upsert: true }
     );
@@ -322,7 +324,7 @@ export const resetAdminPassword = async (
     const otpVerification = await OTPVerification.findOne({
       OTP,
       type: "password",
-      'owner.type': 'Admin',
+      "owner.type": "Admin",
       verificationType: "email",
     });
     if (!otpVerification) {

@@ -2,8 +2,6 @@ import mongoose, { Schema } from "mongoose";
 import { isEmail } from "validator";
 import { IUser } from "../types/model";
 
-
-
 const userSchema = new Schema<IUser>(
   {
     fullName: { type: String, uppercase: true, required: true },
@@ -28,7 +26,7 @@ const userSchema = new Schema<IUser>(
       accountName: { type: String },
       recipientCode: { type: String },
       balance: { type: Number, default: 0 },
-      pendingBalance: { type: Number, default: 0 }
+      pendingBalance: { type: Number, default: 0 },
     },
     pin: { type: String },
     role: { type: [String], enum: ["seller", "buyer"], required: true },
@@ -43,11 +41,9 @@ const userSchema = new Schema<IUser>(
     sellerProfileComplete: { type: Boolean, default: false, required: true },
     is_admin: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
-
-
 
   { timestamps: true }
 );

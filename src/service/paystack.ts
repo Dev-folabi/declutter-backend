@@ -154,6 +154,53 @@ class Paystack {
       );
     }
   }
+
+  /**
+   * Process a refund for a transaction
+   */
+  async processRefund(transactionReference: string, amount?: number, merchantNote?: string) {
+    try {
+      const refundData: any = {
+        transaction: transactionReference,
+      };
+      
+      if (amount) {
+        refundData.amount = amount * 100; // Convert to kobo
+      }
+      
+      if (merchantNote) {
+        refundData.merchant_note = merchantNote;
+      }
+
+      const response = await axios.post(
+        `${PAYSTACK_BASE_URL}/refund`,
+        refundData,
+        { headers: this.headers }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(
+        error?.response?.data?.message || "Failed to process refund"
+      );
+    }
+  }
+
+  /**
+   * Get refund details
+   */
+  async getRefundDetails(refundId: string) {
+    try {
+      const response = await axios.get(
+        `${PAYSTACK_BASE_URL}/refund/${refundId}`,
+        { headers: this.headers }
+      );
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(
+        error?.response?.data?.message || "Failed to get refund details"
+      );
+    }
+  }
 }
 
 export default new Paystack();

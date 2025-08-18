@@ -1,25 +1,31 @@
-import { Request, Response, NextFunction } from 'express';
-import paystack from '../service/paystack';
-import { Order } from '../models/order';
-import { Transaction } from '../models/transactionModel';
-import { getEnvironment } from '../function/environment';
-import crypto from 'crypto';
-import { User } from '../models/userModel';
-import { ProductListingType } from '../types/model';
-import { createNotification } from './notificationController';
-import { sendEmail } from '../utils/mail';
-import bcrypt from 'bcrypt';
-import { decryptAccountDetail, encryptData } from '../utils';
-import { calculateEarnings } from '../utils/calculateEarnings';
+import { Request, Response, NextFunction } from "express";
+import paystack from "../service/paystack";
+import { Order } from "../models/order";
+import { Transaction } from "../models/transactionModel";
+import { getEnvironment } from "../function/environment";
+import crypto from "crypto";
+import { User } from "../models/userModel";
+import { ProductListingType } from "../types/model";
+import { createNotification } from "./notificationController";
+import { sendEmail } from "../utils/mail";
+import bcrypt from "bcrypt";
+import { decryptAccountDetail, encryptData } from "../utils";
+import { calculateEarnings } from "../utils/calculateEarnings";
+import { Schema } from "mongoose";
+import { Admin } from "../models/adminModel";
 
 const environment = getEnvironment();
 
 const PAYSTACK_WEBHOOK_SECRET =
-  environment === 'local' || environment === 'staging'
+  environment === "local" || environment === "staging"
     ? process.env.PAYSTACK_LIVE_SECRET_KEY!
     : process.env.PAYSTACK_TEST_SECRET_KEY!;
 
-export const getBankCodes = async (req: Request, res: Response, next: NextFunction) => {
+export const getBankCodes = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const response = await paystack.getBankCodes();
 
@@ -42,8 +48,8 @@ export const getAccountDetails = async (
 
     if (!account_number || !bank_code) {
       res.status(400).json({
-        status: 'error',
-        message: 'Account number and bank code are required',
+        status: "error",
+        message: "Account number and bank code are required",
       });
     }
 
@@ -57,24 +63,33 @@ export const getAccountDetails = async (
       data: response,
     });
   } catch (error: any) {
-    console.error('Error retrieving account details:', error?.response?.data || error.message);
+    console.error(
+      "Error retrieving account details:",
+      error?.response?.data || error.message
+    );
     next(error);
   }
 };
 
 // Initiate Payment
-export const initiateOrderPayment = async (req: Request, res: Response, next: NextFunction) => {
+export const initiateOrderPayment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { order_id } = req.params;
   const userId = (req as any).user._id;
 
   try {
     // Find the order by ID and ensure it's associated with the authenticated user
-    const order = await Order.findOne({ _id: order_id, user: userId }).populate('user');
+    const order = await Order.findOne({ _id: order_id, user: userId }).populate(
+      "user"
+    );
 
     if (!order) {
       res.status(404).json({
         success: false,
-        message: 'Order not found or you do not have access to this order',
+        message: "Order not found or you do not have access to this order",
         data: null,
       });
       return;
@@ -83,9 +98,9 @@ export const initiateOrderPayment = async (req: Request, res: Response, next: Ne
     const gatewayCharges = order.totalPrice * 0.015 + 100;
     order.totalPrice += gatewayCharges;
 
-     // Calculate commission & earnings (before adding gateway fee)
-     const { platformCommission, charges, sellerEarnings, netRevenue } =
-     calculateEarnings(order.totalPrice - gatewayCharges);
+    // Calculate commission & earnings (before adding gateway fee)
+    const { platformCommission, charges, sellerEarnings, netRevenue } =
+      calculateEarnings(order.totalPrice - gatewayCharges);
 
     // Initiate the payment using Paystack
     const paymentData = await paystack.initiatePayment(
@@ -99,9 +114,9 @@ export const initiateOrderPayment = async (req: Request, res: Response, next: Ne
       userId: (order.user as any)._id,
       amount: order.totalPrice - charges,
       transactionDate: new Date(),
-      status: 'pending',
+      status: "pending",
       charges,
-      transactionType: 'credit',
+      transactionType: "credit",
       description: `Payment for Order ${order._id}`,
       referenceId: paymentData.reference,
       platformCommission,
@@ -110,13 +125,12 @@ export const initiateOrderPayment = async (req: Request, res: Response, next: Ne
       gatewayCharges,
     });
 
-
     await transaction.save();
 
     // Respond with payment initiation data
     res.status(200).json({
       success: true,
-      message: 'Payment initiated successfully',
+      message: "Payment initiated successfully",
       data: paymentData,
     });
   } catch (error: any) {
@@ -124,40 +138,50 @@ export const initiateOrderPayment = async (req: Request, res: Response, next: Ne
   }
 };
 
-export const verifyPayment = async (req: Request, res: Response, next: NextFunction) => {
+export const verifyPayment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const { reference } = req.query;
   const userId = (req as any).user._id;
 
   try {
     if (!reference) {
-      res.status(400).json({ success: false, message: 'Payment reference is required.' });
+      res
+        .status(400)
+        .json({ success: false, message: "Payment reference is required." });
       return;
     }
 
     const transaction = await Transaction.findOne({ referenceId: reference });
     if (!transaction) {
-      res.status(404).json({ success: false, message: 'Transaction not found.' });
+      res
+        .status(404)
+        .json({ success: false, message: "Transaction not found." });
       return;
     }
 
-    if (['completed', 'refund'].includes(transaction.status)) {
-      res.status(200).json({ success: true, message: 'Transaction already processed.' });
+    if (["completed", "refund"].includes(transaction.status)) {
+      res
+        .status(200)
+        .json({ success: true, message: "Transaction already processed." });
       return;
     }
 
     if (transaction.userId.toString() !== userId.toString()) {
       res.status(403).json({
         success: false,
-        message: 'You do not have permission to verify this payment.',
+        message: "You do not have permission to verify this payment.",
       });
       return;
     }
 
     const paymentData = await paystack.verifyPayment(reference as string);
-    if (paymentData.status !== 'success') {
+    if (paymentData.status !== "success") {
       res.status(400).json({
         success: false,
-        message: 'Payment verification failed.',
+        message: "Payment verification failed.",
         data: paymentData,
       });
       return;
@@ -166,35 +190,35 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
     if (paymentData.amount / 100 !== transaction.amount) {
       res.status(400).json({
         success: false,
-        message: 'Payment amount mismatch.',
+        message: "Payment amount mismatch.",
         data: paymentData,
       });
       return;
     }
 
-    transaction.status = 'completed';
+    transaction.status = "completed";
     transaction.transactionDate = new Date();
     await transaction.save();
 
-    const orderId = transaction.referenceId?.split('_')[1];
+    const orderId = transaction.referenceId?.split("_")[1];
     if (!orderId) {
       res.status(400).json({
         success: false,
-        message: 'Order ID is missing from reference ID.',
+        message: "Order ID is missing from reference ID.",
       });
       return;
     }
 
     const order = await Order.findById(orderId).populate<{
       items: { product: ProductListingType }[];
-    }>('items.product');
+    }>("items.product");
 
     if (!order) {
-      res.status(404).json({ success: false, message: 'Order not found.' });
+      res.status(404).json({ success: false, message: "Order not found." });
       return;
     }
 
-    order.status = 'paid';
+    order.status = "paid";
     await order.save();
 
     // Handle each product in the order
@@ -215,17 +239,17 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
             recipient: seller._id,
             recipientModel: "User",
             body: `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
-            type: 'market',
-            title: 'Product Sales',
+            type: "market",
+            title: "Product Sales",
           };
 
           await Promise.allSettled([
             createNotification(notificationData),
             sendEmail(
               seller.email!,
-              'Product Sales',
+              "Product Sales",
               `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`
-            )
+            ),
           ]);
         }
       }
@@ -233,56 +257,60 @@ export const verifyPayment = async (req: Request, res: Response, next: NextFunct
 
     res.status(200).json({
       success: true,
-      message: 'Payment verified successfully, order updated, seller credited.',
+      message: "Payment verified successfully, order updated, seller credited.",
       data: paymentData,
     });
   } catch (error: any) {
-    console.error('Payment verification error:', error.message || error);
+    console.error("Payment verification error:", error.message || error);
     next(error);
   }
 };
 
-export const handlePaystackWebhook = async (req: Request, res: Response, next: NextFunction) => {
+export const handlePaystackWebhook = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const payload = req.body;
   const signature =
-    (req.headers['x-paystack-signature'] as string) ||
-    (req.headers['X-Paystack-Signature'] as string);
+    (req.headers["x-paystack-signature"] as string) ||
+    (req.headers["X-Paystack-Signature"] as string);
 
   try {
     if (!verifyWebhookSignature(payload, signature)) {
       res.status(400).json({
         success: false,
-        message: 'Invalid signature. Webhook not from Paystack.',
+        message: "Invalid signature. Webhook not from Paystack.",
       });
       return;
     }
 
     const event = payload.event;
-    if (event === 'charge.success') {
+    if (event === "charge.success") {
       await handleChargeSuccess(payload.data);
-    } else if (event === 'charge.failed') {
+    } else if (event === "charge.failed") {
       await handleChargeFailed(payload.data);
-    } else if (event === 'refund.success') {
+    } else if (event === "refund.success") {
       await handleRefundSuccess(payload.data);
     } else {
-      console.log('Unhandled Paystack event:', event);
+      console.log("Unhandled Paystack event:", event);
     }
 
     res.status(200).json({
       success: true,
-      message: 'Webhook processed successfully.',
+      message: "Webhook processed successfully.",
     });
   } catch (error: any) {
-    console.error('Webhook processing error:', error.message || error);
+    console.error("Webhook processing error:", error.message || error);
     next(error);
   }
 };
 
 const verifyWebhookSignature = (payload: any, signature: string) => {
   const computedSignature = crypto
-    .createHmac('sha512', PAYSTACK_WEBHOOK_SECRET)
+    .createHmac("sha512", PAYSTACK_WEBHOOK_SECRET)
     .update(JSON.stringify(payload))
-    .digest('hex');
+    .digest("hex");
 
   return computedSignature === signature;
 };
@@ -292,25 +320,25 @@ const handleChargeSuccess = async (paymentData: any) => {
   const amount = paymentData.amount / 100;
   const transaction = await Transaction.findOne({ referenceId: reference });
 
-  if (!transaction) throw new Error('Transaction not found.');
+  if (!transaction) throw new Error("Transaction not found.");
 
-  if (['completed', 'refund'].includes(transaction.status)) {
+  if (["completed", "refund"].includes(transaction.status)) {
     return;
   }
-  transaction.status = 'completed';
+  transaction.status = "completed";
   transaction.transactionDate = new Date();
   await transaction.save();
 
-  const orderId = transaction.referenceId?.split('_')[1];
-  if (!orderId) throw new Error('Order ID missing from reference.');
+  const orderId = transaction.referenceId?.split("_")[1];
+  if (!orderId) throw new Error("Order ID missing from reference.");
 
   const order = await Order.findById(orderId).populate<{
     items: { product: ProductListingType }[];
-  }>('items.product');
+  }>("items.product");
 
-  if (!order) throw new Error('Order not found.');
+  if (!order) throw new Error("Order not found.");
 
-  order.status = 'paid';
+  order.status = "paid";
   await order.save();
 
   for (const item of order.items) {
@@ -330,15 +358,15 @@ const handleChargeSuccess = async (paymentData: any) => {
           recipient: seller._id,
           recipientModel: "User",
           body: `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
-          type: 'account',
-          title: 'Product Sales',
+          type: "account",
+          title: "Product Sales",
         };
 
         await Promise.allSettled([
           createNotification(notificationData),
           sendEmail(
             seller.email!,
-            'Product Sold',
+            "Product Sold",
             `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`
           ),
         ]);
@@ -350,38 +378,103 @@ const handleChargeSuccess = async (paymentData: any) => {
 const handleChargeFailed = async (paymentData: any) => {
   const reference = paymentData.reference;
   const transaction = await Transaction.findOne({ referenceId: reference });
-  if (!transaction) throw new Error('Transaction not found.');
+  if (!transaction) throw new Error("Transaction not found.");
 
-  transaction.status = 'failed';
+  transaction.status = "failed";
   transaction.transactionDate = new Date();
   await transaction.save();
 
-  const orderId = transaction.referenceId?.split('_')[1];
+  const orderId = transaction.referenceId?.split("_")[1];
   const order = await Order.findById(orderId);
   if (order) {
-    order.status = 'failed';
+    order.status = "failed";
     await order.save();
   }
 };
 
 const handleRefundSuccess = async (paymentData: any) => {
-  const reference = paymentData.reference;
-  const transaction = await Transaction.findOne({ referenceId: reference });
-  if (!transaction) throw new Error('Transaction not found.');
+  const refundId = paymentData.id;
+  const reference = paymentData.transaction?.reference;
 
-  transaction.status = 'refund';
-  transaction.transactionDate = new Date();
+  if (!reference) {
+    throw new Error("Transaction reference not found in refund data.");
+  }
+
+  const transaction = await Transaction.findOne({ referenceId: reference });
+  if (!transaction) {
+    throw new Error("Transaction not found.");
+  }
+
+  // Update transaction status
+  transaction.status = "refunded";
+  transaction.refundStatus = "processed";
+
+  // Update refund details if not already set
+  if (!transaction.refundDetails) {
+    transaction.refundDetails = {
+      paystackRefundId: refundId,
+      refundAmount: paymentData.amount / 100, // Convert from kobo
+      processedAt: new Date(),
+    };
+  }
+
+  // Add to refund history
+  if (!transaction.refundHistory) {
+    transaction.refundHistory = [];
+  }
+  transaction.refundHistory.push({
+    action: "Refund confirmed by Paystack webhook",
+    performedBy:
+      transaction.refundDetails?.processedBy ||
+      new Schema.Types.ObjectId(transaction.userId),
+    performedAt: new Date(),
+    notes: `Paystack refund ID: ${refundId}`,
+  });
+
   await transaction.save();
 
-  const orderId = transaction.referenceId?.split('_')[1];
-  const order = await Order.findById(orderId);
-  if (order) {
-    order.status = 'refunded';
-    await order.save();
+  // Update related order status
+  const orderId = transaction.referenceId?.split("_")[1];
+  if (orderId) {
+    const order = await Order.findById(orderId);
+    if (order) {
+      order.status = "refunded";
+      await order.save();
+    }
+  }
+
+  // Send final confirmation notification
+  const user = await User.findById(transaction.userId).select("email fullName");
+  if (user) {
+    const notificationData = {
+      recipient: user._id,
+      recipientModel: "User",
+      body: `Your refund of ₦${transaction.refundDetails.refundAmount} has been successfully processed.`,
+      type: "refund",
+      title: "Refund Processed",
+      data: {
+        transactionId: transaction._id,
+        amount: transaction.refundDetails.refundAmount,
+        paystackRefundId: refundId,
+      },
+    };
+
+    await Promise.allSettled([
+      createNotification(notificationData),
+      sendEmail(
+        user.email!,
+        "Refund Processed Successfully",
+        `Your refund of ₦${transaction.refundDetails.refundAmount} for transaction ${transaction._id} has been successfully processed. Refund ID: ${refundId}`
+      ),
+    ]);
   }
 };
 
-export const withdrawFunds = async (req: Request, res: Response, next: NextFunction) => {
+export const withdrawFunds = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const userId = (req as any).user._id;
   const { amount, pin, accountNumber, bankCode } = req.body;
 
@@ -389,7 +482,7 @@ export const withdrawFunds = async (req: Request, res: Response, next: NextFunct
     if (!amount || amount < 100) {
       res.status(400).json({
         success: false,
-        message: 'Minimum withdrawal amount is NGN 100.',
+        message: "Minimum withdrawal amount is NGN 100.",
       });
       return;
     }
@@ -398,7 +491,7 @@ export const withdrawFunds = async (req: Request, res: Response, next: NextFunct
     if (!user) {
       res.status(404).json({
         success: false,
-        message: 'User not found.',
+        message: "User not found.",
       });
       return;
     }
@@ -411,17 +504,17 @@ export const withdrawFunds = async (req: Request, res: Response, next: NextFunct
     ) {
       res.status(400).json({
         success: false,
-        message: 'Insufficient balance or account details not found.',
+        message: "Insufficient balance or account details not found.",
       });
       return;
     }
 
     // PIN verification
-    const isPinValid = await bcrypt.compare(pin, user.pin || '');
+    const isPinValid = await bcrypt.compare(pin, user.pin || "");
     if (!isPinValid) {
       res.status(403).json({
         success: false,
-        message: 'Incorrect PIN.',
+        message: "Incorrect PIN.",
       });
       return;
     }
@@ -436,7 +529,7 @@ export const withdrawFunds = async (req: Request, res: Response, next: NextFunct
     ) {
       res.status(400).json({
         success: false,
-        message: 'Provided account details do not match saved account.',
+        message: "Provided account details do not match saved account.",
       });
       return;
     }
@@ -445,23 +538,23 @@ export const withdrawFunds = async (req: Request, res: Response, next: NextFunct
     if (!recipientCode) {
       res.status(400).json({
         success: false,
-        message: 'Recipient code not found. Please complete account setup.',
+        message: "Recipient code not found. Please complete account setup.",
       });
       return;
     }
 
-    const reference = `WD_${crypto.randomBytes(16).toString('hex')}`;
+    const reference = `WD_${crypto.randomBytes(16).toString("hex")}`;
 
     // Transfer funds via Paystack
-    await paystack.transferFunds(recipientCode, amount, 'Wallet Withdrawal');
+    await paystack.transferFunds(recipientCode, amount, "Wallet Withdrawal");
 
     // Create a debit transaction
     const transaction = await Transaction.create({
       userId: user._id,
       amount,
-      transactionType: 'debit',
-      status: 'completed',
-      description: 'Wallet Withdrawal',
+      transactionType: "debit",
+      status: "completed",
+      description: "Wallet Withdrawal",
       referenceId: reference,
       transactionDate: new Date(),
     });
@@ -485,41 +578,44 @@ export const withdrawFunds = async (req: Request, res: Response, next: NextFunct
 
     // Notify user via email & in-app
     Promise.allSettled([
-      sendEmail(user.email, 'Withdrawal Successful', bodyMsg),
+      sendEmail(user.email, "Withdrawal Successful", bodyMsg),
       createNotification({
         user: user._id,
         body: bodyMsg,
-        type: 'account',
-        title: 'Wallet Withdrawal',
+        type: "account",
+        title: "Wallet Withdrawal",
       }),
     ]);
 
     res.status(200).json({
       success: true,
-      message: 'Withdrawal successful.',
+      message: "Withdrawal successful.",
       transaction,
     });
   } catch (error: any) {
-    console.error('Withdrawal error:', error.message);
+    console.error("Withdrawal error:", error.message);
     next(error);
   }
 };
 
-
-
-export const createRefund = async (req: Request, res: Response, next: NextFunction) => {
+export const createRefund = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const { transactionId } = req.params; 
+    const { transactionId } = req.params;
     const { reason } = req.body;
-    const userId = (req as any).user?._id; 
+    const userId = (req as any).user?._id;
+
     // Validate reason
     if (!reason || reason.trim() === "") {
       res.status(400).json({
         success: false,
         message: "Refund reason is required.",
-        data: null
+        data: null,
       });
-      return
+      return;
     }
 
     // Find transaction
@@ -529,17 +625,37 @@ export const createRefund = async (req: Request, res: Response, next: NextFuncti
       res.status(404).json({
         success: false,
         message: "Transaction not found.",
-        data: null
+        data: null,
       });
       return;
     }
 
-    // prevent duplicate refund requests
+    // Verify transaction belongs to user
+    if (transaction.userId !== userId.toString()) {
+      res.status(403).json({
+        success: false,
+        message: "You can only request refunds for your own transactions.",
+        data: null,
+      });
+      return;
+    }
+
+    // Check if transaction is eligible for refund
+    if (transaction.status !== "completed") {
+      res.status(400).json({
+        success: false,
+        message: "Only completed transactions can be refunded.",
+        data: null,
+      });
+      return;
+    }
+
+    // Prevent duplicate refund requests
     if (transaction.refundRequest) {
       res.status(400).json({
         success: false,
         message: "Refund request already exists for this transaction.",
-        data: null
+        data: null,
       });
       return;
     }
@@ -548,17 +664,61 @@ export const createRefund = async (req: Request, res: Response, next: NextFuncti
     transaction.refundRequest = {
       reason,
       requestedBy: userId,
-      requestedAt: new Date()
+      requestedAt: new Date(),
     };
-    transaction.status = "refund"; 
+    transaction.status = "refund";
     transaction.refundStatus = "pending";
 
+    // Add to refund history
+    if (!transaction.refundHistory) {
+      transaction.refundHistory = [];
+    }
+    transaction.refundHistory.push({
+      action: "Refund requested",
+      performedBy: userId,
+      performedAt: new Date(),
+      notes: reason,
+    });
+
     await transaction.save();
+
+    // Create notification for user
+    const userNotificationData = {
+      recipient: userId,
+      recipientModel: "User",
+      body: `Your refund request for ₦${transaction.amount} has been submitted and is pending admin review.`,
+      type: "refund",
+      title: "Refund Request Submitted",
+      data: {
+        transactionId: transaction._id,
+        amount: transaction.amount,
+      },
+    };
+
+    // Create notification for admins (get all admin IDs)
+    const admins = await Admin.find({ is_admin: true }).select("_id");
+    const adminNotificationPromises = admins.map((admin) =>
+      createNotification({
+        recipient: admin._id,
+        recipientModel: "Admin",
+        body: `New refund request for ₦${transaction.amount} (Transaction ID: ${transaction._id})`,
+        type: "refund",
+        title: "New Refund Request",
+        data: {
+          transactionId: transaction._id,
+          amount: transaction.amount,
+          userId: userId,
+        },
+      })
+    );
+
+    await createNotification(userNotificationData);
+    await Promise.all(adminNotificationPromises);
 
     res.status(201).json({
       success: true,
       message: "Refund request created successfully.",
-      data: transaction
+      data: transaction,
     });
     return;
   } catch (error) {
