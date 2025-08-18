@@ -10,6 +10,9 @@ import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import bcrypt from "bcrypt";
 import { decryptAccountDetail, encryptData } from "../utils";
+import { calculateEarnings } from "../utils/calculateEarnings";
+import { Schema } from "mongoose";
+import { Admin } from "../models/adminModel";
 
 const environment = getEnvironment();
 
@@ -92,8 +95,12 @@ export const initiateOrderPayment = async (
       return;
     }
 
-    const charges = order.totalPrice * 0.015 + 100;
-    order.totalPrice += charges;
+    const gatewayCharges = order.totalPrice * 0.015 + 100;
+    order.totalPrice += gatewayCharges;
+
+    // Calculate commission & earnings (before adding gateway fee)
+    const { platformCommission, charges, sellerEarnings, netRevenue } =
+      calculateEarnings(order.totalPrice - gatewayCharges);
 
     // Initiate the payment using Paystack
     const paymentData = await paystack.initiatePayment(
@@ -112,6 +119,10 @@ export const initiateOrderPayment = async (
       transactionType: "credit",
       description: `Payment for Order ${order._id}`,
       referenceId: paymentData.reference,
+      platformCommission,
+      sellerEarnings,
+      netRevenue,
+      gatewayCharges,
     });
 
     await transaction.save();
@@ -225,7 +236,8 @@ export const verifyPayment = async (
           await seller.save();
 
           const notificationData = {
-            user: seller._id,
+            recipient: seller._id,
+            recipientModel: "User",
             body: `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
             type: "market",
             title: "Product Sales",
@@ -343,7 +355,8 @@ const handleChargeSuccess = async (paymentData: any) => {
         await seller.save();
 
         const notificationData = {
-          user: seller._id,
+          recipient: seller._id,
+          recipientModel: "User",
           body: `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
           type: "account",
           title: "Product Sales",
@@ -380,19 +393,80 @@ const handleChargeFailed = async (paymentData: any) => {
 };
 
 const handleRefundSuccess = async (paymentData: any) => {
-  const reference = paymentData.reference;
-  const transaction = await Transaction.findOne({ referenceId: reference });
-  if (!transaction) throw new Error("Transaction not found.");
+  const refundId = paymentData.id;
+  const reference = paymentData.transaction?.reference;
 
-  transaction.status = "refund";
-  transaction.transactionDate = new Date();
+  if (!reference) {
+    throw new Error("Transaction reference not found in refund data.");
+  }
+
+  const transaction = await Transaction.findOne({ referenceId: reference });
+  if (!transaction) {
+    throw new Error("Transaction not found.");
+  }
+
+  // Update transaction status
+  transaction.status = "refunded";
+  transaction.refundStatus = "processed";
+
+  // Update refund details if not already set
+  if (!transaction.refundDetails) {
+    transaction.refundDetails = {
+      paystackRefundId: refundId,
+      refundAmount: paymentData.amount / 100, // Convert from kobo
+      processedAt: new Date(),
+    };
+  }
+
+  // Add to refund history
+  if (!transaction.refundHistory) {
+    transaction.refundHistory = [];
+  }
+  transaction.refundHistory.push({
+    action: "Refund confirmed by Paystack webhook",
+    performedBy:
+      transaction.refundDetails?.processedBy ||
+      new Schema.Types.ObjectId(transaction.userId),
+    performedAt: new Date(),
+    notes: `Paystack refund ID: ${refundId}`,
+  });
+
   await transaction.save();
 
+  // Update related order status
   const orderId = transaction.referenceId?.split("_")[1];
-  const order = await Order.findById(orderId);
-  if (order) {
-    order.status = "refunded";
-    await order.save();
+  if (orderId) {
+    const order = await Order.findById(orderId);
+    if (order) {
+      order.status = "refunded";
+      await order.save();
+    }
+  }
+
+  // Send final confirmation notification
+  const user = await User.findById(transaction.userId).select("email fullName");
+  if (user) {
+    const notificationData = {
+      recipient: user._id,
+      recipientModel: "User",
+      body: `Your refund of ₦${transaction.refundDetails.refundAmount} has been successfully processed.`,
+      type: "refund",
+      title: "Refund Processed",
+      data: {
+        transactionId: transaction._id,
+        amount: transaction.refundDetails.refundAmount,
+        paystackRefundId: refundId,
+      },
+    };
+
+    await Promise.allSettled([
+      createNotification(notificationData),
+      sendEmail(
+        user.email!,
+        "Refund Processed Successfully",
+        `Your refund of ₦${transaction.refundDetails.refundAmount} for transaction ${transaction._id} has been successfully processed. Refund ID: ${refundId}`
+      ),
+    ]);
   }
 };
 
@@ -520,6 +594,134 @@ export const withdrawFunds = async (
     });
   } catch (error: any) {
     console.error("Withdrawal error:", error.message);
+    next(error);
+  }
+};
+
+export const createRefund = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { transactionId } = req.params;
+    const { reason } = req.body;
+    const userId = (req as any).user?._id;
+
+    // Validate reason
+    if (!reason || reason.trim() === "") {
+      res.status(400).json({
+        success: false,
+        message: "Refund reason is required.",
+        data: null,
+      });
+      return;
+    }
+
+    // Find transaction
+    const transaction = await Transaction.findById(transactionId);
+
+    if (!transaction) {
+      res.status(404).json({
+        success: false,
+        message: "Transaction not found.",
+        data: null,
+      });
+      return;
+    }
+
+    // Verify transaction belongs to user
+    if (transaction.userId !== userId.toString()) {
+      res.status(403).json({
+        success: false,
+        message: "You can only request refunds for your own transactions.",
+        data: null,
+      });
+      return;
+    }
+
+    // Check if transaction is eligible for refund
+    if (transaction.status !== "completed") {
+      res.status(400).json({
+        success: false,
+        message: "Only completed transactions can be refunded.",
+        data: null,
+      });
+      return;
+    }
+
+    // Prevent duplicate refund requests
+    if (transaction.refundRequest) {
+      res.status(400).json({
+        success: false,
+        message: "Refund request already exists for this transaction.",
+        data: null,
+      });
+      return;
+    }
+
+    // Set refund request data
+    transaction.refundRequest = {
+      reason,
+      requestedBy: userId,
+      requestedAt: new Date(),
+    };
+    transaction.status = "refund";
+    transaction.refundStatus = "pending";
+
+    // Add to refund history
+    if (!transaction.refundHistory) {
+      transaction.refundHistory = [];
+    }
+    transaction.refundHistory.push({
+      action: "Refund requested",
+      performedBy: userId,
+      performedAt: new Date(),
+      notes: reason,
+    });
+
+    await transaction.save();
+
+    // Create notification for user
+    const userNotificationData = {
+      recipient: userId,
+      recipientModel: "User",
+      body: `Your refund request for ₦${transaction.amount} has been submitted and is pending admin review.`,
+      type: "refund",
+      title: "Refund Request Submitted",
+      data: {
+        transactionId: transaction._id,
+        amount: transaction.amount,
+      },
+    };
+
+    // Create notification for admins (get all admin IDs)
+    const admins = await Admin.find({ is_admin: true }).select("_id");
+    const adminNotificationPromises = admins.map((admin) =>
+      createNotification({
+        recipient: admin._id,
+        recipientModel: "Admin",
+        body: `New refund request for ₦${transaction.amount} (Transaction ID: ${transaction._id})`,
+        type: "refund",
+        title: "New Refund Request",
+        data: {
+          transactionId: transaction._id,
+          amount: transaction.amount,
+          userId: userId,
+        },
+      })
+    );
+
+    await createNotification(userNotificationData);
+    await Promise.all(adminNotificationPromises);
+
+    res.status(201).json({
+      success: true,
+      message: "Refund request created successfully.",
+      data: transaction,
+    });
+    return;
+  } catch (error) {
     next(error);
   }
 };

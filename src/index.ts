@@ -3,6 +3,7 @@ import morgan from 'morgan';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import routes from './routes/api';
+import { rateLimiter } from './middlewares/rateLimiter';
 import connectDB from './db';
 import { errorHandler } from './error/errorHandler';
 import swaggerRouter from './swagger';
@@ -17,10 +18,14 @@ const app: Express = express();
 // Environmental variables
 const port = process.env.PORT || 6000;
 
+app.set('trust proxy', 1)
+
 // Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(morgan('combined'));
+app.use(rateLimiter);
+
 
 // Routes
 app.get('/', (req: Request, res: Response) => {

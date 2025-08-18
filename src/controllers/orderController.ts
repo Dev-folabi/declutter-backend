@@ -73,7 +73,8 @@ export const orderCheckout = async (
 
     // Create notification
     const notificationData = {
-      user: user._id,
+      recipient: user._id,
+      recipientModel: "User",
       body: "Order created successfully, awaiting payment",
       type: "market",
       title: "Order Created",

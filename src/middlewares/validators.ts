@@ -434,3 +434,13 @@ export const validateFlagOrRemove = [
     .isIn(['flag', 'remove']).withMessage('Action must be either "flag" or "remove"'),
   handleValidationErrors,
 ];
+
+export const validateTransactionId = [
+  param('transactionId')
+  .notEmpty().withMessage('Transaction ID is required')
+  .isMongoId().withMessage('Invalid transaction ID format'),
+  body('action')
+  .notEmpty().withMessage('Action is required')
+  .isIn(['approve', 'reject']).withMessage('Action must be either "approve" or "reject"'),
+handleValidationErrors,
+]
