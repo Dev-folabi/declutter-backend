@@ -1,6 +1,13 @@
 import express from "express";
-import { getAllTransactions, approveOrRejectRefund, getRefundHistory } from "../../controllers/transactionController";
-import { authorizeRoles } from "../../middlewares/authMiddleware";
+import {
+  getAllTransactions,
+  approveOrRejectRefund,
+  getRefundHistory,
+  getUserTransactions,
+  getUserRefundStatus,
+  createRefundRequest,
+} from "../../controllers/transactionController";
+import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
 import { validateTransactionId } from "../../middlewares/validators";
 
@@ -8,9 +15,162 @@ import { validateTransactionId } from "../../middlewares/validators";
  * @swagger
  * tags:
  *   name: Transactions
- *   description: Transaction management endpoints for admin users
+ *   description: Transaction management endpoints for users and admin users
  */
 
+/**
+ * @swagger
+ * /api/transactions/user:
+ *   get:
+ *     summary: Get user's own transactions
+ *     description: Retrieves a paginated list of transactions for the authenticated user with optional filters. User access required.
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of transactions per page.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, completed, failed, refund, refunded]
+ *           example: completed
+ *         description: Filter by transaction status.
+ *       - in: query
+ *         name: transactionType
+ *         schema:
+ *           type: string
+ *           enum: [credit, debit]
+ *           example: debit
+ *         description: Filter by transaction type.
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-01"
+ *         description: Start date for filtering transactions (YYYY-MM-DD).
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-12-31"
+ *         description: End date for filtering transactions (YYYY-MM-DD).
+ *     responses:
+ *       200:
+ *         description: User transactions retrieved successfully.
+ *       401:
+ *         description: Unauthorized - invalid or missing token.
+ *
+ * /api/transactions/user/{transactionId}/refund-status:
+ *   get:
+ *     summary: Get refund status for user's transaction
+ *     description: Retrieves the refund status and history for a specific transaction owned by the authenticated user. User access required.
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the transaction to get refund status for.
+ *         example: "60f7b3b3b3b3b3b3b3b3b3b3"
+ *     responses:
+ *       200:
+ *         description: Refund status retrieved successfully.
+ *       403:
+ *         description: Forbidden - user can only view their own transactions.
+ *       404:
+ *         description: Transaction not found.
+ *       401:
+ *         description: Unauthorized - invalid or missing token.
+ *
+ * /api/transactions/refund-request/{transactionId}:
+ *   post:
+ *     tags: [Transactions]
+ *     summary: Request refund for a transaction
+ *     description: Allows authenticated users to request a refund for their completed transactions. Users can only request refunds for their own transactions.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the transaction to request refund for
+ *         example: "60f7b3b3b3b3b3b3b3b3b3b3"
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - reason
+ *             properties:
+ *               reason:
+ *                 type: string
+ *                 description: Reason for requesting the refund
+ *                 example: "Product was damaged upon delivery"
+ *                 minLength: 10
+ *                 maxLength: 500
+ *     responses:
+ *       200:
+ *         description: Refund request submitted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Refund request submitted successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     transactionId:
+ *                       type: string
+ *                       example: "60f7b3b3b3b3b3b3b3b3b3b3"
+ *                     refundStatus:
+ *                       type: string
+ *                       example: "pending"
+ *                     refundRequest:
+ *                       type: object
+ *                       properties:
+ *                         reason:
+ *                           type: string
+ *                         requestedBy:
+ *                           type: string
+ *                         requestedAt:
+ *                           type: string
+ *                           format: date-time
+ *       400:
+ *         description: Invalid request - transaction not eligible for refund or refund already requested
+ *       403:
+ *         description: Forbidden - user can only request refunds for their own transactions
+ *       404:
+ *         description: Transaction not found
+ *       401:
+ *         description: Unauthorized - invalid or missing token
+ */
 /**
  * @swagger
  * /api/transactions:
@@ -286,21 +446,27 @@ import { validateTransactionId } from "../../middlewares/validators";
 
 const router = express.Router();
 
-// Get all transactions (admin only)
-router.get("/",
-  authorizeRoles(...ADMIN_ONLY_ROLES),
-  getAllTransactions
+// User endpoints (require authentication)
+router.get("/user", verifyToken, getUserTransactions);
+router.get(
+  "/user/:transactionId/refund-status",
+  verifyToken,
+  validateTransactionId,
+  getUserRefundStatus
 );
+// Refund request endpoint (requires authentication)
+router.post("/refund-request/:transactionId", verifyToken, createRefundRequest);
 
-// Approve or reject refund request (admin only)
-router.patch("/:transactionId/refund-status",
+// Admin endpoints (require admin authentication)
+router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllTransactions);
+router.patch(
+  "/:transactionId/refund-status",
   authorizeRoles(...ADMIN_ONLY_ROLES),
   validateTransactionId,
   approveOrRejectRefund
 );
-
-// Get refund history for a transaction (admin only)
-router.get("/:transactionId/refund-history",
+router.get(
+  "/:transactionId/refund-history",
   authorizeRoles(...ADMIN_ONLY_ROLES),
   validateTransactionId,
   getRefundHistory
