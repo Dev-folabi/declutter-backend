@@ -84,11 +84,13 @@ export const registerAdmin = async (
       `
     );
 
+    const sanitizedAdmin = _.omit(newAdmin.toObject(), ["password"]);
+
     // Send success response
     res.status(201).json({
       success: true,
       message: "Admin registered successfully. OTP sent to email.",
-      data: newAdmin,
+      data: sanitizedAdmin,
     });
   } catch (error: any) {
     console.error("Admin registration error:", error);

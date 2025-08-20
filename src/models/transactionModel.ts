@@ -1,41 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface ITransaction extends Document {
-  userId: string;
-  amount: number;
-  transactionDate: Date;
-  status: string;
-  charges?: number;
-  transactionType: string;
-  description?: string;
-  referenceId?: string;
-  refundRequest?: {
-    reason: string;
-    requestedBy: Schema.Types.ObjectId;
-    requestedAt: Date;
-    adminNotes?: string;
-  };
-  refundStatus?: "pending" | "approved" | "rejected" | "processed";
-  refundDetails?: {
-    paystackRefundId?: string;
-    refundAmount?: number;
-    processedAt?: Date;
-    processedBy?: Schema.Types.ObjectId;
-  };
-  refundHistory?: Array<{
-    action: string;
-    performedBy: Schema.Types.ObjectId;
-    performedAt: Date;
-    notes?: string;
-  }>;
-  dispute?: boolean;
-  platformCommission: number;
-  sellerEarnings: number;
-  netRevenue: number;
-
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from "mongoose";
+import { ITransaction } from "../types/model";
 
 const TransactionSchema: Schema = new Schema<ITransaction>(
   {
@@ -73,15 +37,17 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
       processedAt: { type: Date },
       processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
     },
-    refundHistory: [{
-      action: { type: String, required: true },
-      performedBy: { type: mongoose.Schema.Types.ObjectId, required: true },
-      performedAt: { type: Date, default: Date.now },
-      notes: { type: String },
-    }],
-    platformCommission: { type: Number, required: true },
-    sellerEarnings: { type: Number, required: true },
-    netRevenue: { type: Number, required: true },
+    refundHistory: [
+      {
+        action: { type: String, required: true },
+        performedBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+        performedAt: { type: Date, default: Date.now },
+        notes: { type: String },
+      },
+    ],
+    totalAmount: { type: Number, default: 0 },
+    sellerEarnings: { type: Number, default: 0 },
+    revenue: { type: Number, default: 0 },
     dispute: { type: Boolean, default: false },
   },
   {
