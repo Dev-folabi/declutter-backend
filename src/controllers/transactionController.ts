@@ -444,7 +444,7 @@ export const createRefundRequest = async (
     }
 
     // Prevent duplicate refund requests
-    if (transaction?.refundRequest) {
+    if (transaction.refundRequest?.reason) {
       res.status(400).json({
         success: false,
         message: "Refund request already exists for this transaction.",
@@ -642,7 +642,6 @@ export const getAllRefundRequests = async (
     // Build filters for refund requests
     const filters: any = {
       refundRequest: { $exists: true },
-      status: "refund"
     };
 
     // Add optional filters
