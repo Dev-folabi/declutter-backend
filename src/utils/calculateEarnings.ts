@@ -1,17 +1,19 @@
 export function calculateEarnings(amount: number) {
-    const PLATFORM_COMMISSION_RATE = 0.1; 
-    const GATEWAY_FEE_RATE = 0.015; 
-  
-    const platformCommission = Math.round(amount * PLATFORM_COMMISSION_RATE);
-    const charges = Math.round(amount * GATEWAY_FEE_RATE + 100); 
-    const sellerEarnings = amount - platformCommission;
-    const netRevenue = platformCommission - charges;
-  
-    return {
-      platformCommission,
-      charges,
-      sellerEarnings,
-      netRevenue
-    };
+  const PLATFORM_COMMISSION_RATE = 0.95;
+  const GATEWAY_FEE_RATE = 0.015;
+  const GATEWAY_FLAT_FEE = 100;
+
+  const gatewayCharges = Math.round(
+    amount * GATEWAY_FEE_RATE + GATEWAY_FLAT_FEE
+  );
+  const totalAmount = amount + gatewayCharges;
+  const sellerEarnings = amount * PLATFORM_COMMISSION_RATE;
+  const revenue = amount - (amount * PLATFORM_COMMISSION_RATE);
+
+  return {
+    totalAmount,
+    gatewayCharges,
+    sellerEarnings,
+    revenue,
+  };
 }
-  

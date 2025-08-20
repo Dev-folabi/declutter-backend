@@ -99,6 +99,43 @@ export const approveOrRejectRefund = async (
       return;
     }
 
+    // Check if order is older than 5 days before approving refund
+    if (action === "approve") {
+      if (!transaction.referenceId) {
+        res.status(400).json({
+          success: false,
+          message: "Transaction reference ID not found",
+          data: null,
+        });
+        return;
+      }
+
+      const orderId = transaction.referenceId.split("_")[1];
+      const order = await Order.findById(orderId);
+
+      if (!order) {
+        res.status(404).json({
+          success: false,
+          message: "Order not found",
+          data: null,
+        });
+        return;
+      }
+
+      // Check if order is more than 5 days old
+      const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+      const orderAge = Date.now() - new Date(order.createdAt).getTime();
+
+      if (orderAge > fiveDaysInMs) {
+        res.status(400).json({
+          success: false,
+          message: "Refund cannot be approved for orders older than 5 days.",
+          data: null,
+        });
+        return;
+      }
+    }
+
     // Update refund status
     transaction.refundStatus = action === "approve" ? "approved" : "rejected";
 
@@ -128,6 +165,62 @@ export const approveOrRejectRefund = async (
       try {
         if (!transaction.referenceId) {
           throw new Error("Transaction reference ID not found");
+        }
+
+        const order = await Order.findById(
+          transaction.referenceId.split("_")[1]
+        ).populate<{
+          items: { product: any }[];
+        }>("items.product");
+        if (!order) {
+          throw new Error("Order not found");
+        }
+
+        // Deduct seller's pending balance for each product in the order
+        for (const item of order.items) {
+          const product = item.product;
+          if (product && product.seller) {
+            const seller = await User.findById(product.seller);
+            if (seller && seller.accountDetail) {
+              // Calculate the seller's earnings for this product (95% of the product price)
+              const productEarnings = item.product.price * 0.95;
+
+              // Ensure seller has sufficient pending balance
+              if (
+                (seller.accountDetail.pendingBalance || 0) >= productEarnings
+              ) {
+                seller.accountDetail.pendingBalance =
+                  (seller.accountDetail.pendingBalance || 0) - productEarnings;
+                await seller.save();
+
+                // Create a debit transaction record for the seller
+                await Transaction.create({
+                  userId: seller.id.toString(),
+                  amount: productEarnings,
+                  transactionType: "debit",
+                  status: "completed",
+                  description: `Refund deduction for product: "${product.name}"`,
+                  transactionDate: new Date(),
+                });
+
+                // Notify seller about the deduction
+                const sellerNotificationData = {
+                  recipient: seller._id,
+                  recipientModel: "User",
+                  body: `NGN ${productEarnings} has been deducted from your pending balance due to a refund for product "${product.name}"`,
+                  type: "refund",
+                  title: "Refund Deduction",
+                  data: {
+                    transactionId: transaction._id,
+                    productName: product.name,
+                    amount: productEarnings,
+                  },
+                };
+
+                await createNotification(sellerNotificationData);
+              }
+            }
+          }
         }
 
         // Process refund with Paystack
@@ -286,18 +379,27 @@ export const createRefundRequest = async (
     const { reason } = req.body;
     const userId = (req as any).user?._id;
 
-    // Validate reason
-    if (!reason || reason.trim() === "") {
+    // Validate reason 
+    if (!reason || reason.trim() === "" || reason.trim().length < 10) {
       res.status(400).json({
         success: false,
-        message: "Refund reason is required.",
+        message: "Refund reason is required and must be at least 10 characters long.",
         data: null,
       });
       return;
     }
 
-    // Find transaction
-    const transaction = await Transaction.findById(transactionId);
+    if (reason.trim().length > 500) {
+      res.status(400).json({
+        success: false,
+        message: "Refund reason cannot exceed 500 characters.",
+        data: null,
+      });
+      return;
+    }
+
+    // Find transaction with populated user data
+    const transaction = await Transaction.findById(transactionId).populate('userId', 'fullName email');
 
     if (!transaction) {
       res.status(404).json({
@@ -328,8 +430,21 @@ export const createRefundRequest = async (
       return;
     }
 
+    // Check transaction age (must be within 5 days for refund eligibility)
+    const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
+    const transactionAge = Date.now() - new Date(transaction.transactionDate).getTime();
+    
+    if (transactionAge > fiveDaysInMs) {
+      res.status(400).json({
+        success: false,
+        message: "Refund requests can only be made within 5 days of the transaction.",
+        data: null,
+      });
+      return;
+    }
+
     // Prevent duplicate refund requests
-    if (transaction.refundRequest) {
+    if (transaction?.refundRequest) {
       res.status(400).json({
         success: false,
         message: "Refund request already exists for this transaction.",
@@ -340,7 +455,7 @@ export const createRefundRequest = async (
 
     // Set refund request data
     transaction.refundRequest = {
-      reason,
+      reason: reason.trim(),
       requestedBy: userId,
       requestedAt: new Date(),
     };
@@ -355,7 +470,7 @@ export const createRefundRequest = async (
       action: "Refund requested",
       performedBy: userId,
       performedAt: new Date(),
-      notes: reason,
+      notes: reason.trim(),
     });
 
     await transaction.save();
@@ -386,6 +501,7 @@ export const createRefundRequest = async (
           transactionId: transaction._id,
           amount: transaction.amount,
           userId: userId,
+          reason: reason.trim(),
         },
       })
     );
@@ -396,7 +512,13 @@ export const createRefundRequest = async (
     res.status(201).json({
       success: true,
       message: "Refund request created successfully.",
-      data: transaction,
+      data: {
+        transactionId: transaction._id,
+        amount: transaction.amount,
+        refundStatus: transaction.refundStatus,
+        requestedAt: transaction.refundRequest.requestedAt,
+        reason: transaction.refundRequest.reason,
+      },
     });
     return;
   } catch (error) {
@@ -499,6 +621,118 @@ export const getUserRefundStatus = async (
         refundDetails: transaction.refundDetails,
         refundHistory: transaction.refundHistory,
       },
+    });
+    return;
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Admin endpoint to get all refund requests
+export const getAllRefundRequests = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const per_page = Number(req.query.limit) || 10;
+    const { status, startDate, endDate, userId } = req.query;
+
+    // Build filters for refund requests
+    const filters: any = {
+      refundRequest: { $exists: true },
+      status: "refund"
+    };
+
+    // Add optional filters
+    if (status && ['pending', 'approved', 'rejected', 'processed'].includes(status as string)) {
+      filters.refundStatus = status;
+    }
+
+    if (userId) {
+      filters.userId = userId;
+    }
+
+    // Date range filter
+    if (startDate || endDate) {
+      filters['refundRequest.requestedAt'] = {};
+      if (startDate) {
+        filters['refundRequest.requestedAt'].$gte = new Date(startDate as string);
+      }
+      if (endDate) {
+        filters['refundRequest.requestedAt'].$lte = new Date(endDate as string);
+      }
+    }
+
+    const count = await Transaction.countDocuments(filters);
+
+    if ((page - 1) * per_page >= count) {
+      res.status(200).json({
+        success: true,
+        message: "No refund requests on this page",
+        data: paginated_result(page, per_page, count, []),
+      });
+      return;
+    }
+
+    const refundRequests = await Transaction.find(filters)
+      .populate('refundRequest.requestedBy', 'fullName email')
+      .populate('refundHistory.performedBy', 'fullName email role')
+      .populate('refundDetails.processedBy', 'fullName email role')
+      .populate('userId', 'fullName email')
+      .sort({ 'refundRequest.requestedAt': -1 })
+      .skip((page - 1) * per_page)
+      .limit(per_page)
+      .select({
+        _id: 1,
+        userId: 1,
+        amount: 1,
+        transactionDate: 1,
+        status: 1,
+        refundStatus: 1,
+        refundRequest: 1,
+        refundDetails: 1,
+        refundHistory: 1,
+        referenceId: 1,
+        description: 1,
+        createdAt: 1,
+        updatedAt: 1
+      });
+
+    // Calculate summary statistics
+    const summary = await Transaction.aggregate([
+      { $match: { refundRequest: { $exists: true }, status: "refund" } },
+      {
+        $group: {
+          _id: "$refundStatus",
+          count: { $sum: 1 },
+          totalAmount: { $sum: "$amount" }
+        }
+      }
+    ]);
+
+    const summaryData = {
+      pending: { count: 0, totalAmount: 0 },
+      approved: { count: 0, totalAmount: 0 },
+      rejected: { count: 0, totalAmount: 0 },
+      processed: { count: 0, totalAmount: 0 }
+    };
+
+    summary.forEach(item => {
+      if (item._id && summaryData[item._id as keyof typeof summaryData]) {
+        summaryData[item._id as keyof typeof summaryData] = {
+          count: item.count,
+          totalAmount: item.totalAmount
+        };
+      }
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Refund requests retrieved successfully",
+      data: paginated_result(page, per_page, count, refundRequests),
+      summary: summaryData,
     });
     return;
   } catch (error) {

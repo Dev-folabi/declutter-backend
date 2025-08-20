@@ -5,21 +5,20 @@ import { Transaction } from "../models/transactionModel";
 import { getEnvironment } from "../function/environment";
 import crypto from "crypto";
 import { User } from "../models/userModel";
-import { ProductListingType } from "../types/model";
+import { ITransaction, ProductListingType } from "../types/model";
 import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import bcrypt from "bcrypt";
 import { decryptAccountDetail, encryptData } from "../utils";
 import { calculateEarnings } from "../utils/calculateEarnings";
 import { Schema } from "mongoose";
-import { Admin } from "../models/adminModel";
 
 const environment = getEnvironment();
 
 const PAYSTACK_WEBHOOK_SECRET =
-  environment === "local" || environment === "staging"
-    ? process.env.PAYSTACK_LIVE_SECRET_KEY!
-    : process.env.PAYSTACK_TEST_SECRET_KEY!;
+  environment === "local" || "staging"
+    ? process.env.PAYSTACK_TEST_SECRET_KEY!
+    : process.env.PAYSTACK_LIVE_SECRET_KEY!;
 
 export const getBankCodes = async (
   req: Request,
@@ -79,7 +78,7 @@ export const initiateOrderPayment = async (
 ) => {
   const { order_id } = req.params;
   const userId = (req as any).user._id;
-
+  console.log({ PAYSTACK_WEBHOOK_SECRET });
   try {
     // Find the order by ID and ensure it's associated with the authenticated user
     const order = await Order.findOne({ _id: order_id, user: userId }).populate(
@@ -95,35 +94,44 @@ export const initiateOrderPayment = async (
       return;
     }
 
-    const gatewayCharges = order.totalPrice * 0.015 + 100;
-    order.totalPrice += gatewayCharges;
+    const existingTransaction = await Transaction.findOne({
+      referenceId: `txn_${order._id}`,
+    });
+
+    if (existingTransaction) {
+      res.status(400).json({
+        success: false,
+        message: "Payment already initiated for this order",
+        data: null,
+      });
+      return;
+    }
 
     // Calculate commission & earnings (before adding gateway fee)
-    const { platformCommission, charges, sellerEarnings, netRevenue } =
-      calculateEarnings(order.totalPrice - gatewayCharges);
+    const { totalAmount, gatewayCharges, sellerEarnings, revenue } =
+      calculateEarnings(order.totalPrice);
 
     // Initiate the payment using Paystack
     const paymentData = await paystack.initiatePayment(
       (order.user as any).email,
-      order.totalPrice,
+      totalAmount,
       `txn_${order._id}`
     );
 
     // Record the transaction in the database
-    const transaction = new Transaction({
+    const transaction = new Transaction<ITransaction>({
       userId: (order.user as any)._id,
-      amount: order.totalPrice - charges,
+      amount: order.totalPrice,
       transactionDate: new Date(),
       status: "pending",
-      charges,
+      charges: gatewayCharges,
       transactionType: "credit",
       description: `Payment for Order ${order._id}`,
       referenceId: paymentData.reference,
-      platformCommission,
+      totalAmount,
       sellerEarnings,
-      netRevenue,
-      gatewayCharges,
-    });
+      revenue,
+    } as ITransaction);
 
     await transaction.save();
 
@@ -187,7 +195,7 @@ export const verifyPayment = async (
       return;
     }
 
-    if (paymentData.amount / 100 !== transaction.amount) {
+    if (paymentData.amount / 100 !== transaction.totalAmount) {
       res.status(400).json({
         success: false,
         message: "Payment amount mismatch.",
@@ -272,9 +280,13 @@ export const handlePaystackWebhook = async (
   next: NextFunction
 ) => {
   const payload = req.body;
+
   const signature =
     (req.headers["x-paystack-signature"] as string) ||
     (req.headers["X-Paystack-Signature"] as string);
+  console.log("Paystack webhook payload:", req, "signature:", signature);
+
+  console.log("sign:", verifyWebhookSignature(payload, signature));
 
   try {
     if (!verifyWebhookSignature(payload, signature)) {
@@ -284,13 +296,13 @@ export const handlePaystackWebhook = async (
       });
       return;
     }
-
+    console.log("Paystack webhook payload:", payload.event);
     const event = payload.event;
     if (event === "charge.success") {
       await handleChargeSuccess(payload.data);
     } else if (event === "charge.failed") {
       await handleChargeFailed(payload.data);
-    } else if (event === "refund.success") {
+    } else if (event === "refund.processed") {
       await handleRefundSuccess(payload.data);
     } else {
       console.log("Unhandled Paystack event:", event);
@@ -307,6 +319,8 @@ export const handlePaystackWebhook = async (
 };
 
 const verifyWebhookSignature = (payload: any, signature: string) => {
+  console.log({ PAYSTACK_WEBHOOK_SECRET });
+
   const computedSignature = crypto
     .createHmac("sha512", PAYSTACK_WEBHOOK_SECRET)
     .update(JSON.stringify(payload))

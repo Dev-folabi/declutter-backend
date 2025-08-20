@@ -111,14 +111,25 @@ export const registerUser = async (
     } = req.body;
 
     // Validate required fields for seller role
-    if (
+    // if (
+    //   role === "seller" &&
+    //   (!schoolIdCardURL || !nin || !accountNumber || !bankCode || !pin)
+    // ) {
+    //   return handleError(
+    //     res,
+    //     400,
+    //     "Please complete the form with all required fields."
+    //   );
+    // }
+
+     if (
       role === "seller" &&
-      (!schoolIdCardURL || !nin || !accountNumber || !bankCode || !pin)
+      (!schoolIdCardURL || !nin )
     ) {
       return handleError(
         res,
         400,
-        "Please complete the form with all required fields."
+        "Please provide school ID and NIN."
       );
     }
 
@@ -156,7 +167,8 @@ export const registerUser = async (
     let encryptedRecipientCode;
 
     let recipientCode;
-    if (role === "seller") {
+    if (role === "seller" && accountNumber && bankCode) {
+
       const detail = await paystack.createRecipient(
         accountNumber as string,
         bankCode as string
@@ -179,7 +191,7 @@ export const registerUser = async (
       schoolIdCardURL,
       nin,
       accountDetail:
-        role === "seller"
+        (role === "seller" && accountNumber && bankCode)
           ? {
               accountName: account.account_name,
               accountNumber: encryptedAccountNumber,

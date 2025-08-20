@@ -123,6 +123,8 @@ export interface IOrder extends Document {
   items: IOrderItem[];
   totalPrice: number;
   status: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Interface for Order
@@ -153,4 +155,41 @@ export interface IAdminActivityLog extends Document {
   note?: string;
   createdAt?: Date;
   updatedAt?: Date;
+}
+
+export interface ITransaction extends Document {
+  userId: string;
+  amount: number;
+  transactionDate: Date;
+  status: string;
+  charges?: number;
+  transactionType: string;
+  description?: string;
+  referenceId?: string;
+  refundRequest?: {
+    reason: string;
+    requestedBy: Schema.Types.ObjectId;
+    requestedAt: Date;
+    adminNotes?: string;
+  };
+  refundStatus?: "pending" | "approved" | "rejected" | "processed";
+  refundDetails?: {
+    paystackRefundId?: string;
+    refundAmount?: number;
+    processedAt?: Date;
+    processedBy?: Schema.Types.ObjectId;
+  };
+  refundHistory?: Array<{
+    action: string;
+    performedBy: Schema.Types.ObjectId;
+    performedAt: Date;
+    notes?: string;
+  }>;
+  dispute?: boolean;
+  totalAmount?: number;
+  sellerEarnings?: number;
+  revenue?: number;
+
+  createdAt: Date;
+  updatedAt: Date;
 }
