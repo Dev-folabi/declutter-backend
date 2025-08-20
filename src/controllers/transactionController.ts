@@ -226,8 +226,7 @@ export const approveOrRejectRefund = async (
         // Process refund with Paystack
         paystackRefundResult = await paystack.processRefund(
           transaction.referenceId,
-          transaction.amount,
-          `Refund approved for transaction ${transaction._id}`
+          transaction.amount
         );
 
         // Update transaction with refund details
