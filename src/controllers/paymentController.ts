@@ -284,9 +284,6 @@ export const handlePaystackWebhook = async (
   const signature =
     (req.headers["x-paystack-signature"] as string) ||
     (req.headers["X-Paystack-Signature"] as string);
-  console.log("Paystack webhook payload:", req, "signature:", signature);
-
-  console.log("sign:", verifyWebhookSignature(payload, signature));
 
   try {
     if (!verifyWebhookSignature(payload, signature)) {
@@ -296,7 +293,7 @@ export const handlePaystackWebhook = async (
       });
       return;
     }
-    console.log("Paystack webhook payload:", payload.event);
+
     const event = payload.event;
     if (event === "charge.success") {
       await handleChargeSuccess(payload.data);
@@ -408,7 +405,7 @@ const handleChargeFailed = async (paymentData: any) => {
 
 const handleRefundSuccess = async (paymentData: any) => {
   const refundId = paymentData.id;
-  const reference = paymentData.transaction?.reference;
+  const reference = paymentData.transaction_reference;
 
   if (!reference) {
     throw new Error("Transaction reference not found in refund data.");
