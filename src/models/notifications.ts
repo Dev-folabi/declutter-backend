@@ -29,7 +29,8 @@ const NotificationSchema = new Schema<NotificationType>(
       enum: [
         "account",
         "market",
-        "promotion"
+        "promotion",
+        "refund",
       ],
       required: false
     },

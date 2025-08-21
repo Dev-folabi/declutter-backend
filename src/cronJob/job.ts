@@ -37,7 +37,9 @@ export const moveFundsAfterFiveDays = async () => {
         const seller = await User.findById(product.seller);
         if (!seller || !seller.accountDetail) continue;
 
-        const creditAmount = txn.amount * 0.95;
+        const creditAmount = txn.sellerEarnings;
+
+        if (!creditAmount) continue;
 
         // Ensure there's enough pending balance
         if ((seller.accountDetail.pendingBalance || 0) < creditAmount) continue;

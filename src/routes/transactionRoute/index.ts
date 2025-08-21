@@ -6,6 +6,7 @@ import {
   getUserTransactions,
   getUserRefundStatus,
   createRefundRequest,
+  getAllRefundRequests,
 } from "../../controllers/transactionController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
@@ -148,7 +149,6 @@ import { validateTransactionId } from "../../middlewares/validators";
  *                   properties:
  *                     transactionId:
  *                       type: string
- *                       example: "60f7b3b3b3b3b3b3b3b3b3b3"
  *                     refundStatus:
  *                       type: string
  *                       example: "pending"
@@ -444,6 +444,180 @@ import { validateTransactionId } from "../../middlewares/validators";
  *         description: Forbidden - admin-only access.
  */
 
+/**
+ * @swagger
+ * /api/transactions/refund-requests:
+ *   get:
+ *     summary: Get all refund requests (Admin only)
+ *     description: Retrieves a paginated list of all refund requests with optional filters. Includes summary statistics. Admin access required.
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Page number for pagination.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Number of refund requests per page.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [pending, approved, rejected, processed]
+ *           example: pending
+ *         description: Filter by refund status.
+ *       - in: query
+ *         name: userId
+ *         schema:
+ *           type: string
+ *         description: Filter by user ID.
+ *       - in: query
+ *         name: startDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-01-01"
+ *         description: Start date for filtering refund requests (YYYY-MM-DD).
+ *       - in: query
+ *         name: endDate
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: "2024-12-31"
+ *         description: End date for filtering refund requests (YYYY-MM-DD).
+ *     responses:
+ *       200:
+ *         description: Refund requests retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Refund requests retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     items:
+ *                       type: array
+ *                       items:
+ *                         type: object
+ *                         properties:
+ *                           _id:
+ *                             type: string
+ *                           userId:
+ *                             type: object
+ *                             properties:
+ *                               _id:
+ *                                 type: string
+ *                               fullName:
+ *                                 type: string
+ *                               email:
+ *                                 type: string
+ *                           amount:
+ *                             type: number
+ *                           transactionDate:
+ *                             type: string
+ *                             format: date-time
+ *                           status:
+ *                             type: string
+ *                           refundStatus:
+ *                             type: string
+ *                           refundRequest:
+ *                             type: object
+ *                             properties:
+ *                               reason:
+ *                                 type: string
+ *                               requestedBy:
+ *                                 type: object
+ *                                 properties:
+ *                                   _id:
+ *                                     type: string
+ *                                   fullName:
+ *                                     type: string
+ *                                   email:
+ *                                     type: string
+ *                               requestedAt:
+ *                                 type: string
+ *                                 format: date-time
+ *                               adminNotes:
+ *                                 type: string
+ *                           refundHistory:
+ *                             type: array
+ *                             items:
+ *                               type: object
+ *                               properties:
+ *                                 action:
+ *                                   type: string
+ *                                 performedBy:
+ *                                   type: object
+ *                                   properties:
+ *                                     fullName:
+ *                                       type: string
+ *                                     email:
+ *                                       type: string
+ *                                 performedAt:
+ *                                   type: string
+ *                                   format: date-time
+ *                                 notes:
+ *                                   type: string
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalItems:
+ *                           type: integer
+ *                 summary:
+ *                   type: object
+ *                   properties:
+ *                     pending:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         totalAmount:
+ *                           type: number
+ *                     approved:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         totalAmount:
+ *                           type: number
+ *                     rejected:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         totalAmount:
+ *                           type: number
+ *                     processed:
+ *                       type: object
+ *                       properties:
+ *                         count:
+ *                           type: integer
+ *                         totalAmount:
+ *                           type: number
+ *       401:
+ *         description: Unauthorized - invalid or missing token.
+ *       403:
+ *         description: Forbidden - admin-only access.
+ */
+
 const router = express.Router();
 
 // User endpoints (require authentication)
@@ -459,6 +633,11 @@ router.post("/refund-request/:transactionId", verifyToken, createRefundRequest);
 
 // Admin endpoints (require admin authentication)
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllTransactions);
+router.get(
+  "/refund-requests",
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  getAllRefundRequests
+);
 router.patch(
   "/:transactionId/refund-status",
   authorizeRoles(...ADMIN_ONLY_ROLES),
@@ -468,7 +647,6 @@ router.patch(
 router.get(
   "/:transactionId/refund-history",
   authorizeRoles(...ADMIN_ONLY_ROLES),
-  validateTransactionId,
   getRefundHistory
 );
 
