@@ -245,6 +245,8 @@ const router = express.Router();
  *       404:
  *         description: Ticket not found
  *
+ */
+
 //  * /api/admin/ticket/{id}/delete:
 //  *   delete:
 //  *     summary: Delete a support ticket
@@ -263,7 +265,6 @@ const router = express.Router();
 //  *         description: Support ticket deleted successfully
 //  *       404:
 //  *         description: Support ticket not found
- */
 
 router.get("/all-tickets", authorizeRoles(...ADMIN_ONLY_ROLES), getAllTickets);
 router.get(
