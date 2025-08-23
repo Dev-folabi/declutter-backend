@@ -193,3 +193,24 @@ export interface ITransaction extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface ISupportTicket extends Document {
+  userId: Schema.Types.ObjectId;
+  subject: string
+  assignedTo: Schema.Types.ObjectId; 
+  replies: {
+    sender: Types.ObjectId 
+    senderType:  "Admin" | "User"
+    message: string
+    createdAt: Date
+  }[]
+  status: "open" | "in_progress" | "resolved" | "closed";
+  adminNotes: {
+    note: string
+    admin: Types.ObjectId;
+    createdAt: Date
+  }[]
+  description: string
+  createdAt: Date;
+  updatedAt: Date;
+}
