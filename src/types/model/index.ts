@@ -1,4 +1,3 @@
-import { extend } from 'lodash';
 import {  Document, Schema, Types } from 'mongoose';
 
 export interface ISchool extends Document {
@@ -196,21 +195,25 @@ export interface ITransaction extends Document {
 
 export interface ISupportTicket extends Document {
   userId: Schema.Types.ObjectId;
-  subject: string
-  assignedTo: Schema.Types.ObjectId; 
+  subject: string;
+  issueType: 'account' | 'payment' | 'orders' | 'technical' | 'others';
+  assignedTo?: Schema.Types.ObjectId;
+  assignedBy?: Schema.Types.ObjectId;
+  assignmentMessage?: string;
+  imageUrls?: string[];
   replies: {
-    sender: Types.ObjectId 
-    senderType:  "Admin" | "User"
-    message: string
-    createdAt: Date
-  }[]
+    sender: Types.ObjectId;
+    senderType: "Admin" | "User";
+    message: string;
+    createdAt: Date;
+  }[];
   status: "open" | "in_progress" | "resolved" | "closed";
   adminNotes: {
-    note: string
+    note: string;
     admin: Types.ObjectId;
-    createdAt: Date
-  }[]
-  description: string
+    createdAt: Date;
+  }[];
+  description: string;
   createdAt: Date;
   updatedAt: Date;
 }

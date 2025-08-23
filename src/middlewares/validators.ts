@@ -451,3 +451,119 @@ export const validateTransactionId = [
     .withMessage('Action must be either "approve" or "reject"'),
   handleValidationErrors,
 ];
+
+// Support Ticket Validation Functions
+export const validateCreateTicket = [
+  body("subject")
+    .notEmpty()
+    .withMessage("Subject is required")
+    .isString()
+    .withMessage("Subject must be a string")
+    .isLength({ min: 3, max: 200 })
+    .withMessage("Subject must be between 3 and 200 characters"),
+  body("description")
+    .notEmpty()
+    .withMessage("Description is required")
+    .isString()
+    .withMessage("Description must be a string")
+    .isLength({ min: 10, max: 2000 })
+    .withMessage("Description must be between 10 and 2000 characters"),
+  body("issueType")
+    .notEmpty()
+    .withMessage("Issue type is required")
+    .isIn(["account", "payment", "orders", "technical", "others"])
+    .withMessage("Invalid issue type. Must be one of: account, payment, orders, technical, others"),
+  body("imageUrls")
+    .optional()
+    .isArray()
+    .withMessage("Image URLs must be an array")
+    .custom((value: string[]) => {
+      if (value && value.length > 0) {
+        if (value.length > 5) {
+          throw new Error("Maximum 5 image URLs allowed");
+        }
+        for (const url of value) {
+          if (!isURL(url)) {
+            throw new Error("Each image URL must be a valid URL");
+          }
+        }
+      }
+      return true;
+    }),
+  handleValidationErrors,
+];
+
+export const validateAddReplyToTicket = [
+  param("id")
+    .notEmpty()
+    .withMessage("Ticket ID is required")
+    .isMongoId()
+    .withMessage("Invalid ticket ID format"),
+  body("reply")
+    .notEmpty()
+    .withMessage("Reply is required")
+    .isString()
+    .withMessage("Reply must be a string")
+    .isLength({ min: 1, max: 1000 })
+    .withMessage("Reply must be between 1 and 1000 characters"),
+  handleValidationErrors,
+];
+
+export const validateAssignTicket = [
+  param("id")
+    .notEmpty()
+    .withMessage("Ticket ID is required")
+    .isMongoId()
+    .withMessage("Invalid ticket ID format"),
+  body("assignedToId")
+    .notEmpty()
+    .withMessage("Assigned To ID is required")
+    .isMongoId()
+    .withMessage("Invalid Assigned To ID format"),
+  body("message")
+    .optional()
+    .isString()
+    .withMessage("Message must be a string")
+    .isLength({ max: 500 })
+    .withMessage("Message must not exceed 500 characters"),
+  handleValidationErrors,
+];
+
+export const validateUpdateTicketStatus = [
+  param("id")
+    .notEmpty()
+    .withMessage("Ticket ID is required")
+    .isMongoId()
+    .withMessage("Invalid ticket ID format"),
+  body("status")
+    .notEmpty()
+    .withMessage("Status is required")
+    .isIn(["open", "in_progress", "resolved", "closed"])
+    .withMessage("Invalid status. Must be one of: open, in_progress, resolved, closed"),
+  handleValidationErrors,
+];
+
+export const validateAddAdminNotes = [
+  param("id")
+    .notEmpty()
+    .withMessage("Ticket ID is required")
+    .isMongoId()
+    .withMessage("Invalid ticket ID format"),
+  body("note")
+    .notEmpty()
+    .withMessage("Note is required")
+    .isString()
+    .withMessage("Note must be a string")
+    .isLength({ min: 1, max: 1000 })
+    .withMessage("Note must be between 1 and 1000 characters"),
+  handleValidationErrors,
+];
+
+export const validateTicketId = [
+  param("id")
+    .notEmpty()
+    .withMessage("Ticket ID is required")
+    .isMongoId()
+    .withMessage("Invalid ticket ID format"),
+  handleValidationErrors,
+];

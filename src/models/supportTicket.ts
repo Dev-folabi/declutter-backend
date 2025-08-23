@@ -12,9 +12,25 @@ const supportTicketSchema = new Schema<ISupportTicket> (
             type: String,
             required: true
         },
+        issueType: {
+            type: String,
+            enum: ['account', 'payment', 'orders', 'technical', 'others'],
+            required: true
+        },
         assignedTo: {
             type: Schema.Types.ObjectId,
             ref: "Admin",
+        },
+        assignedBy: {
+            type: Schema.Types.ObjectId,
+            ref: "Admin",
+        },
+        assignmentMessage: {
+            type: String
+        },
+        imageUrls: {
+            type: [String],
+            default: []
         },
         replies: [
             {

@@ -78,7 +78,7 @@ export const initiateOrderPayment = async (
 ) => {
   const { order_id } = req.params;
   const userId = (req as any).user._id;
-  console.log({ PAYSTACK_WEBHOOK_SECRET });
+
   try {
     // Find the order by ID and ensure it's associated with the authenticated user
     const order = await Order.findOne({ _id: order_id, user: userId }).populate(

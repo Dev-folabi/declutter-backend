@@ -4,6 +4,10 @@ import {
     createTicket,
     addReplyToTicket,
 } from "../../controllers/ticketController";
+import {
+    validateCreateTicket,
+    validateAddReplyToTicket,
+} from "../../middlewares/validators";
 
 const router = express.Router();
 
@@ -24,6 +28,7 @@ const router = express.Router();
  *             required:
  *               - subject
  *               - description
+ *               - issueType
  *             properties:
  *               subject:
  *                 type: string
@@ -31,6 +36,16 @@ const router = express.Router();
  *               description:
  *                 type: string
  *                 example: "I tried resetting my password but still cannot login."
+ *               issueType:
+ *                 type: string
+ *                 enum: [account, payment, orders, technical, others]
+ *                 example: "account"
+ *               imageUrls:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                 example: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
+ *                 description: Optional array of image URLs
  *     responses:
  *       201:
  *         description: Support ticket created successfully
@@ -45,12 +60,11 @@ const router = express.Router();
  *                   type: string
  *                 data:
  *                   $ref: '#/components/schemas/SupportTicket'
+ *       400:
+ *         description: Invalid issue type or missing required fields
  *       401:
  *         description: Unauthorized (user not logged in)
- */
-
-/**
- * @swagger
+ *
  * /api/tickets/{id}/reply:
  *   post:
  *     summary: Add a reply to a support ticket
@@ -96,9 +110,12 @@ const router = express.Router();
  *         description: Support ticket not found
  */
 
-router.post("/create", createTicket);
+router.post("/create", verifyToken, validateCreateTicket, createTicket);
 router.post(
     "/:id/reply",
+    verifyToken,
+    validateAddReplyToTicket,
     addReplyToTicket
 );
+
 export default router;
