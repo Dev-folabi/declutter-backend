@@ -13,6 +13,8 @@ import cartRoute from '../routes/cartRoute';
 import contactUsRoute from '../routes/contactUsRoute';
 import userManagementRoute from './adminRoute/userManagement';
 import productManagementRoute from '../routes/adminRoute/productManagementRoute';
+import adminTicketRoute from '../routes/adminRoute/adminTicketRoute';
+import ticketRoute from '../routes/ticketRoute';
 import { verifyToken } from '../middlewares/authMiddleware';
 const router = Router();
 
@@ -20,7 +22,7 @@ const adminRouter = Router();
 adminRouter.use('/auth', adminAuthRoute);
 adminRouter.use('/users', verifyToken, userManagementRoute);
 adminRouter.use('/product', verifyToken, productManagementRoute);
-
+adminRouter.use('/ticket', verifyToken, adminTicketRoute);
 
 router.use('/waitlist', waitlistRoute);
 router.use('/auth', authRoute);
@@ -34,5 +36,6 @@ router.use('/contactus', contactUsRoute);
 router.use('/payment', paymentRoute);
 router.use('/transactions', verifyToken, transactionRoute);
 router.use("/admin", adminRouter);
+router.use('/ticket', verifyToken, ticketRoute);
 
 export default router;
