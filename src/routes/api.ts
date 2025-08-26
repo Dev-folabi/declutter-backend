@@ -15,6 +15,7 @@ import userManagementRoute from './adminRoute/userManagement';
 import productManagementRoute from '../routes/adminRoute/productManagementRoute';
 import adminTicketRoute from '../routes/adminRoute/adminTicketRoute';
 import ticketRoute from '../routes/ticketRoute';
+import announcementRoute from '../routes/adminRoute/announcement';
 import { verifyToken } from '../middlewares/authMiddleware';
 const router = Router();
 
@@ -23,6 +24,7 @@ adminRouter.use('/auth', adminAuthRoute);
 adminRouter.use('/users', verifyToken, userManagementRoute);
 adminRouter.use('/product', verifyToken, productManagementRoute);
 adminRouter.use('/ticket', verifyToken, adminTicketRoute);
+adminRouter.use('/announcement', verifyToken, announcementRoute);
 
 router.use('/waitlist', waitlistRoute);
 router.use('/auth', authRoute);

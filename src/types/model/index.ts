@@ -217,3 +217,11 @@ export interface ISupportTicket extends Document {
   createdAt: Date;
   updatedAt: Date;
 }
+
+export interface IAnnouncement extends Document {
+  title: string;
+  message: string;
+  category: 'Buyers' | 'Sellers' | 'All'
+  createdAt: Date;
+  updatedAt: Date;
+}

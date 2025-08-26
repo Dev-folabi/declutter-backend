@@ -17,11 +17,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-export const sendEmail = async (to: string, subject: string, text: string) => {
+export const sendEmail = async (to: string, subject: string, text: string, bcc?: string[]) => {
   const mailOptions = {
     from: `"DeclutMart" <${process.env.EMAIL_USER}>`,
     to,
     subject,
+    bcc,
     html: `
       <!DOCTYPE html>
       <html>
@@ -80,6 +81,13 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
       </html>
     `,
   };
+
+  if (bcc && bcc.length > 0) {
+    mailOptions.to = "no-reply@declutmart.com"; 
+    mailOptions.bcc = bcc;
+  } else {
+    mailOptions.to = to;
+  }
 
   try {
     await transporter.sendMail(mailOptions);
