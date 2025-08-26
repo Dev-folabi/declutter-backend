@@ -100,7 +100,8 @@ export const listAProduct = async (req: Request, res: Response, next: NextFuncti
     const productData = _.omit(newProduct.toObject(), ['is_sold']);
 
     const notificationData = {
-      user: user?._id,
+      recipient: user?._id,
+      recipientModel: "User",
       body: 'Your product listing has been successfully submitted and is now pending review by the admin.',
       type: 'market',
       title: 'Product Listing Notification',
@@ -174,7 +175,8 @@ export const updateAProduct = async (req: Request, res: Response, next: NextFunc
     const productData = _.omit(updatedProduct, ['is_sold']);
 
     const notificationData = {
-      user: user?._id,
+      recipient: user?._id,
+      recipientModel: "User",
       body: 'Product has been updated. It is awaiting review by the admin',
       type: 'market',
       title: 'Product Updated',
