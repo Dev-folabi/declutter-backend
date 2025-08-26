@@ -85,7 +85,8 @@ export const updateProfile = async (
     // user.save();
 
     const notificationData = {
-      user: user_id,
+      recipient: user_id,
+      recipientModel: "User",
       body: "Your profile has been updated",
       type: "account",
       title: "Profile update",
@@ -192,8 +193,9 @@ export const updateBankDetail = async (
     user.save();
 
     const notificationData = {
-      user: user_id,
-      body: "Your bank details has been updated",
+      recipient: user_id,
+      recipientModel: "User",
+      body: "Your bank details have been updated",
       type: "account",
       title: "Bank update",
     };
@@ -275,7 +277,8 @@ export const updatePin = async (
     user.save();
 
     const notificationData = {
-      user: user_id,
+      recipient: user_id,
+      recipientModel: "User",
       body: "Your pin has been changed",
       type: "account",
       title: "Pin update",

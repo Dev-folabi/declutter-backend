@@ -295,9 +295,6 @@ export const loginUser = async (
 
     // send otp if user is not verified
     if (!user.emailVerified) {
-      // Generate OTP and expiration timestamp
-      // await requestEmailVerifyOTP(user)
-
       const OTP = generateOTP();
 
       // Upsert OTP entry
@@ -524,8 +521,9 @@ export const resetPassword = async (
     await user.save();
 
     const notificationData = {
-      user: user._id,
-      body: "You password has been changed",
+      recipient: user._id,
+      recipientModel: "User",
+      body: "Your password has been changed",
       type: "account",
       title: "Password Change",
     };

@@ -346,7 +346,7 @@ export const resetAdminPassword = async (
     const notificationData = {
       recipient: admin._id,
       recipientModel: "Admin",
-      body: "You password has been changed",
+      body: "Your password has been changed",
       type: "account",
       title: "Password Change",
     };
