@@ -16,6 +16,7 @@ import {
   updatePin,
 } from "../../controllers/userController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
+import { uploadSingle } from '../../middlewares/upload';
 
 const router = express.Router();
 
@@ -166,8 +167,9 @@ const router = express.Router();
 router.get("/profile", verifyToken, userProfile);
 router.patch(
   "/update-profile",
-  validateProfileUpdate,
   verifyToken,
+  uploadSingle('profileImage'),
+  validateProfileUpdate,
   updateProfile
 );
 router.patch(

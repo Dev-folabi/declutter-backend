@@ -8,6 +8,7 @@ import {
     validateCreateTicket,
     validateAddReplyToTicket,
 } from "../../middlewares/validators";
+import { uploadMultiple } from '../../middlewares/upload';
 
 const router = express.Router();
 
@@ -110,7 +111,13 @@ const router = express.Router();
  *         description: Support ticket not found
  */
 
-router.post("/create", verifyToken, validateCreateTicket, createTicket);
+router.post(
+  '/create',
+  verifyToken,
+  uploadMultiple('images', 5), // Allow up to 5 images
+  validateCreateTicket,
+  createTicket
+);
 router.post(
     "/:id/reply",
     verifyToken,

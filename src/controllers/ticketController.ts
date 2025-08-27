@@ -1,9 +1,10 @@
 import { Request, Response, NextFunction } from "express";
 import { SupportTicket } from "../models/supportTicket";
-import { User } from "../models/userModel";
-import { sendEmail } from "../utils/mail";
-import { Admin } from "../models/adminModel";
 import { getIdFromToken } from "../function/token";
+import { User } from "../models/userModel";
+import { Admin } from "../models/adminModel";
+import { sendEmail } from "../utils/mail";
+import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { Types } from "mongoose";
 
 export const createTicket = async (
@@ -12,7 +13,10 @@ export const createTicket = async (
   next: NextFunction
 ) => {
   try {
-    const { subject, description, issueType, imageUrls } = req.body;
+    const userId = getIdFromToken(req);
+    const { subject, description, issueType } = req.body;
+    const files = req.files as Express.Multer.File[];
+
     const user = await User.findById(getIdFromToken(req));
     if (!user) {
       res.status(401).json({
@@ -41,12 +45,22 @@ export const createTicket = async (
       return;
     }
 
-    const newTicket = await SupportTicket.create({
+    let imageUrls: string[] = [];
+
+    // Handle image uploads
+    if (files && files.length > 0) {
+      imageUrls = await uploadMultipleToImageKit(files, "/support-tickets", [
+        "support",
+        "ticket",
+      ]);
+    }
+
+    const ticket = await SupportTicket.create({
+      user: userId,
       subject,
       description,
       issueType,
-      imageUrls: imageUrls || [],
-      userId: user._id,
+      imageUrls,
       status: "open",
     });
 
@@ -62,7 +76,7 @@ export const createTicket = async (
     res.status(201).json({
       success: true,
       message: "Support ticket created successfully",
-      data: newTicket,
+      data: ticket,
     });
   } catch (error) {
     next(error);
@@ -81,7 +95,6 @@ export const addReplyToTicket = async (
 
     // Check if admin
     const admin = await Admin.findById(senderId);
-    // const isAdmin = !!admin;
 
     // if the sender is not admin check if its user
     const user = !admin ? await User.findById(senderId) : null;
