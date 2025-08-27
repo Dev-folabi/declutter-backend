@@ -1,5 +1,8 @@
-import express from 'express';
-import { createAnnouncement } from '../../controllers/admin/announcementController';
+import express from "express";
+import { createAnnouncement } from "../../controllers/admin/announcementController";
+import { validateCreateAnnouncement } from "../../middlewares/validators";
+import { authorizeRoles } from "../../middlewares/authMiddleware";
+import { ADMIN_ONLY_ROLES } from "../../constant";
 
 const router = express.Router();
 
@@ -9,8 +12,8 @@ const router = express.Router();
  *   post:
  *     summary: Create and broadcast a new announcement
  *     description: >
- *       Allows an admin to create an announcement and broadcast it to users.  
- *       The announcement can target all users, only buyers, or only sellers.  
+ *       Allows an admin to create an announcement and broadcast it to users.
+ *       The announcement can target all users, only buyers, or only sellers.
  *       Requires a valid admin token.
  *     tags:
  *       - Announcements
@@ -103,7 +106,11 @@ const router = express.Router();
  *         description: Internal server error
  */
 
-
-router.post('/create', createAnnouncement);
+router.post(
+  "/create",
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  validateCreateAnnouncement,
+  createAnnouncement
+);
 
 export default router;

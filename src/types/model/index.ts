@@ -1,4 +1,4 @@
-import {  Document, Schema, Types } from 'mongoose';
+import { Document, Schema, Types } from "mongoose";
 
 export interface ISchool extends Document {
   schoolName: string;
@@ -28,28 +28,28 @@ export interface IUser extends Document {
   sellerProfileComplete: boolean;
   profileImageURL: string;
   is_admin: boolean;
-  status: 'active' | 'inactive' | 'suspended';
-  verificationStatus: 'pending' | 'verified' | 'rejected';
+  status: "active" | "inactive" | "suspended";
+  verificationStatus: "pending" | "verified" | "rejected";
   adminComments?: string;
   isSuspended: boolean;
 }
 
 export interface OTPVerificationModelType {
-  owner:{
-    id: Schema.Types.ObjectId,
-    type: 'User' | "Admin"
-  }
+  owner: {
+    id: Schema.Types.ObjectId;
+    type: "User" | "Admin";
+  };
   OTP: string;
-  type: 'password' | 'transaction pin' | 'activate account' | 'edit profile';
+  type: "password" | "transaction pin" | "activate account" | "edit profile";
   verificationType: string;
 }
 
 export interface NotificationType {
   // user: Schema.Types.ObjectId;
-  recipient: IUser['_id'] | IAdmin['_id'];
-  recipientModel: 'User' | 'Admin';
+  recipient: IUser["_id"] | IAdmin["_id"];
+  recipientModel: "User" | "Admin";
   body: string;
-  type: 'account' | 'market' | 'promotion';
+  type: "account" | "market" | "promotion";
   title: string;
   is_read: boolean;
 }
@@ -58,7 +58,7 @@ export interface ContactUsModelType {
   body: string;
   fullName: string;
   email: string;
-  issue: 'account' | 'payment' | 'orders' | 'others';
+  issue: "account" | "payment" | "orders" | "others";
   is_closed: boolean;
 }
 
@@ -69,16 +69,16 @@ export interface ProductListingType extends Document {
   productImage: string[];
   productVideos: string[];
   category:
-    | 'electronics'
-    | 'books & stationery'
-    | 'clothing & accessories'
-    | 'furniture'
-    | 'home & kitchen'
-    | 'sports & fitness equipment'
-    | 'gaming & entertainment'
-    | 'health & personal care'
-    | 'hobbies & crafts'
-    | 'miscellaneous';
+    | "electronics"
+    | "books & stationery"
+    | "clothing & accessories"
+    | "furniture"
+    | "home & kitchen"
+    | "sports & fitness equipment"
+    | "gaming & entertainment"
+    | "health & personal care"
+    | "hobbies & crafts"
+    | "miscellaneous";
   location: string;
   description: string;
   is_approved: boolean;
@@ -87,7 +87,7 @@ export interface ProductListingType extends Document {
   is_reserved: boolean;
   hasSettled: boolean;
   seller: Schema.Types.ObjectId;
-  status: 'approved' | 'pending' | 'rejected' | 'flagged' | 'removed';
+  status: "approved" | "pending" | "rejected" | "flagged" | "removed";
   flags: {
     reason: string;
     flaggedBy: Types.ObjectId;
@@ -139,7 +139,7 @@ export interface IAdmin extends Document {
   fullName: string;
   email: string;
   password: string;
-  role: 'super_admin' | 'admin' | 'support_agent';
+  role: "super_admin" | "admin" | "support_agent";
   emailVerified: boolean;
   otp?: string;
   otpExpires?: Date;
@@ -196,7 +196,7 @@ export interface ITransaction extends Document {
 export interface ISupportTicket extends Document {
   userId: Schema.Types.ObjectId;
   subject: string;
-  issueType: 'account' | 'payment' | 'orders' | 'technical' | 'others';
+  issueType: "account" | "payment" | "orders" | "technical" | "others";
   assignedTo?: Schema.Types.ObjectId;
   assignedBy?: Schema.Types.ObjectId;
   assignmentMessage?: string;
@@ -221,7 +221,10 @@ export interface ISupportTicket extends Document {
 export interface IAnnouncement extends Document {
   title: string;
   message: string;
-  category: 'Buyers' | 'Sellers' | 'All'
+  category: "Buyers" | "Sellers" | "All";
+  createdBy: {
+    id: Types.ObjectId;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
