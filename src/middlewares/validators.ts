@@ -547,6 +547,7 @@ export const validateCreateTicket = [
     .withMessage(
       "Invalid issue type. Must be one of: account, payment, orders, technical, others"
     ),
+
   handleValidationErrors,
 ];
 
@@ -624,5 +625,35 @@ export const validateTicketId = [
     .withMessage("Ticket ID is required")
     .isMongoId()
     .withMessage("Invalid ticket ID format"),
+  handleValidationErrors,
+];
+
+export const validateCreateAnnouncement = [
+  body("title")
+    .notEmpty()
+    .withMessage("Title is required")
+    .isString()
+    .withMessage("Title must be a string")
+    .isLength({ min: 3, max: 200 })
+    .withMessage("Title must be between 3 and 200 characters")
+    .trim(),
+
+  body("message")
+    .notEmpty()
+    .withMessage("Message is required")
+    .isString()
+    .withMessage("Message must be a string")
+    .isLength({ min: 10, max: 5000 })
+    .withMessage("Message must be between 10 and 5000 characters")
+    .trim(),
+
+  body("category")
+    .notEmpty()
+    .withMessage("Category is required")
+    .isString()
+    .withMessage("Category must be a string")
+    .isIn(["Buyers", "Sellers", "All"])
+    .withMessage("Invalid category. Must be 'Buyers', 'Sellers', or 'All'"),
+
   handleValidationErrors,
 ];
