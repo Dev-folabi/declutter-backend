@@ -1,5 +1,11 @@
-import express from 'express';
-import { validateProductListing, validateProductUpdate } from '../../middlewares/validators';
+import express from "express";
+import {
+  validateCreateProduct,
+  validateProductListing,
+  validateProductUpdate,
+  validateUpdateProduct,
+} from "../../middlewares/validators";
+import { uploadMultiple } from "../../middlewares/upload";
 
 import {
   getSingleUnsoldProduct,
@@ -180,24 +186,23 @@ const router = express.Router();
  *         description: Not found
  */
 
-router.get('/allproducts', getAllUnsoldProduct);
-router.get('/to-own', getAllLongUnsoldProduct);
-router.get('/productincategory/:category', getUnsoldProductsByCategory);
-router.get('/product/:id', getSingleUnsoldProduct);
+router.get("/allproducts", getAllUnsoldProduct);
+router.get("/to-own", getAllLongUnsoldProduct);
+router.get("/productincategory/:category", getUnsoldProductsByCategory);
+router.get("/product/:id", getSingleUnsoldProduct);
 router.post(
-  '/createproduct',
-  validateProductListing,
+  "/createproduct",
   verifyToken,
-  authorizeRoles('seller'),
+  uploadMultiple("files", 10),
+  validateCreateProduct,
   listAProduct
 );
 router.patch(
-  '/updateproduct/:id',
-  validateProductUpdate,
+  "/updateproduct/:id",
   verifyToken,
-  authorizeRoles('seller'),
+  uploadMultiple("files", 10),
+  validateUpdateProduct,
   updateAProduct
 );
-
 
 export default router;

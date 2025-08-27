@@ -18,6 +18,7 @@ import {
 } from "../../controllers/authController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
+import { uploadSingle } from "../../middlewares/upload";
 
 const router = express.Router();
 
@@ -192,7 +193,12 @@ const router = express.Router();
 router.post("/school", validateAddSchoolsBulk, verifyToken, authorizeRoles(...ADMIN_ONLY_ROLES), addSchoolsBulk);
 router.get("/schools", getSchools);
 
-router.post("/signup", validateRegister, registerUser);
+router.post(
+  "/signup",
+  uploadSingle("schoolIdCard"), // Add this middleware
+  validateRegister,
+  registerUser
+);
 router.post("/login", validateLogin, loginUser);
 router.post("/reset-password-otp", validateResetPasswordOTP, resetPasswordOTP);
 router.post("/reset-password", validateResetPassword, resetPassword);

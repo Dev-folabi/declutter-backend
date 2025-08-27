@@ -1,6 +1,5 @@
 import { Request, Response, NextFunction } from "express";
 import { body, check, param, validationResult } from "express-validator";
-import isURL from "validator/lib/isURL";
 
 const handleValidationErrors = (
   req: Request,
@@ -42,79 +41,6 @@ export const validateAddSchoolsBulk = [
     .withMessage("Location is required for each school.")
     .isString()
     .withMessage("Location must be a string."),
-  handleValidationErrors,
-];
-
-export const validateRegister = [
-  body("fullName").notEmpty().withMessage("Full name is required"),
-  body("email")
-    .notEmpty()
-    .withMessage("Email is required")
-    .isEmail()
-    .withMessage("Invalid email address"),
-  body("password")
-    .notEmpty()
-    .withMessage("Password is required")
-    .isStrongPassword()
-    .withMessage(
-      "Password must be 8 characters containing atleast a special character, a number, an uppercase and lowercase letter"
-    )
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long"),
-  body("schoolId").notEmpty().withMessage("School ID is required"),
-  body("schoolIdCardURL")
-    .optional()
-    .isURL()
-    .withMessage("School ID Card must be a url"),
-  body("nin")
-    .optional()
-    .isString()
-    .withMessage("NIN must be a string")
-    .isLength({ min: 11 })
-    .withMessage("NIN must be 11 characters long"),
-  body("accountNumber")
-    .optional()
-    .isString()
-    .withMessage("Account Number must be a string")
-    .isLength({ min: 10 })
-    .withMessage("Account Number must be 11 characters long"),
-  body("bankCode")
-    .optional()
-    .isString()
-    .withMessage("Bank Code must be a string"),
-  body("pin").optional().isString().withMessage("PIN must be a string"),
-  body("role")
-    .notEmpty()
-    .withMessage("Role is required")
-    .isIn(["seller", "buyer"])
-    .withMessage("Invalid role. Role must be either 'seller' or 'buyer'")
-    .isString()
-    .withMessage("Role must be a string"),
-  handleValidationErrors,
-];
-
-export const validateProfileUpdate = [
-  body("fullName").optional().notEmpty().withMessage("Full name is required"),
-  body("email")
-    .optional()
-    .isString()
-    .withMessage("Account Number must be a string")
-    .isLength({ min: 10 })
-    .withMessage("Account Number must be 10 characters long"),
-  body("profile_image")
-    .optional()
-    .isString()
-    .withMessage("Profile image must be a string"),
-  body("currentPassword")
-    .notEmpty()
-    .withMessage("Curent Password must be provided")
-    .isString()
-    .withMessage("Profile image must be a string"),
-  body("currentPassword")
-    .notEmpty()
-    .withMessage("Curent Password must be provided")
-    .isString()
-    .withMessage("Curent Password must be a string"),
   handleValidationErrors,
 ];
 
@@ -453,14 +379,160 @@ export const validateTransactionId = [
 ];
 
 // Support Ticket Validation Functions
+export const validateCreateProduct = [
+  body("name")
+    .notEmpty()
+    .withMessage("Product name is required")
+    .isString()
+    .withMessage("Product name must be a string"),
+  body("price")
+    .notEmpty()
+    .withMessage("Price is required")
+    .isNumeric()
+    .withMessage("Price must be a number"),
+  body("location")
+    .notEmpty()
+    .withMessage("Location is required")
+    .isString()
+    .withMessage("Location must be a string"),
+  body("description")
+    .notEmpty()
+    .withMessage("Description is required")
+    .isString()
+    .withMessage("Description must be a string"),
+  body("category")
+    .notEmpty()
+    .withMessage("Category is required")
+    .isIn([
+      "electronics",
+      "books & stationery",
+      "clothing & accessories",
+      "furniture",
+      "home & kitchen",
+      "sports & fitness equipment",
+      "gaming & entertainment",
+      "health & personal care",
+      "hobbies & crafts",
+      "miscellaneous",
+    ])
+    .withMessage("Invalid category"),
+  handleValidationErrors,
+];
+
+export const validateUpdateProduct = [
+  param("id")
+    .notEmpty()
+    .withMessage("Product ID is required")
+    .isMongoId()
+    .withMessage("Invalid product ID format"),
+
+  check("name")
+    .if((value, { req }) => req.body.name)
+    .notEmpty()
+    .withMessage("Product name cannot be empty")
+    .isString()
+    .withMessage("Product name must be a string"),
+
+  check("price")
+    .if((value, { req }) => req.body.price)
+    .isNumeric()
+    .withMessage("Price must be a number")
+    .notEmpty()
+    .withMessage("Price cannot be empty"),
+
+  check("category")
+    .if((value, { req }) => req.body.category)
+    .isIn([
+      "electronics",
+      "books & stationery",
+      "clothing & accessories",
+      "furniture",
+      "home & kitchen",
+      "sports & fitness equipment",
+      "gaming & entertainment",
+      "health & personal care",
+      "hobbies & crafts",
+      "miscellaneous",
+    ])
+    .withMessage("Invalid category. Must be among the predefined list."),
+
+  check("location")
+    .if((value, { req }) => req.body.location)
+    .isString()
+    .withMessage("Product location must be a string")
+    .notEmpty()
+    .withMessage("Location cannot be empty"),
+
+  check("description")
+    .if((value, { req }) => req.body.description)
+    .isString()
+    .withMessage("Description must be a string")
+    .notEmpty()
+    .withMessage("Description cannot be empty"),
+
+  handleValidationErrors,
+];
+
+// Update profile validation to remove profile_image URL validation
+export const validateProfileUpdate = [
+  body("fullName").optional().notEmpty().withMessage("Full name is required"),
+  body("email")
+    .optional()
+    .isEmail()
+    .withMessage("Please provide a valid email"),
+  body("currentPassword")
+    .notEmpty()
+    .withMessage("Current Password must be provided")
+    .isString()
+    .withMessage("Current password must be a string"),
+  handleValidationErrors,
+];
+
+export const validateRegister = [
+  body("fullName")
+    .notEmpty()
+    .withMessage("Full name is required")
+    .isString()
+    .withMessage("Full name must be a string"),
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email"),
+  body("password")
+    .notEmpty()
+    .withMessage("Password is required")
+    .isLength({ min: 8 })
+    .withMessage("Password must be at least 8 characters long"),
+  body("schoolId")
+    .notEmpty()
+    .withMessage("School ID is required")
+    .isMongoId()
+    .withMessage("Invalid school ID format"),
+  body("nin")
+    .optional()
+    .isString()
+    .withMessage("NIN must be a string")
+    .isLength({ min: 11, max: 11 })
+    .withMessage("NIN must be exactly 11 characters long"),
+  body("role")
+    .notEmpty()
+    .withMessage("Role is required")
+    .isIn(["seller", "buyer"])
+    .withMessage("Invalid role. Role must be either 'seller' or 'buyer'"),
+
+  handleValidationErrors,
+];
+
+// Update ticket validation to remove imageUrls validation
 export const validateCreateTicket = [
   body("subject")
     .notEmpty()
     .withMessage("Subject is required")
     .isString()
     .withMessage("Subject must be a string")
-    .isLength({ min: 3, max: 200 })
-    .withMessage("Subject must be between 3 and 200 characters"),
+    .isLength({ min: 5, max: 200 })
+    .withMessage("Subject must be between 5 and 200 characters"),
   body("description")
     .notEmpty()
     .withMessage("Description is required")
@@ -472,24 +544,9 @@ export const validateCreateTicket = [
     .notEmpty()
     .withMessage("Issue type is required")
     .isIn(["account", "payment", "orders", "technical", "others"])
-    .withMessage("Invalid issue type. Must be one of: account, payment, orders, technical, others"),
-  body("imageUrls")
-    .optional()
-    .isArray()
-    .withMessage("Image URLs must be an array")
-    .custom((value: string[]) => {
-      if (value && value.length > 0) {
-        if (value.length > 5) {
-          throw new Error("Maximum 5 image URLs allowed");
-        }
-        for (const url of value) {
-          if (!isURL(url)) {
-            throw new Error("Each image URL must be a valid URL");
-          }
-        }
-      }
-      return true;
-    }),
+    .withMessage(
+      "Invalid issue type. Must be one of: account, payment, orders, technical, others"
+    ),
   handleValidationErrors,
 ];
 
@@ -539,7 +596,9 @@ export const validateUpdateTicketStatus = [
     .notEmpty()
     .withMessage("Status is required")
     .isIn(["open", "in_progress", "resolved", "closed"])
-    .withMessage("Invalid status. Must be one of: open, in_progress, resolved, closed"),
+    .withMessage(
+      "Invalid status. Must be one of: open, in_progress, resolved, closed"
+    ),
   handleValidationErrors,
 ];
 
