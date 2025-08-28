@@ -7,6 +7,7 @@ import { User } from '../models/userModel';
 // import { Admin } from '../models/adminModel';
 import { createNotification } from './notificationController';
 import { sendEmail } from '../utils/mail';
+import { uploadMultipleToImageKit } from '../utils/imagekit';
 
 export const getAllUnsoldProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -62,6 +63,7 @@ export const listAProduct = async (req: Request, res: Response, next: NextFuncti
         message: 'Unauthenticated user cannot list a product.',
         data: null,
       });
+      return;
     }
 
     if (!user?.role?.includes('seller')) {
@@ -70,11 +72,14 @@ export const listAProduct = async (req: Request, res: Response, next: NextFuncti
         message: 'User is not a seller.',
         data: null,
       });
+      return;
     }
 
-    const { name, category, price, productImage, location, description } = req.body;
+    const { name, category, price, location, description } = req.body;
+    const files = req.files as Express.Multer.File[];
 
-    if (productImage.length < 3) {
+    // Check if files are provided
+    if (!files || files.length < 3) {
       res.status(400).json({
         success: false,
         message: 'At least three product images are required.',
@@ -83,9 +88,34 @@ export const listAProduct = async (req: Request, res: Response, next: NextFuncti
       return;
     }
 
+    // Separate images and videos
+    const imageFiles = files.filter(file => file.mimetype.startsWith('image/'));
+    const videoFiles = files.filter(file => file.mimetype.startsWith('video/'));
+
+    // Upload images to ImageKit
+    let productImageUrls: string[] = [];
+    let productVideoUrls: string[] = [];
+
+    if (imageFiles.length > 0) {
+      productImageUrls = await uploadMultipleToImageKit(
+        imageFiles,
+        '/products/images',
+        ['product', 'marketplace']
+      );
+    }
+
+    if (videoFiles.length > 0) {
+      productVideoUrls = await uploadMultipleToImageKit(
+        videoFiles,
+        '/products/videos',
+        ['product', 'marketplace', 'video']
+      );
+    }
+
     const productId = () => {
       return `DM-${Date.now()}`;
     };
+
     const newProduct = await Product.create({
       name,
       price,
@@ -94,7 +124,8 @@ export const listAProduct = async (req: Request, res: Response, next: NextFuncti
       location,
       description,
       seller: user?._id,
-      productImage,
+      productImage: productImageUrls,
+      productVideos: productVideoUrls,
     });
 
     const productData = _.omit(newProduct.toObject(), ['is_sold']);
@@ -129,46 +160,38 @@ export const listAProduct = async (req: Request, res: Response, next: NextFuncti
 export const updateAProduct = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const user = await User.findById(getIdFromToken(req));
+    const { id } = req.params;
+    const files = req.files as Express.Multer.File[];
 
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: 'Unauthenticated user cannot list a product.',
-        data: null,
-      });
+    let updateData = { ...req.body };
+
+    // If new files are uploaded, process them
+    if (files && files.length > 0) {
+      const imageFiles = files.filter(file => file.mimetype.startsWith('image/'));
+      const videoFiles = files.filter(file => file.mimetype.startsWith('video/'));
+
+      if (imageFiles.length > 0) {
+        const productImageUrls = await uploadMultipleToImageKit(
+          imageFiles,
+          '/products/images',
+          ['product', 'marketplace']
+        );
+        updateData.productImage = productImageUrls;
+      }
+
+      if (videoFiles.length > 0) {
+        const productVideoUrls = await uploadMultipleToImageKit(
+          videoFiles,
+          '/products/videos',
+          ['product', 'marketplace', 'video']
+        );
+        updateData.productVideos = productVideoUrls;
+      }
     }
-
-    if (!user?.role?.includes('seller')) {
-      res.status(400).json({
-        success: false,
-        message: 'User is not a seller.',
-        data: null,
-      });
-    }
-
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      res.status(400).json({
-        success: false,
-        message: 'Product not found.',
-        data: null,
-      });
-    }
-
-    if (product?.seller.toString() !== user?.id.toString()) {
-      res.status(400).json({
-        success: false,
-        message: 'You are not authorized to perform this action',
-        data: null,
-      });
-    }
-
-    req.body.is_approved = false;
 
     const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
+      id,
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 

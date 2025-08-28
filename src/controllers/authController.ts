@@ -1,7 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
-import axios from "axios";
 import { UserRequest } from "../types/requests";
 import { IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
@@ -18,6 +17,7 @@ import {
 } from "../utils";
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
+import { uploadToImageKit } from "../utils/imagekit";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -102,7 +102,6 @@ export const registerUser = async (
       email,
       password,
       schoolId,
-      schoolIdCardURL,
       nin,
       accountNumber,
       bankCode,
@@ -110,7 +109,9 @@ export const registerUser = async (
       role,
     } = req.body;
 
-    // Validate required fields for seller role
+    const file = req.file;
+    let schoolIdCardURL: string | undefined;
+
     // if (
     //   role === "seller" &&
     //   (!schoolIdCardURL || !nin || !accountNumber || !bankCode || !pin)
@@ -122,24 +123,40 @@ export const registerUser = async (
     //   );
     // }
 
-     if (
-      role === "seller" &&
-      (!schoolIdCardURL || !nin )
-    ) {
+    // Upload school ID card if file is provided
+    if (file) {
+      try {
+        const uploadResult = await uploadToImageKit({
+          file: file.buffer,
+          fileName: file.originalname,
+          folder: "school-id-cards",
+        });
+        schoolIdCardURL = uploadResult.url;
+      } catch (uploadError) {
+        return handleError(
+          res,
+          400,
+          "Failed to upload school ID card. Please try again."
+        );
+      }
+    }
+    console.log(schoolIdCardURL);
+    // Validate required fields for seller role
+    if (role === "seller" && (!schoolIdCardURL || !nin)) {
       return handleError(
         res,
         400,
-        "Please provide school ID and NIN."
+        "Please provide school ID card and NIN for seller registration."
       );
     }
 
-    // // Check if user already exists based on email
+    // Check if user already exists based on email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return handleError(res, 400, "Email already exists, please login.");
     }
 
-    // // Check if NIN exists (if provided)
+    // Check if NIN exists (if provided)
     if (nin) {
       const existingNin = await User.findOne({ nin });
       if (existingNin) {
@@ -157,7 +174,7 @@ export const registerUser = async (
 
     const school = await School.findById(schoolId);
     if (!school) {
-      return handleError(res, 404, "school not found");
+      return handleError(res, 404, "School not found");
     }
 
     let account;
@@ -168,7 +185,6 @@ export const registerUser = async (
 
     let recipientCode;
     if (role === "seller" && accountNumber && bankCode) {
-
       const detail = await paystack.createRecipient(
         accountNumber as string,
         bankCode as string
@@ -191,7 +207,7 @@ export const registerUser = async (
       schoolIdCardURL,
       nin,
       accountDetail:
-        (role === "seller" && accountNumber && bankCode)
+        role === "seller" && accountNumber && bankCode
           ? {
               accountName: account.account_name,
               accountNumber: encryptedAccountNumber,
@@ -233,13 +249,13 @@ export const registerUser = async (
     // Send email
     await sendEmail(
       newUser.email,
-      "Verify EMail - OTP Verification",
+      "Verify Email - OTP Verification",
       `
         Hi ${newUser?.fullName.split(" ")[0] || "User"},
         <p>You recently requested to verify your email. Use the OTP below to verify it:</p>
         <h2>${OTP}</h2>
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
         <br />
       `
     );
@@ -252,7 +268,7 @@ export const registerUser = async (
         decryptAccountDetail(userData.accountDetail);
       }
     } catch (e) {
-      /* to make sure existing codes doesnt break */
+      /* to make sure existing codes doesn't break */
     }
 
     res.status(201).json({

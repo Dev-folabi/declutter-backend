@@ -1,10 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import { SupportTicket } from "../models/supportTicket";
-import { User } from "../models/userModel";
-import { sendEmail } from "../utils/mail";
-import { Admin } from "../models/adminModel";
 import { getIdFromToken } from "../function/token";
+import { User } from "../models/userModel";
+import { Admin } from "../models/adminModel";
+import { sendEmail } from "../utils/mail";
+import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { Types } from "mongoose";
+import { createNotification } from "./notificationController";
 
 export const createTicket = async (
   req: Request,
@@ -12,7 +14,10 @@ export const createTicket = async (
   next: NextFunction
 ) => {
   try {
-    const { subject, description, issueType, imageUrls } = req.body;
+    const userId = getIdFromToken(req);
+    const { subject, description, issueType } = req.body;
+    const files = req.files as Express.Multer.File[];
+
     const user = await User.findById(getIdFromToken(req));
     if (!user) {
       res.status(401).json({
@@ -41,16 +46,26 @@ export const createTicket = async (
       return;
     }
 
-    const newTicket = await SupportTicket.create({
+    let imageUrls: string[] = [];
+
+    // Handle image uploads
+    if (files && files.length > 0) {
+      imageUrls = await uploadMultipleToImageKit(files, "/support-tickets", [
+        "support",
+        "ticket",
+      ]);
+    }
+
+    const ticket = await SupportTicket.create({
+      user: userId,
       subject,
       description,
       issueType,
-      imageUrls: imageUrls || [],
-      userId: user._id,
+      imageUrls,
       status: "open",
     });
 
-    // Notify all the Admins
+    // Notify all the Admins via email
     const admins = await Admin.find({ is_admin: true });
     const adminEmails = admins.map((admin) => admin.email).join(",");
     sendEmail(
@@ -59,10 +74,23 @@ export const createTicket = async (
       `A new support ticket has been created by user ${user.fullName}. Subject: ${subject}. Issue Type: ${issueType}. Description: ${description}`
     );
 
+    // Create in-app notifications for all admins
+    const adminNotificationPromises = admins.map((admin) =>
+      createNotification({
+        recipient: admin._id,
+        recipientModel: "Admin",
+        body: `New support ticket created by ${user.fullName}. Subject: ${subject}. Issue Type: ${issueType}.`,
+        type: "account",
+        title: "New Support Ticket",
+      })
+    );
+
+    await Promise.allSettled(adminNotificationPromises);
+
     res.status(201).json({
       success: true,
       message: "Support ticket created successfully",
-      data: newTicket,
+      data: ticket,
     });
   } catch (error) {
     next(error);
@@ -81,7 +109,6 @@ export const addReplyToTicket = async (
 
     // Check if admin
     const admin = await Admin.findById(senderId);
-    // const isAdmin = !!admin;
 
     // if the sender is not admin check if its user
     const user = !admin ? await User.findById(senderId) : null;
@@ -121,7 +148,22 @@ export const addReplyToTicket = async (
           `Admin replied to your support ticket with subject: ${ticket.subject}. Reply: ${reply}`
         );
       }
+    } else {
+      // If user replied, notify all admins via in-app notifications
+      const admins = await Admin.find({ is_admin: true });
+      const adminNotificationPromises = admins.map((adminUser) =>
+        createNotification({
+          recipient: adminUser._id,
+          recipientModel: "Admin",
+          body: `${user?.fullName} replied to support ticket: ${ticket.subject}. Reply: ${reply}`,
+          type: "account",
+          title: "New Ticket Reply",
+        })
+      );
+
+      await Promise.allSettled(adminNotificationPromises);
     }
+
     res.status(200).json({
       success: true,
       message: "Reply added successfully",

@@ -16,6 +16,7 @@ import {
   updatePin,
 } from "../../controllers/userController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
+import { uploadSingle } from "../../middlewares/upload";
 
 const router = express.Router();
 
@@ -26,22 +27,25 @@ const router = express.Router();
  *     tags: [Profile]
  *     summary: Update user profile
  *     description: Update user information
- *     parameters:
- *       - in: body
- *         name: user
- *         description: User profile data
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             fullName:
- *               type: string
- *             email:
- *               type: string
- *             profile_image:
- *               type: string
- *             currentPassword:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               profileImage:
+ *                 type: string
+ *                 format: binary
+ *                 description: Profile image file
+ *               currentPassword:
+ *                 type: string
+ *                 description: Current password for verification
  *     responses:
  *       200:
  *         description: User information successfully
@@ -166,8 +170,9 @@ const router = express.Router();
 router.get("/profile", verifyToken, userProfile);
 router.patch(
   "/update-profile",
-  validateProfileUpdate,
   verifyToken,
+  uploadSingle("profileImage"),
+  validateProfileUpdate,
   updateProfile
 );
 router.patch(

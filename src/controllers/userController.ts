@@ -11,6 +11,7 @@ import { sendEmail } from "../utils/mail";
 import OTPVerification from "../models/OTPVerifivation";
 import { generateOTP, decryptAccountDetail, encryptData } from "../utils";
 import paystack from "../service/paystack";
+import { uploadToImageKit } from "../utils/imagekit";
 
 export const userProfile = async (
   req: Request,
@@ -56,33 +57,50 @@ export const updateProfile = async (
 ) => {
   try {
     const user_id = getIdFromToken(req);
+    const { fullName, email, currentPassword } = req.body;
+    const file = req.file;
 
-    const user = await User.findOne({ _id: user_id });
+    const user = await User.findById(user_id);
     if (!user) {
-      return handleError(res, 400, "unauthorized.");
+      res.status(404).json({
+        success: false,
+        message: "User not found",
+        data: null,
+      });
+      return;
     }
 
-    const isValidPassword = await bcrypt.compare(
-      req.body.currentPassword,
-      user.password
-    );
-    if (!isValidPassword) {
-      return handleError(res, 400, "Invalid password.");
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      res.status(400).json({
+        success: false,
+        message: "Current password is incorrect",
+        data: null,
+      });
+      return;
     }
 
-    // let hashedPin
-    // if (req.body.pin) {
-    //     hashedPin = await bcrypt.hash(req.body.pin, 10);
-    //     req.body.pin = hashedPin
-    // }
-    const data = _.omit(req.body, ["currentPassword"]);
+    let updateData: any = {};
+    if (fullName) updateData.fullName = fullName;
+    if (email) updateData.email = email;
+
+    // Handle profile image upload
+    if (file) {
+      const uploadResult = await uploadToImageKit({
+        file: file.buffer,
+        fileName: file.originalname,
+        folder: '/profiles',
+        tags: ['profile', 'user'],
+      });
+      updateData.profileImageURL = uploadResult.url;
+    }
 
     const updatedUser = await User.findByIdAndUpdate(
       user_id,
-      { $set: data },
+      { $set: updateData },
       { new: true }
     );
-    // user.save();
 
     const notificationData = {
       recipient: user_id,
@@ -93,6 +111,7 @@ export const updateProfile = async (
     };
 
     await createNotification(notificationData);
+    
     // Exclude sensitive fields from response
     const userData = _.omit(updatedUser?.toObject(), ["password", "pin"]);
 
@@ -111,14 +130,14 @@ export const updateProfile = async (
         Hi ${user?.fullName.split(" ")[0] || "User"},
         <p>You have updated your profile successfully</p>
        
-        <p>If you didn’t perform this action, Please reach out to an admin promptly.</p>
+        <p>If you didn't perform this action, Please reach out to an admin promptly.</p>
         <br />
       `
     );
 
     res.status(200).json({
       success: true,
-      message: "User profile updated in successfully.",
+      message: "User profile updated successfully.",
       data: userData,
     });
   } catch (error) {

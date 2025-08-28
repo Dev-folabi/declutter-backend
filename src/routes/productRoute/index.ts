@@ -1,5 +1,11 @@
-import express from 'express';
-import { validateProductListing, validateProductUpdate } from '../../middlewares/validators';
+import express from "express";
+import {
+  validateCreateProduct,
+  validateProductListing,
+  validateProductUpdate,
+  validateUpdateProduct,
+} from "../../middlewares/validators";
+import { uploadMultiple } from "../../middlewares/upload";
 
 import {
   getSingleUnsoldProduct,
@@ -75,7 +81,7 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -84,7 +90,6 @@ const router = express.Router();
  *               - location
  *               - description
  *               - category
- *               - productImage
  *             properties:
  *               name:
  *                 type: string
@@ -107,10 +112,13 @@ const router = express.Router();
  *                   - health & personal care
  *                   - hobbies & crafts
  *                   - miscellaneous
- *                 productImage:
- *                  type: array
- *                  items:
- *                    type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Product images (up to 10 files)
+ *                 maxItems: 10
  *     responses:
  *       200:
  *         description: Product created successfully
@@ -132,7 +140,7 @@ const router = express.Router();
  *     requestBody:
  *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -146,21 +154,14 @@ const router = express.Router();
  *                 type: string
  *               category:
  *                 type: string
- *                 enum:
- *                   - electronics
- *                   - books & stationery
- *                   - clothing & accessories
- *                   - furniture
- *                   - home & kitchen
- *                   - sports & fitness equipment
- *                   - gaming & entertainment
- *                   - health & personal care
- *                   - hobbies & crafts
- *                   - miscellaneous
- *                 productImage:
- *                  type: array
- *                  items:
- *                    type: string
+ *                 enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Updated product images (up to 10 files)
+ *                 maxItems: 10
  *     responses:
  *       200:
  *         description: Product updated successfully
@@ -180,24 +181,23 @@ const router = express.Router();
  *         description: Not found
  */
 
-router.get('/allproducts', getAllUnsoldProduct);
-router.get('/to-own', getAllLongUnsoldProduct);
-router.get('/productincategory/:category', getUnsoldProductsByCategory);
-router.get('/product/:id', getSingleUnsoldProduct);
+router.get("/allproducts", getAllUnsoldProduct);
+router.get("/to-own", getAllLongUnsoldProduct);
+router.get("/productincategory/:category", getUnsoldProductsByCategory);
+router.get("/product/:id", getSingleUnsoldProduct);
 router.post(
-  '/createproduct',
-  validateProductListing,
+  "/createproduct",
   verifyToken,
-  authorizeRoles('seller'),
+  uploadMultiple("files", 10),
+  validateCreateProduct,
   listAProduct
 );
 router.patch(
-  '/updateproduct/:id',
-  validateProductUpdate,
+  "/updateproduct/:id",
   verifyToken,
-  authorizeRoles('seller'),
+  uploadMultiple("files", 10),
+  validateUpdateProduct,
   updateAProduct
 );
-
 
 export default router;
