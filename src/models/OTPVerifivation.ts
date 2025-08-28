@@ -26,7 +26,7 @@ const OTPVerify = new Schema<OTPVerificationModelType>(
 
 OTPVerify.index({ updatedAt: 1 }, { expireAfterSeconds: 1800 });
 
-OTPVerify.index({ user: 1, type: 1 }, { unique: true });
+OTPVerify.index({ 'owner.id': 1, type: 1 }, { unique: true });
 
 const OTPVerification = model('OTPVerification', OTPVerify);
 

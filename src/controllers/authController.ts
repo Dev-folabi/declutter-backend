@@ -140,7 +140,7 @@ export const registerUser = async (
         );
       }
     }
-
+    console.log(schoolIdCardURL);
     // Validate required fields for seller role
     if (role === "seller" && (!schoolIdCardURL || !nin)) {
       return handleError(

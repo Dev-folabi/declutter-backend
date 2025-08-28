@@ -3,8 +3,6 @@ import { moderateProductListing, getProductsByAdmin, flagOrRemoveListing } from 
 import { validateModeration, validateFlagOrRemove } from "../../middlewares/validators";
 import { authorizeRoles } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
-import { verifyToken } from "../../middlewares/authMiddleware";
-// import { asyncHandler } from "../../utils/asyncHandler";
 
 const router = Express.Router();
 

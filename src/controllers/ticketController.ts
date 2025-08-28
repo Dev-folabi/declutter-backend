@@ -6,6 +6,7 @@ import { Admin } from "../models/adminModel";
 import { sendEmail } from "../utils/mail";
 import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { Types } from "mongoose";
+import { createNotification } from "./notificationController";
 
 export const createTicket = async (
   req: Request,
@@ -64,7 +65,7 @@ export const createTicket = async (
       status: "open",
     });
 
-    // Notify all the Admins
+    // Notify all the Admins via email
     const admins = await Admin.find({ is_admin: true });
     const adminEmails = admins.map((admin) => admin.email).join(",");
     sendEmail(
@@ -72,6 +73,19 @@ export const createTicket = async (
       "New Support Ticket Created",
       `A new support ticket has been created by user ${user.fullName}. Subject: ${subject}. Issue Type: ${issueType}. Description: ${description}`
     );
+
+    // Create in-app notifications for all admins
+    const adminNotificationPromises = admins.map((admin) =>
+      createNotification({
+        recipient: admin._id,
+        recipientModel: "Admin",
+        body: `New support ticket created by ${user.fullName}. Subject: ${subject}. Issue Type: ${issueType}.`,
+        type: "account",
+        title: "New Support Ticket",
+      })
+    );
+
+    await Promise.allSettled(adminNotificationPromises);
 
     res.status(201).json({
       success: true,
@@ -134,7 +148,22 @@ export const addReplyToTicket = async (
           `Admin replied to your support ticket with subject: ${ticket.subject}. Reply: ${reply}`
         );
       }
+    } else {
+      // If user replied, notify all admins via in-app notifications
+      const admins = await Admin.find({ is_admin: true });
+      const adminNotificationPromises = admins.map((adminUser) =>
+        createNotification({
+          recipient: adminUser._id,
+          recipientModel: "Admin",
+          body: `${user?.fullName} replied to support ticket: ${ticket.subject}. Reply: ${reply}`,
+          type: "account",
+          title: "New Ticket Reply",
+        })
+      );
+
+      await Promise.allSettled(adminNotificationPromises);
     }
+
     res.status(200).json({
       success: true,
       message: "Reply added successfully",
