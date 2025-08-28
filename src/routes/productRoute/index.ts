@@ -81,7 +81,7 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -90,7 +90,6 @@ const router = express.Router();
  *               - location
  *               - description
  *               - category
- *               - productImage
  *             properties:
  *               name:
  *                 type: string
@@ -113,10 +112,13 @@ const router = express.Router();
  *                   - health & personal care
  *                   - hobbies & crafts
  *                   - miscellaneous
- *                 productImage:
- *                  type: array
- *                  items:
- *                    type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Product images (up to 10 files)
+ *                 maxItems: 10
  *     responses:
  *       200:
  *         description: Product created successfully
@@ -138,7 +140,7 @@ const router = express.Router();
  *     requestBody:
  *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -152,21 +154,14 @@ const router = express.Router();
  *                 type: string
  *               category:
  *                 type: string
- *                 enum:
- *                   - electronics
- *                   - books & stationery
- *                   - clothing & accessories
- *                   - furniture
- *                   - home & kitchen
- *                   - sports & fitness equipment
- *                   - gaming & entertainment
- *                   - health & personal care
- *                   - hobbies & crafts
- *                   - miscellaneous
- *                 productImage:
- *                  type: array
- *                  items:
- *                    type: string
+ *                 enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Updated product images (up to 10 files)
+ *                 maxItems: 10
  *     responses:
  *       200:
  *         description: Product updated successfully

@@ -29,23 +29,22 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Add schools in bulk
  *     description: Add multiple schools to the system
- *     parameters:
- *       - in: body
- *         name: schools
- *         description: Array of school objects to add to the system
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             schools:
- *               type: array
- *               items:
- *                 type: object
- *                 properties:
- *                   schoolName:
- *                     type: string
- *                   location:
- *                     type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               schools:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     schoolName:
+ *                       type: string
+ *                     location:
+ *                       type: string
  *     responses:
  *       200:
  *         description: Schools added successfully
@@ -66,35 +65,47 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Register new user
  *     description: Create a new user account
- *     parameters:
- *       - in: body
- *         name: user
- *         description: User registration data
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             fullName:
- *               type: string
- *             email:
- *               type: string
- *             password:
- *               type: string
- *             schoolId:
- *               type: string
- *             schoolIdCardURL:
- *               type: string
- *             nin:
- *               type: string
- *             accountNumber:
- *               type: string
- *             bankCode:
- *               type: string
- *             pin:
- *               type: string
- *             role:
- *               type: string
- *               enum: [buyer, seller]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - fullName
+ *               - email
+ *               - password
+ *               - schoolId
+ *               - role
+ *             properties:
+ *               fullName:
+ *                 type: string
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               password:
+ *                 type: string
+ *               schoolId:
+ *                 type: string
+ *               schoolIdCard:
+ *                 type: string
+ *                 format: binary
+ *                 description: School ID card image file (required for sellers)
+ *               nin:
+ *                 type: string
+ *                 description: National Identification Number (required for sellers)
+ *               accountNumber:
+ *                 type: string
+ *                 description: Bank account number (required for sellers)
+ *               bankCode:
+ *                 type: string
+ *                 description: Bank code (required for sellers)
+ *               pin:
+ *                 type: string
+ *                 description: Transaction PIN (required for sellers)
+ *               role:
+ *                 type: string
+ *                 enum: [buyer, seller]
  *     responses:
  *       201:
  *         description: User registered successfully
@@ -106,18 +117,17 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: User login
  *     description: Authenticate user and generate access token
- *     parameters:
- *       - in: body
- *         name: login
- *         description: User login credentials
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             email:
- *               type: string
- *             password:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               password:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Login successful
@@ -129,16 +139,15 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Request password reset OTP
  *     description: Send OTP to user's email for password reset
- *     parameters:
- *       - in: body
- *         name: otpRequest
- *         description: Email to send OTP for password reset
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             email:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
  *     responses:
  *       200:
  *         description: OTP sent successfully
@@ -150,18 +159,17 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Reset password
  *     description: Reset user password using OTP
- *     parameters:
- *       - in: body
- *         name: resetPassword
- *         description: OTP and new password to reset the user’s password
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             OTP:
- *               type: string
- *             newPassword:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               OTP:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Password reset successful
@@ -173,29 +181,33 @@ const router = express.Router();
  *     tags: [Authentication]
  *     summary: Verify Email
  *     description: Verify user email using OTP
- *     parameters:
- *       - in: body
- *         name: verifyOtp
- *         description: OTP and email to verify user’s email
- *         required: true
- *         schema:
- *           type: object
- *           properties:
- *             OTP:
- *               type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               OTP:
+ *                 type: string
  *     responses:
  *       200:
  *         description: Email verified successful
  *       400:
  *         description: User not found
  */
-
-router.post("/school", validateAddSchoolsBulk, verifyToken, authorizeRoles(...ADMIN_ONLY_ROLES), addSchoolsBulk);
+router.post(
+  "/school",
+  validateAddSchoolsBulk,
+  verifyToken,
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  addSchoolsBulk
+);
 router.get("/schools", getSchools);
 
 router.post(
   "/signup",
-  uploadSingle("schoolIdCard"), // Add this middleware
+  uploadSingle("schoolIdCard"),
   validateRegister,
   registerUser
 );

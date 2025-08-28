@@ -1,14 +1,14 @@
 import express from "express";
 import { verifyToken } from "../../middlewares/authMiddleware";
 import {
-    createTicket,
-    addReplyToTicket,
+  createTicket,
+  addReplyToTicket,
 } from "../../controllers/ticketController";
 import {
-    validateCreateTicket,
-    validateAddReplyToTicket,
+  validateCreateTicket,
+  validateAddReplyToTicket,
 } from "../../middlewares/validators";
-import { uploadMultiple } from '../../middlewares/upload';
+import { uploadMultiple } from "../../middlewares/upload";
 
 const router = express.Router();
 
@@ -23,7 +23,7 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -41,12 +41,13 @@ const router = express.Router();
  *                 type: string
  *                 enum: [account, payment, orders, technical, others]
  *                 example: "account"
- *               imageUrls:
+ *               images:
  *                 type: array
  *                 items:
  *                   type: string
- *                 example: ["https://example.com/image1.jpg", "https://example.com/image2.jpg"]
- *                 description: Optional array of image URLs
+ *                   format: binary
+ *                 description: Optional support images (up to 5 files)
+ *                 maxItems: 5
  *     responses:
  *       201:
  *         description: Support ticket created successfully
@@ -112,17 +113,17 @@ const router = express.Router();
  */
 
 router.post(
-  '/create',
+  "/create",
   verifyToken,
-  uploadMultiple('images', 5), // Allow up to 5 images
+  uploadMultiple("images", 5),
   validateCreateTicket,
   createTicket
 );
 router.post(
-    "/:id/reply",
-    verifyToken,
-    validateAddReplyToTicket,
-    addReplyToTicket
+  "/:id/reply",
+  verifyToken,
+  validateAddReplyToTicket,
+  addReplyToTicket
 );
 
 export default router;
