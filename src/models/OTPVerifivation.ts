@@ -3,10 +3,10 @@ import { OTPVerificationModelType } from '../types/model';
 
 const OTPVerify = new Schema<OTPVerificationModelType>(
   {
-    owner : {
-      id: { type: Schema.Types.ObjectId, required: true, refPath: 'owner.type'},
-      type: { type: String, enum: ["User", "Admin"], required: true}
-    }, 
+    owner: {
+      id: { type: Schema.Types.ObjectId, required: true, refPath: 'owner.type' },
+      type: { type: String, enum: ["User", "Admin"], required: true }
+    },
     OTP: {
       type: String,
       required: true,

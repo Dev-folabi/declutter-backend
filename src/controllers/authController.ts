@@ -380,11 +380,7 @@ export const loginUser = async (
   }
 };
 
-export const verifyEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { OTP } = req.body;
 
@@ -392,24 +388,31 @@ export const verifyEmail = async (
       return handleError(res, 400, "OTP is required.");
     }
 
-    // Look for OTP tied specifically to a User
+    // Find OTP and linked user in one go
     const otpVerification = await OTPVerification.findOne({
-      OTP,
+      OTP: OTP.trim(),
       type: "activate account",
-      "owner.type": "User",
+      "owner.type": "User"
     });
 
     if (!otpVerification) {
-      return handleError(res, 400, "Invalid OTP.");
+      return handleError(res, 400, "Invalid or expired OTP.");
     }
 
-    const user = await User.findById(otpVerification.owner?.id);
+    const user = await User.findById(otpVerification.owner.id);
     if (!user) {
       return handleError(res, 404, "User not found.");
     }
 
+    if (user.emailVerified) {
+      return handleError(res, 400, "Email already verified.");
+    }
+
     user.emailVerified = true;
     await user.save();
+
+    // Remove OTP after success
+    await OTPVerification.deleteOne({ _id: otpVerification._id });
 
     // Generate token
     const token = generateToken({
@@ -418,7 +421,6 @@ export const verifyEmail = async (
       is_admin: user.is_admin,
     });
 
-    // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     res.status(200).json({
@@ -431,6 +433,7 @@ export const verifyEmail = async (
     next(error);
   }
 };
+
 
 export const resetPasswordOTP = async (
   req: Request,
