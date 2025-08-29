@@ -1,8 +1,6 @@
 import express from "express";
 import {
   validateCreateProduct,
-  validateProductListing,
-  validateProductUpdate,
   validateUpdateProduct,
 } from "../../middlewares/validators";
 import { uploadMultiple } from "../../middlewares/upload";
@@ -14,6 +12,7 @@ import {
   updateAProduct,
   getUnsoldProductsByCategory,
   getAllLongUnsoldProduct,
+  getSellerProducts,
 } from "../../controllers/productController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
@@ -72,6 +71,82 @@ const router = express.Router();
  *         description: Product listings retrieved successfully
  *       400:
  *         description: Category not found
+ *
+ * /api/product/my-products:
+ *   get:
+ *     summary: Get all products for the authenticated seller
+ *     description: Retrieve all products (approved and unapproved) belonging to the authenticated seller
+ *     tags: [Product]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of products per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter products by name, category, or description
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Products retrieved successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     products:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Product'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalProducts:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                         approved:
+ *                           type: integer
+ *                         unapproved:
+ *                           type: integer
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
  *
  * /api/product/createproduct:
  *   post:
@@ -185,6 +260,7 @@ router.get("/allproducts", getAllUnsoldProduct);
 router.get("/to-own", getAllLongUnsoldProduct);
 router.get("/productincategory/:category", getUnsoldProductsByCategory);
 router.get("/product/:id", getSingleUnsoldProduct);
+router.get("/my-products", verifyToken, getSellerProducts);
 router.post(
   "/createproduct",
   verifyToken,
