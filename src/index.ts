@@ -3,7 +3,7 @@ import morgan from "morgan";
 import cors from "cors";
 import dotenv from "dotenv";
 import routes from "./routes/api";
-import { rateLimiter } from "./middlewares/rateLimiter";
+// import { rateLimiter } from "./middlewares/rateLimiter";
 import connectDB from "./db";
 import { errorHandler } from "./error/errorHandler";
 import swaggerRouter from "./swagger";
@@ -32,7 +32,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan("combined"));
-app.use(rateLimiter);
+// app.use(rateLimiter);
 
 // Routes
 app.get("/", (req: Request, res: Response) => {

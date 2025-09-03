@@ -16,6 +16,8 @@ import productManagementRoute from "../routes/adminRoute/productManagementRoute"
 import adminTicketRoute from "../routes/adminRoute/adminTicketRoute";
 import ticketRoute from "../routes/ticketRoute";
 import announcementRoute from "../routes/adminRoute/announcement";
+import categoryRoute from "./categoryRoute";
+import categoryAdminRoute from "./adminRoute/category";
 import { verifyToken } from "../middlewares/authMiddleware";
 const router = Router();
 
@@ -25,6 +27,7 @@ adminRouter.use("/users", verifyToken, userManagementRoute);
 adminRouter.use("/product", verifyToken, productManagementRoute);
 adminRouter.use("/ticket", verifyToken, adminTicketRoute);
 adminRouter.use("/announcement", verifyToken, announcementRoute);
+adminRouter.use("/category", verifyToken, categoryAdminRoute);
 
 router.use("/waitlist", waitlistRoute);
 router.use("/auth", authRoute);
@@ -39,5 +42,6 @@ router.use("/payment", paymentRoute);
 router.use("/transactions", verifyToken, transactionRoute);
 router.use("/admin", adminRouter);
 router.use("/ticket", verifyToken, ticketRoute);
+router.use("/category", verifyToken, categoryRoute);
 
 export default router;
