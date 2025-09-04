@@ -9,6 +9,7 @@ import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { paginated_result } from "../utils/pagination";
+import { Category } from "../models/category";
 
 export const getAllUnsoldProduct = async (
   req: Request,
@@ -99,6 +100,16 @@ export const listAProduct = async (
     }
 
     const { name, category, price, location, description } = req.body;
+    const categoryExist = await Category.findById( category );
+    if (!categoryExist) {
+      res.status(400).json({
+        success: false,
+        message: "Category does not exist.",
+        data: null,
+      });
+      return;
+    }
+    
     const files = req.files as Express.Multer.File[];
 
     // Check if files are provided

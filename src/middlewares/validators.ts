@@ -657,3 +657,22 @@ export const validateCreateAnnouncement = [
 
   handleValidationErrors,
 ];
+
+export const validateCreateCategory = [
+  body("name")
+    .notEmpty()
+    .withMessage("Category name is required")
+    .isString()
+    .withMessage("Category name must be a string")
+    .isLength({ min: 3, max: 100 })
+    .withMessage("Category name must be between 3 and 100 characters")
+    .trim(),
+  body("description")
+    .optional()
+    .isString()
+    .withMessage("Description must be a string")
+    .isLength({ max: 500 })
+    .withMessage("Description must not exceed 500 characters")
+    .trim(),
+  handleValidationErrors,
+]
