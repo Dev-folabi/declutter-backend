@@ -68,17 +68,18 @@ export interface ProductListingType extends Document {
   productId: string;
   productImage: string[];
   productVideos: string[];
-  category:
-    | "electronics"
-    | "books & stationery"
-    | "clothing & accessories"
-    | "furniture"
-    | "home & kitchen"
-    | "sports & fitness equipment"
-    | "gaming & entertainment"
-    | "health & personal care"
-    | "hobbies & crafts"
-    | "miscellaneous";
+  // category:
+  //   | "electronics"
+  //   | "books & stationery"
+  //   | "clothing & accessories"
+  //   | "furniture"
+  //   | "home & kitchen"
+  //   | "sports & fitness equipment"
+  //   | "gaming & entertainment"
+  //   | "health & personal care"
+  //   | "hobbies & crafts"
+  //   | "miscellaneous";
+  category: Schema.Types.ObjectId;
   location: string;
   description: string;
   is_approved: boolean;
@@ -227,4 +228,26 @@ export interface IAnnouncement extends Document {
   };
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface IAnalyticsReport extends Document {
+  activeUsers: number;
+  inactiveUsers: number;
+  expenses: number;
+  revenue: number;
+  commission: number;
+  refundRequests: number;
+  month: number
+  year: number
+  topProducts: {
+    productId: string
+    totalSales: number
+    count: number
+  }[]
+  generatedAt: Date;
+}
+
+export interface ICategory  extends Document {
+  name: string;
+  description?: string;
 }

@@ -20,20 +20,7 @@ const ProductListSchema = new Schema<ProductListingType>(
     productImage: [{ type: String, required: true }],
     productVideos: [{type: String}],
     category: {
-      type: String,
-      enum: [
-        'electronics',
-        'books & stationery',
-        'clothing & accessories',
-        'furniture',
-        'home & kitchen',
-        'sports & fitness equipment',
-        'gaming & entertainment',
-        'health & personal care',
-        'hobbies & crafts',
-        'miscellaneous',
-      ],
-      required: true,
+      type: Schema.Types.ObjectId, ref: "Category", required: true
     },
     location: {
       type: String,
