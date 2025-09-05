@@ -33,17 +33,23 @@ export const getAllUnsoldProduct = async (
 
     // Add search functionality to query if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
-        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
-        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+          { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+          { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+          { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
-
+  
     // Remove search from query as it's not a field in the document
     delete query.search;
 
     const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'name profileImageURL')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -109,7 +115,7 @@ export const listAProduct = async (
       });
       return;
     }
-    
+
     const files = req.files as Express.Multer.File[];
 
     // Check if files are provided
@@ -313,10 +319,14 @@ export const getUnsoldProductsByCategory = async (
 
     // Add search functionality to query if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
         { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
 
@@ -324,9 +334,12 @@ export const getUnsoldProductsByCategory = async (
     delete query.search;
 
     const products = await Product.find(query)
+      .populate("category", 'name, description')
+      .populate("seller", 'name,  profileImageURL')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
+
     if (products) {
       const productsData = _.map(products, (product) =>
         _.omit(product.toObject(), ["is_approved", "is_sold"])
@@ -372,10 +385,14 @@ export const getAllLongUnsoldProduct = async (
 
     // Add search functionality to query if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
-        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
-        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+          { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+          { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+          { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
 
@@ -383,6 +400,8 @@ export const getAllLongUnsoldProduct = async (
     delete query.search;
 
     const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'name profileImageURL')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: 1 });
@@ -434,15 +453,22 @@ export const getSellerProducts = async (
 
     // Add search functionality if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
+          { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+          { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+          { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
+  
 
     // Get products with pagination
     const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'name profileImageURL')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
