@@ -12,7 +12,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * api/admin/category/create:
+ * /api/admin/category/create:
  *   post:
  *     summary: Create a new category
  *     description: Allows an admin to create a category. Duplicate category names are not allowed.
