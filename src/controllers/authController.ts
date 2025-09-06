@@ -102,66 +102,61 @@ export const registerUser = async (
       email,
       password,
       schoolId,
-      nin,
       accountNumber,
       bankCode,
       pin,
       role,
     } = req.body;
 
-    const file = req.file;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
     let schoolIdCardURL: string | undefined;
+    let ninURL: string | undefined;
 
-    // if (
-    //   role === "seller" &&
-    //   (!schoolIdCardURL || !nin || !accountNumber || !bankCode || !pin)
-    // ) {
-    //   return handleError(
-    //     res,
-    //     400,
-    //     "Please complete the form with all required fields."
-    //   );
-    // }
+    if (role === "seller") {
+      const schoolIdCardFile = files?.schoolIdCard?.[0];
+      const ninFile = files?.nin?.[0];
 
-    // Upload school ID card if file is provided
-    if (file) {
+      if (!schoolIdCardFile || !ninFile) {
+        return handleError(
+          res,
+          400,
+          "Please provide both school ID card and NIN for seller registration."
+        );
+      }
+
       try {
-        const uploadResult = await uploadToImageKit({
-          file: file.buffer,
-          fileName: file.originalname,
+        const schoolIdUpload = uploadToImageKit({
+          file: schoolIdCardFile.buffer,
+          fileName: schoolIdCardFile.originalname,
           folder: "school-id-cards",
         });
-        schoolIdCardURL = uploadResult.url;
+
+        const ninUpload = uploadToImageKit({
+          file: ninFile.buffer,
+          fileName: ninFile.originalname,
+          folder: "nin",
+        });
+
+        const [schoolIdResult, ninResult] = await Promise.all([
+          schoolIdUpload,
+          ninUpload,
+        ]);
+
+        schoolIdCardURL = schoolIdResult.url;
+        ninURL = ninResult.url;
       } catch (uploadError) {
         return handleError(
           res,
           400,
-          "Failed to upload school ID card. Please try again."
+          "Failed to upload documents. Please try again."
         );
       }
-    }
-    console.log(schoolIdCardURL);
-    // Validate required fields for seller role
-    if (role === "seller" && (!schoolIdCardURL || !nin)) {
-      return handleError(
-        res,
-        400,
-        "Please provide school ID card and NIN for seller registration."
-      );
     }
 
     // Check if user already exists based on email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return handleError(res, 400, "Email already exists, please login.");
-    }
-
-    // Check if NIN exists (if provided)
-    if (nin) {
-      const existingNin = await User.findOne({ nin });
-      if (existingNin) {
-        return handleError(res, 400, "NIN already exists, please login.");
-      }
     }
 
     // Hash password and pin
@@ -205,7 +200,7 @@ export const registerUser = async (
       password: hashedPassword,
       schoolId,
       schoolIdCardURL,
-      nin,
+      ninURL,
       accountDetail:
         role === "seller" && accountNumber && bankCode
           ? {

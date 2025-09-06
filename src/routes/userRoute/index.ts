@@ -14,7 +14,6 @@ import {
   updateProfile,
   userProfile,
   updatePin,
-  uploadNin,
 } from "../../controllers/userController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { uploadSingle } from "../../middlewares/upload";
@@ -196,43 +195,6 @@ router.patch(
   verifyToken,
   authorizeRoles("seller"),
   updatePin
-);
-
-/**
- * @swagger
- * /api/user/upload-nin:
- *   post:
- *     tags: [Profile]
- *     summary: Upload NIN
- *     description: Upload user's National Identification Number (NIN) for verification.
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             properties:
- *               nin:
- *                 type: string
- *                 format: binary
- *                 description: NIN image file
- *     responses:
- *       200:
- *         description: NIN uploaded successfully
- *       400:
- *         description: No file uploaded
- *       401:
- *         description: Unauthorized
- *       404:
- *         description: User not found
- */
-router.post(
-  "/upload-nin",
-  verifyToken,
-  uploadSingle("nin"),
-  uploadNin
 );
 
 export default router;
