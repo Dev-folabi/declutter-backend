@@ -68,18 +68,7 @@ export interface ProductListingType extends Document {
   productId: string;
   productImage: string[];
   productVideos: string[];
-  // category:
-  //   | "electronics"
-  //   | "books & stationery"
-  //   | "clothing & accessories"
-  //   | "furniture"
-  //   | "home & kitchen"
-  //   | "sports & fitness equipment"
-  //   | "gaming & entertainment"
-  //   | "health & personal care"
-  //   | "hobbies & crafts"
-  //   | "miscellaneous";
-  category: Schema.Types.ObjectId;
+  categoryId: Schema.Types.ObjectId;
   location: string;
   description: string;
   is_approved: boolean;
