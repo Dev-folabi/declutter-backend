@@ -32,9 +32,9 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
       .skip((page - 1) * per_page)
       .limit(per_page)
       .sort({ createdAt: -1 });
-   
-    res.status(200).json({ 
-      success: true, 
+
+    res.status(200).json({
+      success: true,
       message: "Users fetched successfully",
       data: paginated_result(page, per_page, count, users),
     });
@@ -62,16 +62,18 @@ export const verifySellerDocuments = async (
       user.sellerStatus = "approved";
     } else if (status === "rejected") {
       if (!reason) {
-        return res
+        res
           .status(400)
-          .json({ success: false, message: "Reason for rejection is required." });
+          .json({ success: false, message: "Reason for rejection is required." })
+        return;
       }
       user.sellerStatus = "rejected";
       user.rejectionReason = reason;
     } else {
-      return res
+      res
         .status(400)
-        .json({ success: false, message: "Invalid status." });
+        .json({ success: false, message: "Invalid status." })
+      return;
     }
 
     if (comment) user.adminComment = comment;
@@ -116,7 +118,7 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
   try {
     const { status, note } = req.body;
     const { userId } = req.params;
- 
+
     const user = await User.findById(userId);
     if (!user) return handleError(res, 404, 'User not found');
 

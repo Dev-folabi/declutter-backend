@@ -49,7 +49,7 @@ export const getAllUnsoldProduct = async (
 
     const products = await Product.find(query)
       .populate("category", 'name description')
-      .populate("seller", 'name profileImageURL')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -105,8 +105,8 @@ export const listAProduct = async (
     //  return;
     // }
 
-    const { name, category, price, location, description } = req.body;
-    const categoryExist = await Category.findById(category);
+    const { name, categoryId, price, location, description } = req.body;
+    const categoryExist = await Category.findById(categoryId);
     if (!categoryExist) {
       res.status(400).json({
         success: false,
@@ -164,7 +164,7 @@ export const listAProduct = async (
       name,
       price,
       productId: productId(),
-      category,
+      categoryId,
       location,
       description,
       seller: user?._id,
@@ -275,7 +275,9 @@ export const getSingleUnsoldProduct = async (
   next: NextFunction
 ) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id)
+    .populate("seller", "fullName profileImageURL sellerStatus email")
+    .populate("category", "name description");
     if (product) {
       const productData = _.omit(product?.toObject(), ["is_approved"]);
 
@@ -334,8 +336,8 @@ export const getUnsoldProductsByCategory = async (
     delete query.search;
 
     const products = await Product.find(query)
-      .populate("category", 'name, description')
-      .populate("seller", 'name,  profileImageURL')
+      .populate("category", 'name description')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -401,7 +403,7 @@ export const getAllLongUnsoldProduct = async (
 
     const products = await Product.find(query)
       .populate("category", 'name description')
-      .populate("seller", 'name profileImageURL')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: 1 });
@@ -468,7 +470,7 @@ export const getSellerProducts = async (
     // Get products with pagination
     const products = await Product.find(query)
       .populate("category", 'name description')
-      .populate("seller", 'name profileImageURL')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });

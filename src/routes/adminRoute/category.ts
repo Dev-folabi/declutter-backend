@@ -2,6 +2,7 @@ import express from "express";
 import {
   createCategory,
   deleteCategory,
+  getCategory,
   updateCategory,
 } from "../../controllers/categoryController";
 import { authorizeRoles } from "../../middlewares/authMiddleware";
@@ -10,9 +11,10 @@ import { validateCreateCategory } from "../../middlewares/validators";
 
 const router = express.Router();
 
+
 /**
  * @swagger
- * api/admin/category/create:
+ * /api/admin/category/create:
  *   post:
  *     summary: Create a new category
  *     description: Allows an admin to create a category. Duplicate category names are not allowed.
