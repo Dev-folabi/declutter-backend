@@ -1,11 +1,14 @@
 import express from "express";
-import { createCategory, } from "../../controllers/categoryController";
-import { authorizeRoles, } from "../../middlewares/authMiddleware";
+import {
+  createCategory,
+  deleteCategory,
+  updateCategory,
+} from "../../controllers/categoryController";
+import { authorizeRoles } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
 import { validateCreateCategory } from "../../middlewares/validators";
 
 const router = express.Router();
-
 
 /**
  * @swagger
@@ -52,11 +55,24 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized (not an admin)
  *
-*/
+ */
 
-router.post('/create',
-  validateCreateCategory, 
-  authorizeRoles(...ADMIN_ONLY_ROLES), 
+router.post(
+  "/create",
+  validateCreateCategory,
+  authorizeRoles(...ADMIN_ONLY_ROLES),
   createCategory
 );
+
+router.put(
+  "/:categoryId",
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  updateCategory
+);
+router.delete(
+  "/:categoryId",
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  deleteCategory
+);
+
 export default router;

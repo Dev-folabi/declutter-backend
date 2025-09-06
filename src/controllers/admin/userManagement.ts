@@ -12,9 +12,12 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     const per_page = Number(req.query.limit) || 10;
     const { status, verification, roles, search = '' } = req.query;
 
-    const filters: any = {
-      fullName: { $regex: search, $options: 'i' },
-    };
+    const filters: any = {};
+
+    if (search) {
+      const searchRegex = { $regex: search, $options: 'i' };
+      filters.$or = [{ fullName: searchRegex }, { email: searchRegex }];
+    }
 
     if (status) filters.status = status;
     if (verification) filters.verificationStatus = verification;
@@ -23,18 +26,10 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     // Count total number of users matching the filters
     const count = await User.countDocuments(filters);
 
-    //   handle page overflow
-    if ((page - 1) * per_page >= count) {
-      res.status(200).json({
-        success: true,
-        message: 'No users on this page',
-        data: paginated_result(page, per_page, count, []),
-      });
-    }
     // Query the users collection using filters, pagination and sort
     const users = await User.find(filters)
       .select('-password -pin') //  Exclude sensitive fields
-      .skip((page - 1) * +per_page)
+      .skip((page - 1) * per_page)
       .limit(per_page)
       .sort({ createdAt: -1 });
    
@@ -112,6 +107,11 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
     user.isSuspended = status === 'suspended';
     //   then save the user
     await user.save();
+
+    // Send email notification to the user
+    const subject = `Your Account Status has been Updated to ${status}`;
+    const message = `<p>Hello ${user.fullName},</p><p>Your account status has been updated to ${status}.</p>${note ? `<p>Note: ${note}</p>` : ''}`;
+    await sendEmail(user.email, subject, message);
 
     //   omit senitive data from the respnse
     const sanitizedUser = _.omit(user.toObject(), ['password', 'pin']);
