@@ -11,7 +11,7 @@ export interface IUser extends Document {
   password: string;
   schoolId: Schema.Types.ObjectId;
   schoolIdCardURL?: string;
-  nin?: string;
+  ninURL?: string;
   accountDetail?: {
     accountName?: string;
     accountNumber?: string;
@@ -24,13 +24,13 @@ export interface IUser extends Document {
   pin: string;
   role: string[];
   sellerStatus: string;
+  rejectionReason?: string;
+  adminComment?: string;
   emailVerified: boolean;
   sellerProfileComplete: boolean;
   profileImageURL: string;
   is_admin: boolean;
   status: "active" | "inactive" | "suspended";
-  verificationStatus: "pending" | "verified" | "rejected";
-  adminComments?: string;
   isSuspended: boolean;
 }
 

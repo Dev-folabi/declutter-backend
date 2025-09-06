@@ -18,7 +18,7 @@ import {
 } from "../../controllers/authController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
-import { uploadSingle } from "../../middlewares/upload";
+import { uploadFields } from "../../middlewares/upload";
 
 const router = express.Router();
 
@@ -93,7 +93,8 @@ const router = express.Router();
  *                 description: School ID card image file (required for sellers)
  *               nin:
  *                 type: string
- *                 description: National Identification Number (required for sellers)
+ *                 format: binary
+ *                 description: National Identification Number image file (required for sellers)
  *               accountNumber:
  *                 type: string
  *                 description: Bank account number (required for sellers)
@@ -207,7 +208,10 @@ router.get("/schools", getSchools);
 
 router.post(
   "/signup",
-  uploadSingle("schoolIdCard"),
+  uploadFields([
+    { name: "schoolIdCard", maxCount: 1 },
+    { name: "nin", maxCount: 1 },
+  ]),
   validateRegister,
   registerUser
 );

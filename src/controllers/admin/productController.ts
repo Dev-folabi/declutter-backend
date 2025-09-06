@@ -3,11 +3,11 @@ import { Types } from "mongoose";
 import { Product } from "../../models/productList";
 import _ from "lodash";
 import { getIdFromToken } from "../../function/token";
-import { User } from "../../models/userModel";
 import { Admin } from "../../models/adminModel";
 import { createNotification } from "../notificationController";
 import { sendEmail } from "../../utils/mail";
 import { paginated_result } from "../../utils/pagination";
+import { Category } from "../../models/category";
 
 export const moderateProductListing = async (
   req: Request,
@@ -71,7 +71,7 @@ export const moderateProductListing = async (
     } else {
       res.status(400).json({
         success: false,
-        message: "Ïnvalid  action. Must be either true or false",
+        message: "Invalid action. Must be either true or false",
       });
       return;
     }
@@ -88,11 +88,9 @@ export const moderateProductListing = async (
     const actionText = isApproved ? "approve" : "reject";
     const statusText = isApproved ? "approved" : "rejected";
     const titleText = isApproved ? "Approval" : "Rejection";
-    const seller = await User.findById(product.seller);
 
     const notifications = [
       createNotification({
-        // user: admin._id,
         recipient: admin._id,
         recipientModel: "Admin",
         body: `You have ${statusText} the product (${productName})`,
@@ -119,7 +117,7 @@ export const moderateProductListing = async (
 
       // send email to the seller
       sendEmail(
-        seller?.email!,
+        (product.seller as any)?.email!,
         `Product ${titleText} Notification`,
         isApproved
           ? `Your product ${productName} has been approved and listed.`
@@ -157,22 +155,36 @@ export const getProductsByAdmin = async (
       return;
     }
 
-    const { search = "" } = req.query;
+    const { search = "", status, is_approved, is_sold } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
     // Build dynamic query object
-    let query: any = { ...req.query };
-    delete query.page;
-    delete query.limit;
-    delete query.search;
+    let query: any = {};
+
+    if (status) {
+      query.status = status;
+    }
+    if (is_approved) {
+      query.is_approved = is_approved;
+    }
+    if (is_sold) {
+      query.is_sold = is_sold;
+    }
 
     if (search) {
+      const searchRegex = { $regex: search, $options: "i" };
+      const categoryQuery = await Category.find({ name: searchRegex }).select(
+        "_id"
+      );
+      const categoryIds = categoryQuery.map((cat) => cat._id);
+
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { category: { $regex: search, $options: "i" } },
-        { description: { $regex: search, $options: "i" } },
+        { name: searchRegex },
+        { description: searchRegex },
+        { productId: searchRegex },
+        { category: { $in: categoryIds } },
       ];
     }
 
@@ -180,21 +192,13 @@ export const getProductsByAdmin = async (
     const totalProducts = await Product.countDocuments(query);
 
     const products = await Product.find(query)
+      .populate("category")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
 
-    const productsData = _.map(products, (product) =>
-      _.omit(product.toObject(), ["is_approved", "is_sold"])
-    );
-
     // Use your pagination utility
-    const paginatedData = paginated_result(
-      page,
-      limit,
-      totalProducts,
-      productsData
-    );
+    const paginatedData = paginated_result(page, limit, totalProducts, products);
 
     res.status(200).json({
       success: true,
@@ -210,13 +214,17 @@ export const getProductsByAdmin = async (
 };
 
 // flag or remove user listins
-export const flagOrRemoveListing = async (req: Request, res: Response) => {
+export const flagOrRemoveListing = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { productId } = req.params;
     const { action, reason } = req.body;
     const adminId = getIdFromToken(req);
 
-    const product = await Product.findById(productId);
+    const product = await Product.findById(productId).populate("seller");
     if (!product) {
       res.status(404).json({
         success: false,
@@ -226,7 +234,7 @@ export const flagOrRemoveListing = async (req: Request, res: Response) => {
     }
 
     const productName = product.name;
-    const seller = product.seller;
+    const seller = product.seller as any;
     const admin = await Admin.findById(adminId);
 
     if (!admin) {
@@ -253,11 +261,18 @@ export const flagOrRemoveListing = async (req: Request, res: Response) => {
       });
     } else if (action === "remove") {
       product.status = "removed";
+      if (reason) {
+        product.rejection_reason = reason;
+      }
     } else {
       res.status(400).json({ error: "Invalid action" });
       return;
     }
     await product.save();
+
+    const actionText = action === "flag" ? "flagged" : "removed";
+    const removalReason =
+      action === "remove" && reason ? ` Reason: ${reason}` : "";
 
     // Send notifications and emails
     const notifications = [
@@ -265,19 +280,19 @@ export const flagOrRemoveListing = async (req: Request, res: Response) => {
       createNotification({
         recipient: admin._id,
         recipientModel: "Admin",
-        body: `You have ${action}ed the product (${productName}).`,
+        body: `You have ${actionText} the product (${productName}).`,
         type: "market",
         title: `Product ${action === "flag" ? "Flagged" : "Removed"}`,
       }),
 
       // Notify seller
       createNotification({
-        recipient: (seller as any)._id,
+        recipient: seller._id,
         recipientModel: "User",
         body:
           action === "flag"
             ? `Your product (${productName}) was flagged. Reason: ${reason}`
-            : `Your product (${productName}) has been removed from the marketplace.`,
+            : `Your product (${productName}) has been removed from the marketplace.${removalReason}`,
         type: "market",
         title: `Product ${action === "flag" ? "Flagged" : "Removed"}`,
       }),
@@ -286,26 +301,26 @@ export const flagOrRemoveListing = async (req: Request, res: Response) => {
       sendEmail(
         admin.email,
         `Product ${action === "flag" ? "Flagged" : "Removed"} Notification`,
-        `You ${action}ged the product (${productName}).`
+        `You ${actionText} the product (${productName}).`
       ),
 
       // Email to seller
       sendEmail(
-        (seller as any)?.email!,
+        seller?.email!,
         `Product ${action === "flag" ? "Flagged" : "Removed"} Notification`,
         action === "flag"
           ? `Your product "${productName}" was flagged. Reason: ${reason}`
-          : `Your product "${productName}" has been removed from the marketplace.`
+          : `Your product "${productName}" has been removed from the marketplace.${removalReason}`
       ),
     ];
     await Promise.all(notifications);
 
     res.status(200).json({
-      message: `Product successfully ${action === "flag" ? "flagged" : "removed"}.`,
+      message: `Product successfully ${actionText}.`,
       data: product,
     });
     return;
   } catch (err) {
-    res.status(500).json({ error: "Server error" });
+    next(err);
   }
 };
