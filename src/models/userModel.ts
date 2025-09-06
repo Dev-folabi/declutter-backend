@@ -18,7 +18,7 @@ const userSchema = new Schema<IUser>(
     },
     schoolId: { type: Schema.Types.ObjectId, required: true, ref: "School" },
     schoolIdCardURL: { type: String },
-    nin: { type: String, unique: true, sparse: true },
+    ninURL: { type: String, unique: true, sparse: true },
     accountDetail: {
       accountNumber: { type: String },
       bankCode: { type: String },
@@ -32,10 +32,12 @@ const userSchema = new Schema<IUser>(
     role: { type: [String], enum: ["seller", "buyer"], required: true },
     sellerStatus: {
       type: String,
-      enum: ["approved", "pending", "reject", "not enroll"],
+      enum: ["approved", "pending", "rejected", "not enroll"],
       default: "not enroll",
       required: true,
     },
+    rejectionReason: { type: String },
+    adminComment: { type: String },
     emailVerified: { type: Boolean, default: false, required: true },
     profileImageURL: { type: String, required: false },
     sellerProfileComplete: { type: Boolean, default: false, required: true },

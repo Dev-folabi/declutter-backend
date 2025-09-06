@@ -1,7 +1,7 @@
 import express from "express";
 import {
   getAllUsers,
-  verifyUserDocuments,
+  verifySellerDocuments,
   updateUserStatus,
 } from "../../controllers/admin/userManagement";
 import { validateVerificationRequest } from "../../middlewares/validators";
@@ -39,13 +39,13 @@ const router = express.Router();
  *           enum: [active, inactive, suspended]
  *         required: false
  *         description: Filter by account status
- *       - name: verification
+ *       - name: sellerStatus
  *         in: query
  *         schema:
  *           type: string
- *           enum: [pending, verified, rejected]
+ *           enum: [pending, approved, rejected, not enroll]
  *         required: false
- *         description: Filter by verification status
+ *         description: Filter by seller status
  *       - name: roles
  *         in: query
  *         schema:
@@ -66,11 +66,11 @@ const router = express.Router();
  *       401:
  *         description: Unauthorized
  *
- * /api/admin/users/{userId}/verify-docs:
+ * /api/admin/users/{userId}/verify-seller:
  *   patch:
  *     tags: [User Management]
- *     summary: Verify or reject user documents
- *     description: Admin verifies or rejects a user's uploaded documents and sends an email notification.
+ *     summary: Verify or reject seller documents
+ *     description: Admin verifies or rejects a seller's application and sends an email notification.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -91,13 +91,16 @@ const router = express.Router();
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [verified, rejected]
+ *                 enum: [approved, rejected]
+ *               reason:
+ *                 type: string
+ *                 description: Reason for rejection (required if status is rejected)
  *               comment:
  *                 type: string
- *                 description: Optional admin comment or reason for rejection
+ *                 description: Optional admin comment
  *     responses:
  *       200:
- *         description: User verification updated
+ *         description: Seller verification updated
  *       400:
  *         description: Validation error
  *       404:
@@ -148,10 +151,10 @@ const router = express.Router();
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
 router.patch(
-  "/:userId/verify-docs",
+  "/:userId/verify-seller",
   authorizeRoles(...ADMIN_ONLY_ROLES),
   validateVerificationRequest,
-  verifyUserDocuments
+  verifySellerDocuments
 );
 router.patch(
   "/:userId/status",
