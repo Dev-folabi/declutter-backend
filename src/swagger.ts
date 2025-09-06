@@ -24,6 +24,34 @@ const swaggerDefinition = {
           : "https://auth-microservice-stss.onrender.com",
     },
   ],
+  components: {
+    securitySchemes: {
+      bearerAuth: {
+        type: "http",
+        scheme: "bearer",
+        bearerFormat: "JWT",
+      },
+    },
+    schemas: {
+      Category: {
+        type: "object",
+        properties: {
+          _id: {
+            type: "string",
+            example: "60d0fe4f5311236168a109ca",
+          },
+          name: {
+            type: "string",
+            example: "Electronics",
+          },
+          description: {
+            type: "string",
+            example: "All electronic gadgets",
+          },
+        },
+      },
+    },
+  },
 };
 
 // Options for swagger-jsdoc
