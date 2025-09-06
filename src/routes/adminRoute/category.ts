@@ -64,11 +64,77 @@ router.post(
   createCategory
 );
 
+/**
+ * @swagger
+ * /api/admin/category/{categoryId}:
+ *   put:
+ *     summary: Update a category
+ *     description: Allows an admin to update a category's name and description.
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the category to update.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *                 example: "New Pizza"
+ *               description:
+ *                 type: string
+ *                 example: "All kinds of pizza"
+ *     responses:
+ *       200:
+ *         description: Category updated successfully
+ *       400:
+ *         description: Invalid data or duplicate category name
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Category not found
+ */
 router.put(
   "/:categoryId",
   authorizeRoles(...ADMIN_ONLY_ROLES),
   updateCategory
 );
+
+/**
+ * @swagger
+ * /api/admin/category/{categoryId}:
+ *   delete:
+ *     summary: Delete a category
+ *     description: Allows an admin to delete a category. A category cannot be deleted if it is associated with any products.
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: categoryId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the category to delete.
+ *     responses:
+ *       200:
+ *         description: Category deleted successfully
+ *       400:
+ *         description: Category is associated with products
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Category not found
+ */
 router.delete(
   "/:categoryId",
   authorizeRoles(...ADMIN_ONLY_ROLES),
