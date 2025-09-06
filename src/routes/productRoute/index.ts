@@ -165,7 +165,7 @@ const router = express.Router();
  *               - price
  *               - location
  *               - description
- *               - category
+ *               - categoryId
  *             properties:
  *               name:
  *                 type: string
@@ -175,19 +175,8 @@ const router = express.Router();
  *                 type: string
  *               description:
  *                 type: string
- *               category:
+ *               categoryId:
  *                 type: string
- *                 enum:
- *                   - electronics
- *                   - books & stationery
- *                   - clothing & accessories
- *                   - furniture
- *                   - home & kitchen
- *                   - sports & fitness equipment
- *                   - gaming & entertainment
- *                   - health & personal care
- *                   - hobbies & crafts
- *                   - miscellaneous
  *               files:
  *                 type: array
  *                 items:
@@ -228,7 +217,7 @@ const router = express.Router();
  *                 type: string
  *               description:
  *                 type: string
- *               category:
+ *               categoryId:
  *                 type: string
  *                 enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
  *               files:

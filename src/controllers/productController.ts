@@ -105,8 +105,8 @@ export const listAProduct = async (
     //  return;
     // }
 
-    const { name, category, price, location, description } = req.body;
-    const categoryExist = await Category.findById(category);
+    const { name, categoryId, price, location, description } = req.body;
+    const categoryExist = await Category.findById(categoryId);
     if (!categoryExist) {
       res.status(400).json({
         success: false,
@@ -164,7 +164,7 @@ export const listAProduct = async (
       name,
       price,
       productId: productId(),
-      category,
+      categoryId,
       location,
       description,
       seller: user?._id,

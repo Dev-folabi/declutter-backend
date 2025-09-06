@@ -400,22 +400,9 @@ export const validateCreateProduct = [
     .withMessage("Description is required")
     .isString()
     .withMessage("Description must be a string"),
-  body("category")
+  body("categoryId")
     .notEmpty()
-    .withMessage("Category is required")
-    .isIn([
-      "electronics",
-      "books & stationery",
-      "clothing & accessories",
-      "furniture",
-      "home & kitchen",
-      "sports & fitness equipment",
-      "gaming & entertainment",
-      "health & personal care",
-      "hobbies & crafts",
-      "miscellaneous",
-    ])
-    .withMessage("Invalid category"),
+    .withMessage("categoryId is required"),
   handleValidationErrors,
 ];
 
@@ -440,21 +427,9 @@ export const validateUpdateProduct = [
     .notEmpty()
     .withMessage("Price cannot be empty"),
 
-  check("category")
-    .if((value, { req }) => req.body.category)
-    .isIn([
-      "electronics",
-      "books & stationery",
-      "clothing & accessories",
-      "furniture",
-      "home & kitchen",
-      "sports & fitness equipment",
-      "gaming & entertainment",
-      "health & personal care",
-      "hobbies & crafts",
-      "miscellaneous",
-    ])
-    .withMessage("Invalid category. Must be among the predefined list."),
+  body("categoryId")
+    .notEmpty()
+    .withMessage("categoryId is required"),
 
   check("location")
     .if((value, { req }) => req.body.location)
