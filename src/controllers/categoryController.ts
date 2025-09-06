@@ -21,7 +21,7 @@ export const createCategory = async (
       });
       return;
     }
-    // prevent duplicate category names
+
     const existingCategory = await Category.findOne({ name });
     if (existingCategory) {
       res.status(400).json({
@@ -76,19 +76,21 @@ export const updateCategory = async (
     const category = await Category.findById(categoryId);
 
     if (!category) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Category not found",
-      });
+      })
+      return;
     }
 
     if (name && name !== category.name) {
       const existingCategory = await Category.findOne({ name });
       if (existingCategory) {
-        return res.status(400).json({
+        res.status(400).json({
           success: false,
           message: "A category with this name already exists.",
-        });
+        })
+        return;
       }
       category.name = name;
     }
@@ -120,20 +122,22 @@ export const deleteCategory = async (
     const productCount = await Product.countDocuments({ category: categoryId });
 
     if (productCount > 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message:
           "Cannot delete category as it is associated with existing products.",
-      });
+      })
+      return;
     }
 
     const category = await Category.findByIdAndDelete(categoryId);
 
     if (!category) {
-      return res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Category not found",
-      });
+      })
+      return;
     }
 
     res.status(200).json({
