@@ -38,12 +38,12 @@ export const getAllUnsoldProduct = async (
       }).select('_id');
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
-          { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-          { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
-          { category: { $in: categoryIds } }, // Search by category IDs
+        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
-  
+
     // Remove search from query as it's not a field in the document
     delete query.search;
 
@@ -96,17 +96,17 @@ export const listAProduct = async (
       return;
     }
 
-    if (user.sellerStatus !== "approved") {
-      res.status(400).json({
-        success: false,
-        message: "Seller is not approved yet.",
-        data: null,
-      });
-      return;
-    }
+    // if (user.sellerStatus !== "approved") {
+    //  res.status(400).json({
+    //    success: false,
+    //   message: "Seller is not approved yet.",
+    //    data: null,
+    //  });
+    //  return;
+    // }
 
     const { name, category, price, location, description } = req.body;
-    const categoryExist = await Category.findById( category );
+    const categoryExist = await Category.findById(category);
     if (!categoryExist) {
       res.status(400).json({
         success: false,
@@ -390,9 +390,9 @@ export const getAllLongUnsoldProduct = async (
       }).select('_id');
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
-          { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-          { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
-          { category: { $in: categoryIds } }, // Search by category IDs
+        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
 
@@ -458,12 +458,12 @@ export const getSellerProducts = async (
       }).select('_id');
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
-          { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-          { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
-          { category: { $in: categoryIds } }, // Search by category IDs
+        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
-  
+
 
     // Get products with pagination
     const products = await Product.find(query)
