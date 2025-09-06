@@ -509,12 +509,6 @@ export const validateRegister = [
     .withMessage("School ID is required")
     .isMongoId()
     .withMessage("Invalid school ID format"),
-  body("nin")
-    .optional()
-    .isString()
-    .withMessage("NIN must be a string")
-    .isLength({ min: 11, max: 11 })
-    .withMessage("NIN must be exactly 11 characters long"),
   body("role")
     .notEmpty()
     .withMessage("Role is required")
