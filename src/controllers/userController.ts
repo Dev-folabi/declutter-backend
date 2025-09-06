@@ -458,3 +458,50 @@ export const requestOTP = async (
     `
   );
 };
+
+export const uploadNin = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = getIdFromToken(req);
+    const file = req.file;
+
+    if (!file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded.",
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    const uploadResult = await uploadToImageKit({
+      file: file.buffer,
+      fileName: file.originalname,
+      folder: "/nin",
+      tags: ["nin", "user-verification"],
+    });
+
+    user.ninURL = uploadResult.url;
+    user.sellerStatus = "pending";
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "NIN uploaded successfully. It is now pending review.",
+      data: {
+        ninURL: user.ninURL,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
