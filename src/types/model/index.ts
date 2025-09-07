@@ -68,7 +68,7 @@ export interface ProductListingType extends Document {
   productId: string;
   productImage: string[];
   productVideos: string[];
-  categoryId: Schema.Types.ObjectId;
+  category: Schema.Types.ObjectId;
   location: string;
   description: string;
   is_approved: boolean;
