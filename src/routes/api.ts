@@ -42,6 +42,6 @@ router.use("/payment", paymentRoute);
 router.use("/transactions", verifyToken, transactionRoute);
 router.use("/admin", adminRouter);
 router.use("/ticket", verifyToken, ticketRoute);
-router.use("/category", verifyToken, categoryRoute);
+router.use("/category", categoryRoute);
 
 export default router;
