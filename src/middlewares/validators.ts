@@ -91,7 +91,15 @@ export const validateChangePassword = [
     .notEmpty()
     .withMessage("Password is required")
     .isString()
-    .withMessage("Password must be string"),
+    .withMessage("Password must be string")
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    })
+    .withMessage( "Password must be 8 characters containing at least a special character, a number, an uppercase and lowercase letter"),
   body("confirm_password")
     .notEmpty()
     .withMessage("Password is required")
@@ -169,6 +177,15 @@ export const validateResetPassword = [
     .withMessage("New password is required")
     .isString()
     .withMessage("New password must be a string")
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    })
+    .withMessage(
+      "Password must be 8 characters containing at least a special character, a number, an uppercase and lowercase letter")
     .isLength({ min: 8 })
     .withMessage("New password must be at least 8 characters long"),
   handleValidationErrors,
@@ -272,7 +289,9 @@ export const validateProductUpdate = [
 ];
 
 export const validateAdminRegister = [
-  body("fullName").notEmpty().withMessage("Full name is required"),
+  body("fullName").notEmpty().withMessage("Full name is required")
+  .matches(/^[a-zA-Z\s'-]+$/)
+  .withMessage("Full name may only contain letters, spaces, hyphens, or apostrophes"),
   body("email")
     .notEmpty()
     .withMessage("Email is required")
@@ -281,16 +300,20 @@ export const validateAdminRegister = [
   body("password")
     .notEmpty()
     .withMessage("Password is required")
-    .isStrongPassword()
+    .isStrongPassword({
+      minLength: 8,
+      minLowercase: 1,
+      minUppercase: 1,
+      minNumbers: 1,
+      minSymbols: 1,
+    })
     .withMessage(
       "Password must be 8 characters containing atleast a special character, a number, an uppercase and lowercase letter"
-    )
-    .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters long"),
+    ),
   body("role")
     .notEmpty()
     .withMessage("Role is required")
-    .isIn(["super_admin", "admin", "support_agent"])
+    .isIn(["super_admin", "admin", "support_agent", "account_officer" ])
     .withMessage(
       "Invalid role. Role must be either 'super_admin', 'admin', or 'support_agent'"
     )

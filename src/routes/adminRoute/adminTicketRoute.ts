@@ -183,7 +183,7 @@ const router = express.Router();
  *         description: Unauthorized
  *
  * /api/admin/ticket/{id}/status:
- *   put:
+ *   patch:
  *     summary: Update the status of a support ticket
  *     tags: [Support Tickets]
  *     security:
