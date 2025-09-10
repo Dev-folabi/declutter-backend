@@ -362,7 +362,7 @@ export const changePassword = async (
 
     const isValidPassword = await bcrypt.compare(old_password, user.password);
     if (!isValidPassword) {
-      return handleError(res, 400, "Invalid email or password.");
+      return handleError(res, 400, "Invalid old password.");
     }
 
     if (!(new_password === confirm_password)) {
