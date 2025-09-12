@@ -5,7 +5,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * api/category/:
+ * /api/category/:
  *   get:
  *     summary: Get all categories
  *     description: Retrieve a list of all product categories. This endpoint is public and can be accessed by any user.

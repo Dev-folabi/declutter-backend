@@ -19,7 +19,7 @@ const ProductListSchema = new Schema<ProductListingType>(
     },
     productImage: [{ type: String, required: true }],
     productVideos: [{type: String}],
-    categoryId: {
+    category: {
       type: Schema.Types.ObjectId, ref: "Category", required: true
     },
     location: {

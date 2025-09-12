@@ -163,7 +163,7 @@ export const listAProduct = async (
       name,
       price,
       productId: productId(),
-      categoryId,
+      category: categoryId,
       location,
       description,
       seller: user?._id,

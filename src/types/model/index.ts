@@ -68,7 +68,7 @@ export interface ProductListingType extends Document {
   productId: string;
   productImage: string[];
   productVideos: string[];
-  categoryId: Schema.Types.ObjectId;
+  category: Schema.Types.ObjectId;
   location: string;
   description: string;
   is_approved: boolean;
@@ -240,8 +240,6 @@ export interface ICategory  extends Document {
   name: string;
   description?: string;
 }
-
-
 export interface CreateNotificationData {
   recipient: Schema.Types.ObjectId | string;
   recipientModel: "User" | "Admin";
