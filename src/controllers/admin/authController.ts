@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Admin } from "../../models/adminModel";
-import { IAdmin } from "../../types/model/index";
+import { CreateNotificationData, IAdmin } from "../../types/model/index";
 import { handleError } from "../../error/errorHandler";
 import OTPVerification from "../../models/OTPVerifivation";
 import { sendEmail } from "../../utils/mail";
@@ -350,9 +350,9 @@ export const resetAdminPassword = async (
     admin.password = await bcrypt.hash(newPassword, 10);
     await admin.save();
 
-    const notificationData = {
-      recipient: admin._id,
-      recipientModel: "Admin",
+    const notificationData: CreateNotificationData = {
+      recipient: admin._id as string,
+      recipientModel: "Admin" as const,
       body: "Your password has been changed",
       type: "account",
       title: "Password Change",

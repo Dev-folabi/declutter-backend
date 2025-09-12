@@ -77,7 +77,7 @@ const router = express.Router();
  *       400:
  *         description: Invalid input data
  *
- * /api/user/changepin:
+ * /api/user/updatepin:
  *   patch:
  *     tags: [Profile]
  *     summary: Change user pin

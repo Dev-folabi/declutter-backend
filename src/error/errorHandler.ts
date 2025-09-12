@@ -6,6 +6,79 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
+  // Handle MulterError (file upload errors)
+  if (error.name === 'MulterError') {
+    switch (error.code) {
+      case 'LIMIT_UNEXPECTED_FILE':
+        return res.status(400).json({
+          success: false,
+          message: `Unexpected file field: '${error.field}'. Please check the correct field name for file upload.`,
+          data: {
+            field: error.field,
+            expectedFields: getExpectedFieldsForRoute(req.route?.path, req.method)
+          }
+        });
+
+      case 'LIMIT_FILE_SIZE':
+        return res.status(400).json({
+          success: false,
+          message: "File size too large. Please upload a smaller file.",
+          data: {
+            field: error.field,
+            limit: "10MB"
+          }
+        });
+
+      case 'LIMIT_FILE_COUNT':
+        return res.status(400).json({
+          success: false,
+          message: "Too many files uploaded. Please reduce the number of files.",
+          data: {
+            field: error.field,
+            limit: "Maximum 10 files"
+          }
+        });
+
+      case 'LIMIT_FIELD_KEY':
+        return res.status(400).json({
+          success: false,
+          message: "Field name too long.",
+          data: error.message
+        });
+
+      case 'LIMIT_FIELD_VALUE':
+        return res.status(400).json({
+          success: false,
+          message: "Field value too long.",
+          data: error.message
+        });
+
+      case 'LIMIT_FIELD_COUNT':
+        return res.status(400).json({
+          success: false,
+          message: "Too many fields in the request.",
+          data: error.message
+        });
+
+      case 'LIMIT_PART_COUNT':
+        return res.status(400).json({
+          success: false,
+          message: "Too many parts in the multipart request.",
+          data: error.message
+        });
+
+      default:
+        return res.status(400).json({
+          success: false,
+          message: `File upload error: ${error.message}`,
+          data: {
+            code: error.code,
+            field: error.field
+          }
+        });
+    }
+  }
+
   if (error.name === 'MongoError') {
     switch (error.code) {
       case 11000:
@@ -57,6 +130,27 @@ export const errorHandler = (
     message: "Internal server error",
     data: error.message || error,
   });
+};
+
+// Helper function to provide expected field names based on route
+const getExpectedFieldsForRoute = (path: string | undefined, method: string | undefined): string[] => {
+  if (!path) return [];
+  
+  const routeFieldMap: { [key: string]: string[] } = {
+    '/createproduct': ['files'],
+    '/updateproduct': ['files'],
+    '/signup': ['schoolIdCard'],
+    '/update-profile': ['profileImage'],
+    '/create': ['images'] // for tickets
+  };
+
+  for (const [route, fields] of Object.entries(routeFieldMap)) {
+    if (path.includes(route)) {
+      return fields;
+    }
+  }
+  
+  return [];
 };
 
 // Unified error response helper

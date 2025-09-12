@@ -3,7 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
 import { UserRequest } from "../types/requests";
-import { IUser } from "../types/model/index";
+import { IUser, CreateNotificationData } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import _ from "lodash";
 import { createNotification } from "./notificationController";
@@ -102,9 +102,9 @@ export const updateProfile = async (
       { new: true }
     );
 
-    const notificationData = {
+    const notificationData: CreateNotificationData = {
       recipient: user_id,
-      recipientModel: "User",
+      recipientModel: "User" as const,
       body: "Your profile has been updated",
       type: "account",
       title: "Profile update",
@@ -211,9 +211,9 @@ export const updateBankDetail = async (
     );
     user.save();
 
-    const notificationData = {
+    const notificationData: CreateNotificationData = {
       recipient: user_id,
-      recipientModel: "User",
+      recipientModel: "User" as const,
       body: "Your bank details have been updated",
       type: "account",
       title: "Bank update",
@@ -295,9 +295,9 @@ export const updatePin = async (
     );
     user.save();
 
-    const notificationData = {
+    const notificationData: CreateNotificationData = {
       recipient: user_id,
-      recipientModel: "User",
+      recipientModel: "User" as const,
       body: "Your pin has been changed",
       type: "account",
       title: "Pin update",
@@ -378,8 +378,9 @@ export const changePassword = async (
     );
     user.save();
 
-    const notificationData = {
-      user: user_id,
+    const notificationData: CreateNotificationData = {
+      recipient: user_id,
+      recipientModel: "User" as const,
       body: "Your password has beeen changed",
       type: "account",
       title: "Password change",

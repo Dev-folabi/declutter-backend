@@ -73,7 +73,8 @@ export const moveFundsAfterFiveDays = async () => {
         const message = `Your earnings of NGN ${creditAmount} for product "${product.name}" have been released to your wallet balance.`;
         await Promise.allSettled([
           createNotification({
-            user: seller._id,
+            recipient: seller._id as string,
+            recipientModel: "User" as const,
             body: message,
             title: "Earnings Released",
             type: "account",

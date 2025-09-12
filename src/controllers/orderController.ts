@@ -6,6 +6,7 @@ import { User } from "../models/userModel";
 import { createNotification } from "./notificationController";
 import { Order } from "../models/order";
 import { Cart } from "../models/cart";
+import { CreateNotificationData } from "../types/model";
 
 export const orderCheckout = async (
   req: Request,
@@ -72,9 +73,9 @@ export const orderCheckout = async (
     await cart.save();
 
     // Create notification
-    const notificationData = {
-      recipient: user._id,
-      recipientModel: "User",
+    const notificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
       body: "Order created successfully, awaiting payment",
       type: "market",
       title: "Order Created",

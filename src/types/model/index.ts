@@ -49,7 +49,7 @@ export interface NotificationType {
   recipient: IUser["_id"] | IAdmin["_id"];
   recipientModel: "User" | "Admin";
   body: string;
-  type: "account" | "market" | "promotion";
+  type?: "account" | "market" | "promotion" | "refund";
   title: string;
   is_read: boolean;
 }
@@ -239,4 +239,11 @@ export interface IAnalyticsReport extends Document {
 export interface ICategory  extends Document {
   name: string;
   description?: string;
+}
+export interface CreateNotificationData {
+  recipient: Schema.Types.ObjectId | string;
+  recipientModel: "User" | "Admin";
+  body: string;
+  type?: "account" | "market" | "promotion" | "refund";
+  title: string;
 }

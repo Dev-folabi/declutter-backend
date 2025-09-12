@@ -1,7 +1,7 @@
 import express from "express";
 
 import {
-  getUserNotificationss,
+  getUserNotifications,
   getUserSingleNotification,
 } from "../../controllers/notificationController";
 
@@ -32,7 +32,7 @@ const router = express.Router();
  *         description: Not found
  */
 
-router.get("/allnotifications", getUserNotificationss);
+router.get("/allnotifications", getUserNotifications);
 router.get("/notification/:id", getUserSingleNotification);
 
 export default router;

@@ -7,6 +7,7 @@ import { User } from "../models/userModel";
 import paystack from "../service/paystack";
 import { Order } from "../models/order";
 import { Admin } from "../models/adminModel";
+import { CreateNotificationData } from "../types/model";
 
 export const getAllTransactions = async (
   req: Request,
@@ -204,17 +205,12 @@ export const approveOrRejectRefund = async (
                 });
 
                 // Notify seller about the deduction
-                const sellerNotificationData = {
-                  recipient: seller._id,
-                  recipientModel: "User",
+                const sellerNotificationData: CreateNotificationData = {
+                  recipient: seller._id as string,
+                  recipientModel: "User" as const,
                   body: `NGN ${productEarnings} has been deducted from your pending balance due to a refund for product "${product.name}"`,
                   type: "refund",
                   title: "Refund Deduction",
-                  data: {
-                    transactionId: transaction._id,
-                    productName: product.name,
-                    amount: productEarnings,
-                  },
                 };
 
                 await createNotification(sellerNotificationData);
@@ -285,21 +281,15 @@ export const approveOrRejectRefund = async (
     }
 
     // Create comprehensive notifications
-    const userNotificationData = {
-      recipient: user._id,
-      recipientModel: "User",
+    const userNotificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
       body:
         action === "approve"
           ? `Your refund of ₦${transaction.amount} has been approved and ${paystackRefundResult ? "processed" : "will be processed shortly"}.`
           : `Your refund request for ₦${transaction.amount} has been rejected. ${adminNotes ? "Reason: " + adminNotes : ""}`,
       type: "refund",
       title: "Refund Request Update",
-      data: {
-        transactionId: transaction._id,
-        amount: transaction.amount,
-        status: transaction.refundStatus,
-        paystackRefundId: paystackRefundResult?.id,
-      },
     };
 
     // Send notifications and emails
@@ -378,11 +368,12 @@ export const createRefundRequest = async (
     const { reason } = req.body;
     const userId = (req as any).user?._id;
 
-    // Validate reason 
+    // Validate reason
     if (!reason || reason.trim() === "" || reason.trim().length < 10) {
       res.status(400).json({
         success: false,
-        message: "Refund reason is required and must be at least 10 characters long.",
+        message:
+          "Refund reason is required and must be at least 10 characters long.",
         data: null,
       });
       return;
@@ -398,7 +389,10 @@ export const createRefundRequest = async (
     }
 
     // Find transaction with populated user data
-    const transaction = await Transaction.findById(transactionId).populate('userId', 'fullName email');
+    const transaction = await Transaction.findById(transactionId).populate(
+      "userId",
+      "fullName email"
+    );
 
     if (!transaction) {
       res.status(404).json({
@@ -431,12 +425,14 @@ export const createRefundRequest = async (
 
     // Check transaction age (must be within 5 days for refund eligibility)
     const fiveDaysInMs = 5 * 24 * 60 * 60 * 1000;
-    const transactionAge = Date.now() - new Date(transaction.transactionDate).getTime();
-    
+    const transactionAge =
+      Date.now() - new Date(transaction.transactionDate).getTime();
+
     if (transactionAge > fiveDaysInMs) {
       res.status(400).json({
         success: false,
-        message: "Refund requests can only be made within 5 days of the transaction.",
+        message:
+          "Refund requests can only be made within 5 days of the transaction.",
         data: null,
       });
       return;
@@ -475,33 +471,23 @@ export const createRefundRequest = async (
     await transaction.save();
 
     // Create notification for user
-    const userNotificationData = {
-      recipient: userId,
-      recipientModel: "User",
+    const userNotificationData: CreateNotificationData = {
+      recipient: userId as string,
+      recipientModel: "User" as const,
       body: `Your refund request for ₦${transaction.amount} has been submitted and is pending admin review.`,
       type: "refund",
       title: "Refund Request Submitted",
-      data: {
-        transactionId: transaction._id,
-        amount: transaction.amount,
-      },
     };
 
     // Create notification for admins (get all admin IDs)
     const admins = await Admin.find({ is_admin: true }).select("_id");
     const adminNotificationPromises = admins.map((admin) =>
       createNotification({
-        recipient: admin._id,
-        recipientModel: "Admin",
+        recipient: admin._id as string,
+        recipientModel: "Admin" as const,
         body: `New refund request for ₦${transaction.amount} (Transaction ID: ${transaction._id})`,
         type: "refund",
         title: "New Refund Request",
-        data: {
-          transactionId: transaction._id,
-          amount: transaction.amount,
-          userId: userId,
-          reason: reason.trim(),
-        },
       })
     );
 
@@ -644,7 +630,12 @@ export const getAllRefundRequests = async (
     };
 
     // Add optional filters
-    if (status && ['pending', 'approved', 'rejected', 'processed'].includes(status as string)) {
+    if (
+      status &&
+      ["pending", "approved", "rejected", "processed"].includes(
+        status as string
+      )
+    ) {
       filters.refundStatus = status;
     }
 
@@ -654,12 +645,14 @@ export const getAllRefundRequests = async (
 
     // Date range filter
     if (startDate || endDate) {
-      filters['refundRequest.requestedAt'] = {};
+      filters["refundRequest.requestedAt"] = {};
       if (startDate) {
-        filters['refundRequest.requestedAt'].$gte = new Date(startDate as string);
+        filters["refundRequest.requestedAt"].$gte = new Date(
+          startDate as string
+        );
       }
       if (endDate) {
-        filters['refundRequest.requestedAt'].$lte = new Date(endDate as string);
+        filters["refundRequest.requestedAt"].$lte = new Date(endDate as string);
       }
     }
 
@@ -675,11 +668,11 @@ export const getAllRefundRequests = async (
     }
 
     const refundRequests = await Transaction.find(filters)
-      .populate('refundRequest.requestedBy', 'fullName email')
-      .populate('refundHistory.performedBy', 'fullName email role')
-      .populate('refundDetails.processedBy', 'fullName email role')
-      .populate('userId', 'fullName email')
-      .sort({ 'refundRequest.requestedAt': -1 })
+      .populate("refundRequest.requestedBy", "fullName email")
+      .populate("refundHistory.performedBy", "fullName email role")
+      .populate("refundDetails.processedBy", "fullName email role")
+      .populate("userId", "fullName email")
+      .sort({ "refundRequest.requestedAt": -1 })
       .skip((page - 1) * per_page)
       .limit(per_page)
       .select({
@@ -695,7 +688,7 @@ export const getAllRefundRequests = async (
         referenceId: 1,
         description: 1,
         createdAt: 1,
-        updatedAt: 1
+        updatedAt: 1,
       });
 
     // Calculate summary statistics
@@ -705,23 +698,23 @@ export const getAllRefundRequests = async (
         $group: {
           _id: "$refundStatus",
           count: { $sum: 1 },
-          totalAmount: { $sum: "$amount" }
-        }
-      }
+          totalAmount: { $sum: "$amount" },
+        },
+      },
     ]);
 
     const summaryData = {
       pending: { count: 0, totalAmount: 0 },
       approved: { count: 0, totalAmount: 0 },
       rejected: { count: 0, totalAmount: 0 },
-      processed: { count: 0, totalAmount: 0 }
+      processed: { count: 0, totalAmount: 0 },
     };
 
-    summary.forEach(item => {
+    summary.forEach((item) => {
       if (item._id && summaryData[item._id as keyof typeof summaryData]) {
         summaryData[item._id as keyof typeof summaryData] = {
           count: item.count,
-          totalAmount: item.totalAmount
+          totalAmount: item.totalAmount,
         };
       }
     });
