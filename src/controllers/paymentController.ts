@@ -5,7 +5,11 @@ import { Transaction } from "../models/transactionModel";
 import { getEnvironment } from "../function/environment";
 import crypto from "crypto";
 import { User } from "../models/userModel";
-import { ITransaction, ProductListingType } from "../types/model";
+import {
+  CreateNotificationData,
+  ITransaction,
+  ProductListingType,
+} from "../types/model";
 import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import bcrypt from "bcrypt";
@@ -243,9 +247,9 @@ export const verifyPayment = async (
             (seller.accountDetail.pendingBalance || 0) + creditAmount;
           await seller.save();
 
-          const notificationData = {
-            recipient: seller._id,
-            recipientModel: "User",
+          const notificationData: CreateNotificationData = {
+            recipient: seller._id as string,
+            recipientModel: "User" as const,
             body: `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
             type: "market",
             title: "Product Sales",
@@ -365,9 +369,9 @@ const handleChargeSuccess = async (paymentData: any) => {
           (seller.accountDetail.pendingBalance || 0) + creditAmount;
         await seller.save();
 
-        const notificationData = {
-          recipient: seller._id,
-          recipientModel: "User",
+        const notificationData: CreateNotificationData = {
+          recipient: seller._id as string,
+          recipientModel: "User" as const,
           body: `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
           type: "account",
           title: "Product Sales",
@@ -457,17 +461,12 @@ const handleRefundSuccess = async (paymentData: any) => {
   // Send final confirmation notification
   const user = await User.findById(transaction.userId).select("email fullName");
   if (user) {
-    const notificationData = {
-      recipient: user._id,
-      recipientModel: "User",
+    const notificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
       body: `Your refund of ₦${transaction.refundDetails.refundAmount} has been successfully processed.`,
       type: "refund",
       title: "Refund Processed",
-      data: {
-        transactionId: transaction._id,
-        amount: transaction.refundDetails.refundAmount,
-        paystackRefundId: refundId,
-      },
     };
 
     await Promise.allSettled([
@@ -587,15 +586,18 @@ export const withdrawFunds = async (
 
     const bodyMsg = `You have successfully withdrawn NGN ${amount}. Reference: ${reference}`;
 
+    const notificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
+      body: bodyMsg,
+      type: "account",
+      title: "Wallet Withdrawal",
+    };
+
     // Notify user via email & in-app
     Promise.allSettled([
       sendEmail(user.email, "Withdrawal Successful", bodyMsg),
-      createNotification({
-        user: user._id,
-        body: bodyMsg,
-        type: "account",
-        title: "Wallet Withdrawal",
-      }),
+      createNotification(notificationData),
     ]);
 
     res.status(200).json({

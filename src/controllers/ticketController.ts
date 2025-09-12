@@ -7,6 +7,7 @@ import { sendEmail } from "../utils/mail";
 import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { Types } from "mongoose";
 import { createNotification } from "./notificationController";
+import { CreateNotificationData } from "../types/model";
 
 export const createTicket = async (
   req: Request,
@@ -75,15 +76,16 @@ export const createTicket = async (
     );
 
     // Create in-app notifications for all admins
-    const adminNotificationPromises = admins.map((admin) =>
-      createNotification({
-        recipient: admin._id,
-        recipientModel: "Admin",
+    const adminNotificationPromises = admins.map((admin) => {
+      const notificationData: CreateNotificationData = {
+        recipient: admin._id as string,
+        recipientModel: "Admin" as const,
         body: `New support ticket created by ${user.fullName}. Subject: ${subject}. Issue Type: ${issueType}.`,
         type: "account",
         title: "New Support Ticket",
-      })
-    );
+      };
+      return createNotification(notificationData);
+    });
 
     await Promise.allSettled(adminNotificationPromises);
 
@@ -151,15 +153,16 @@ export const addReplyToTicket = async (
     } else {
       // If user replied, notify all admins via in-app notifications
       const admins = await Admin.find({ is_admin: true });
-      const adminNotificationPromises = admins.map((adminUser) =>
-        createNotification({
-          recipient: adminUser._id,
-          recipientModel: "Admin",
+      const adminNotificationPromises = admins.map((adminUser) => {
+        const notificationData: CreateNotificationData = {
+          recipient: adminUser._id as string,
+          recipientModel: "Admin" as const,
           body: `${user?.fullName} replied to support ticket: ${ticket.subject}. Reply: ${reply}`,
           type: "account",
           title: "New Ticket Reply",
-        })
-      );
+        };
+        return createNotification(notificationData);
+      });
 
       await Promise.allSettled(adminNotificationPromises);
     }

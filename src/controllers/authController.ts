@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
 import { UserRequest } from "../types/requests";
-import { IUser } from "../types/model/index";
+import { CreateNotificationData, IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import { generateToken } from "../function/token";
 import _ from "lodash";
@@ -531,15 +531,19 @@ export const resetPassword = async (
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    const notificationData = {
-      recipient: user._id,
-      recipientModel: "User",
-      body: "Your password has been changed",
-      type: "account",
-      title: "Password Change",
-    };
-
-    await createNotification(notificationData);
+    try {
+      const notificationData: CreateNotificationData = {
+        recipient: user._id as string,
+        recipientModel: "User" as const,
+        body: "Your password has been changed successfully",
+        type: "account",
+        title: "Password Change Notification",
+      };
+      await createNotification(notificationData);
+    } catch (error) {
+      // Continue execution even if notification fails
+      console.error('Failed to send password change notification:', error);
+    }
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 

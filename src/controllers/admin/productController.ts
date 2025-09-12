@@ -8,6 +8,7 @@ import { createNotification } from "../notificationController";
 import { sendEmail } from "../../utils/mail";
 import { paginated_result } from "../../utils/pagination";
 import { Category } from "../../models/category";
+import { CreateNotificationData } from "../../types/model";
 
 export const moderateProductListing = async (
   req: Request,
@@ -89,25 +90,27 @@ export const moderateProductListing = async (
     const statusText = isApproved ? "approved" : "rejected";
     const titleText = isApproved ? "Approval" : "Rejection";
 
+    const adminNotificationData: CreateNotificationData = {
+      recipient: admin._id as string,
+      recipientModel: "Admin" as const,
+      body: `You have ${statusText} the product (${productName})`,
+      type: "market",
+      title: `Product ${titleText}`,
+    };
+
+    const sellerNotificationData: CreateNotificationData = {
+      recipient: (product.seller as any)._id as string,
+      recipientModel: "User" as const,
+      body: isApproved
+        ? `Your product (${productName}) has been approved and listed.`
+        : `Your product (${productName}) was rejected. Reason: ${reason}`,
+      type: "market",
+      title: `Product ${titleText}`,
+    };
+
     const notifications = [
-      createNotification({
-        recipient: admin._id,
-        recipientModel: "Admin",
-        body: `You have ${statusText} the product (${productName})`,
-        type: "market",
-        title: `Product ${titleText}`,
-      }),
-
-      createNotification({
-        recipient: (product.seller as any)._id,
-        recipientModel: "User",
-        body: isApproved
-          ? `Your product (${productName}) has been approved and listed.`
-          : `Your product (${productName}) was rejected. Reason: ${reason}`,
-        type: "market",
-        title: `Product ${titleText}`,
-      }),
-
+      createNotification(adminNotificationData),
+      createNotification(sellerNotificationData),
       // send email to the admin
       sendEmail(
         admin.email,
@@ -275,28 +278,30 @@ export const flagOrRemoveListing = async (
       action === "remove" && reason ? ` Reason: ${reason}` : "";
 
     // Send notifications and emails
+    const adminNotificationData: CreateNotificationData = {
+      recipient: admin._id as string,
+      recipientModel: "Admin" as const,
+      body: `You have ${actionText} the product (${productName}).`,
+      type: "market",
+      title: `Product ${action === "flag" ? "Flagged" : "Removed"}`,
+    };
+
+    const sellerNotificationData: CreateNotificationData = {
+      recipient: seller._id as string,
+      recipientModel: "User" as const,
+      body:
+        action === "flag"
+          ? `Your product (${productName}) was flagged. Reason: ${reason}`
+          : `Your product (${productName}) has been removed from the marketplace.${removalReason}`,
+      type: "market",
+      title: `Product ${action === "flag" ? "Flagged" : "Removed"}`,
+    };
+
     const notifications = [
       // Notify admin
-      createNotification({
-        recipient: admin._id,
-        recipientModel: "Admin",
-        body: `You have ${actionText} the product (${productName}).`,
-        type: "market",
-        title: `Product ${action === "flag" ? "Flagged" : "Removed"}`,
-      }),
-
+      createNotification(adminNotificationData),
       // Notify seller
-      createNotification({
-        recipient: seller._id,
-        recipientModel: "User",
-        body:
-          action === "flag"
-            ? `Your product (${productName}) was flagged. Reason: ${reason}`
-            : `Your product (${productName}) has been removed from the marketplace.${removalReason}`,
-        type: "market",
-        title: `Product ${action === "flag" ? "Flagged" : "Removed"}`,
-      }),
-
+      createNotification(sellerNotificationData),
       // Email to admin
       sendEmail(
         admin.email,

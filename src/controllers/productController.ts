@@ -1,15 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import { ProductListingType } from "./../types/model/index";
 import { Product } from "../models/productList";
 import _ from "lodash";
 import { getIdFromToken } from "../function/token";
 import { User } from "../models/userModel";
-// import { Admin } from '../models/adminModel';
 import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { paginated_result } from "../utils/pagination";
 import { Category } from "../models/category";
+import { CreateNotificationData } from "../types/model";
 
 export const getAllUnsoldProduct = async (
   req: Request,
@@ -174,9 +173,9 @@ export const listAProduct = async (
 
     const productData = _.omit(newProduct.toObject(), ["is_sold"]);
 
-    const notificationData = {
-      recipient: user?._id,
-      recipientModel: "User",
+    const notificationData: CreateNotificationData = {
+      recipient: user?._id! as string,
+      recipientModel: "User" as const,
       body: "Your product listing has been successfully submitted and is now pending review by the admin.",
       type: "market",
       title: "Product Listing Notification",
@@ -249,9 +248,9 @@ export const updateAProduct = async (
 
     const productData = _.omit(updatedProduct, ["is_sold"]);
 
-    const notificationData = {
-      recipient: user?._id,
-      recipientModel: "User",
+    const notificationData: CreateNotificationData = {
+      recipient: user?._id! as string,
+      recipientModel: "User" as const,
       body: "Product has been updated. It is awaiting review by the admin",
       type: "market",
       title: "Product Updated",
