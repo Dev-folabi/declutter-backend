@@ -6,8 +6,17 @@ import { Transaction } from '../models/transactionModel';
 import { paginated_result } from '../utils/pagination';
 
 export const getSellerDashboard = async (req: Request, res: Response, next: NextFunction) => {
-  const user = (req as any).user as IUser;
-  const sellerId = user._id;
+  const user = await User.findById(getIdFromToken(req));
+    if (!user) {
+      res.status(400).json({
+        success: false,
+        message: "Unauthenticated user cannot list a product.",
+        data: null,
+      });
+      return;
+    }
+
+  const sellerId = user.id;
   const { page = 1, limit = 10 } = req.query;
 
   try {
