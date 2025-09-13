@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { authMiddleware } from '../../middlewares/authMiddleware';
+import { verifyToken } from "../../middlewares/authMiddleware";
 import { getSellerDashboard } from '../../controllers/dashboardController';
 
 const router = Router();
@@ -68,7 +68,7 @@ const router = Router();
  */
 router.get(
   '/seller',
-  authMiddleware,
+  verifyToken,
   getSellerDashboard
 );
 

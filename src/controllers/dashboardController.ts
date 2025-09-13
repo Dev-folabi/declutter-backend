@@ -1,20 +1,21 @@
 import { Request, Response, NextFunction } from 'express';
-import { IUser } from '../types/model';
+import { User } from "../models/userModel";
 import { Product } from '../models/productList';
 import { Order } from '../models/order';
 import { Transaction } from '../models/transactionModel';
 import { paginated_result } from '../utils/pagination';
+import { getIdFromToken } from "../function/token";
 
 export const getSellerDashboard = async (req: Request, res: Response, next: NextFunction) => {
   const user = await User.findById(getIdFromToken(req));
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "Unauthenticated user cannot list a product.",
-        data: null,
-      });
-      return;
-    }
+  if (!user) {
+    res.status(400).json({
+      success: false,
+      message: "Unauthenticated user cannot list a product.",
+      data: null,
+    });
+    return;
+  }
 
   const sellerId = user.id;
   const { page = 1, limit = 10 } = req.query;
@@ -22,10 +23,11 @@ export const getSellerDashboard = async (req: Request, res: Response, next: Next
   try {
     // Check if the user is a seller
     if (!user.role.includes('seller')) {
-      return res.status(403).json({
+      res.status(403).json({
         success: false,
         message: 'Access denied. You must be a seller to view this dashboard.',
       });
+      return;
     }
 
     // --- Summary Cards & Sales ---
@@ -88,33 +90,33 @@ export const getSellerDashboard = async (req: Request, res: Response, next: Next
     const salesHistoryQuery = { 'items.product': { $in: sellerProductIds } };
 
     const [sales, totalSalesCount] = await Promise.all([
-        Order.find(salesHistoryQuery)
-            .populate({
-                path: 'items.product',
-                select: 'name productImage price'
-            })
-            .sort({ createdAt: -1 })
-            .skip(skip)
-            .limit(limitNumber),
-        Order.countDocuments(salesHistoryQuery)
+      Order.find(salesHistoryQuery)
+        .populate({
+          path: 'items.product',
+          select: 'name productImage price'
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNumber),
+      Order.countDocuments(salesHistoryQuery)
     ]);
 
     const formattedSales = sales.map(order => {
-        const items = order.items.filter(item =>
-            sellerProductIds.some(id => id.equals((item.product as any)._id))
-        );
-        return {
-            ...order.toObject(),
-            items: items.map(item => {
-                const product: any = item.product;
-                return {
-                    name: product.name,
-                    price: item.price,
-                    productImage: product.productImage[0] || null
-                };
-            }),
-            status: order.status === 'paid' ? 'Completed' : order.status === 'refunded' ? 'Returned' : order.status
-        }
+      const items = order.items.filter(item =>
+        sellerProductIds.includes((item.product as any)._id.toString())
+      );
+      return {
+        ...order.toObject(),
+        items: items.map(item => {
+          const product: any = item.product;
+          return {
+            name: product.name,
+            price: item.price,
+            productImage: product.productImage[0] || null
+          };
+        }),
+        status: order.status === 'paid' ? 'Completed' : order.status === 'refunded' ? 'Returned' : order.status
+      }
     });
 
     const salesHistory = paginated_result(pageNumber, limitNumber, totalSalesCount, formattedSales, skip);
