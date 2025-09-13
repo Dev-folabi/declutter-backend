@@ -18,6 +18,7 @@ import ticketRoute from "../routes/ticketRoute";
 import announcementRoute from "../routes/adminRoute/announcement";
 import categoryRoute from "./categoryRoute";
 import categoryAdminRoute from "./adminRoute/category";
+import dashboardRoute from "./dashboardRoute";
 import { verifyToken } from "../middlewares/authMiddleware";
 const router = Router();
 
@@ -43,5 +44,6 @@ router.use("/transactions", verifyToken, transactionRoute);
 router.use("/admin", adminRouter);
 router.use("/ticket", verifyToken, ticketRoute);
 router.use("/category", categoryRoute);
+router.use("/dashboard", dashboardRoute);
 
 export default router;
