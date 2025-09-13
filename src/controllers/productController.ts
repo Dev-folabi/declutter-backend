@@ -95,14 +95,14 @@ export const listAProduct = async (
       return;
     }
 
-    // if (user.sellerStatus !== "approved") {
-    //  res.status(400).json({
-    //    success: false,
-    //   message: "Seller is not approved yet.",
-    //    data: null,
-    //  });
-    //  return;
-    // }
+    if (user.sellerStatus !== "approved") {
+      res.status(400).json({
+        success: false,
+       message: "Seller is not approved yet.",
+        data: null,
+      });
+      return;
+     }
 
     const { name, categoryId, price, location, description } = req.body;
     const categoryExist = await Category.findById(categoryId);
