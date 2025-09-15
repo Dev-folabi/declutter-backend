@@ -1,9 +1,8 @@
 import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
 import bcrypt from "bcrypt";
-import axios from "axios";
 import { UserRequest } from "../types/requests";
-import { IUser } from "../types/model/index";
+import { CreateNotificationData, IUser } from "../types/model/index";
 import { handleError } from "../error/errorHandler";
 import { generateToken } from "../function/token";
 import _ from "lodash";
@@ -18,6 +17,7 @@ import {
 } from "../utils";
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
+import { uploadToImageKit } from "../utils/imagekit";
 
 export const addSchoolsBulk = async (
   req: Request,
@@ -102,38 +102,61 @@ export const registerUser = async (
       email,
       password,
       schoolId,
-      schoolIdCardURL,
-      nin,
       accountNumber,
       bankCode,
       pin,
       role,
     } = req.body;
 
-    // Validate required fields for seller role
-    if (
-      role === "seller" &&
-      (!schoolIdCardURL || !nin || !accountNumber || !bankCode || !pin)
-    ) {
-      return handleError(
-        res,
-        400,
-        "Please complete the form with all required fields."
-      );
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+    let schoolIdCardURL: string | undefined;
+    let ninURL: string | undefined;
+
+    if (role === "seller") {
+      const schoolIdCardFile = files?.schoolIdCard?.[0];
+      const ninFile = files?.nin?.[0];
+
+      if (!schoolIdCardFile || !ninFile) {
+        return handleError(
+          res,
+          400,
+          "Please provide both school ID card and NIN for seller registration."
+        );
+      }
+
+      try {
+        const schoolIdUpload = uploadToImageKit({
+          file: schoolIdCardFile.buffer,
+          fileName: schoolIdCardFile.originalname,
+          folder: "school-id-cards",
+        });
+
+        const ninUpload = uploadToImageKit({
+          file: ninFile.buffer,
+          fileName: ninFile.originalname,
+          folder: "nin",
+        });
+
+        const [schoolIdResult, ninResult] = await Promise.all([
+          schoolIdUpload,
+          ninUpload,
+        ]);
+
+        schoolIdCardURL = schoolIdResult.url;
+        ninURL = ninResult.url;
+      } catch (uploadError) {
+        return handleError(
+          res,
+          400,
+          "Failed to upload documents. Please try again."
+        );
+      }
     }
 
-    // // Check if user already exists based on email
+    // Check if user already exists based on email
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return handleError(res, 400, "Email already exists, please login.");
-    }
-
-    // // Check if NIN exists (if provided)
-    if (nin) {
-      const existingNin = await User.findOne({ nin });
-      if (existingNin) {
-        return handleError(res, 400, "NIN already exists, please login.");
-      }
     }
 
     // Hash password and pin
@@ -146,7 +169,7 @@ export const registerUser = async (
 
     const school = await School.findById(schoolId);
     if (!school) {
-      return handleError(res, 404, "school not found");
+      return handleError(res, 404, "School not found");
     }
 
     let account;
@@ -156,7 +179,7 @@ export const registerUser = async (
     let encryptedRecipientCode;
 
     let recipientCode;
-    if (role === "seller") {
+    if (role === "seller" && accountNumber && bankCode) {
       const detail = await paystack.createRecipient(
         accountNumber as string,
         bankCode as string
@@ -177,9 +200,9 @@ export const registerUser = async (
       password: hashedPassword,
       schoolId,
       schoolIdCardURL,
-      nin,
+      ninURL,
       accountDetail:
-        role === "seller"
+        role === "seller" && accountNumber && bankCode
           ? {
               accountName: account.account_name,
               accountNumber: encryptedAccountNumber,
@@ -201,9 +224,16 @@ export const registerUser = async (
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
-      { user: newUser._id, type: "activate account" },
       {
-        user: newUser._id,
+        "owner.id": newUser._id,
+        "owner.type": "User",
+        type: "activate account",
+      },
+      {
+        owner: {
+          id: newUser._id,
+          type: "User",
+        },
         OTP,
         type: "activate account",
         verificationType: "email",
@@ -214,13 +244,13 @@ export const registerUser = async (
     // Send email
     await sendEmail(
       newUser.email,
-      "Verify EMail - OTP Verification",
+      "Verify Email - OTP Verification",
       `
         Hi ${newUser?.fullName.split(" ")[0] || "User"},
         <p>You recently requested to verify your email. Use the OTP below to verify it:</p>
         <h2>${OTP}</h2>
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <p>If you didn't request this, you can safely ignore this email.</p>
         <br />
       `
     );
@@ -233,7 +263,7 @@ export const registerUser = async (
         decryptAccountDetail(userData.accountDetail);
       }
     } catch (e) {
-      /* to make sure existing codes doesnt break */
+      /* to make sure existing codes doesn't break */
     }
 
     res.status(201).json({
@@ -276,19 +306,26 @@ export const loginUser = async (
 
     // send otp if user is not verified
     if (!user.emailVerified) {
-      // Generate OTP and expiration timestamp
-      // await requestEmailVerifyOTP(user)
-
       const OTP = generateOTP();
 
       // Upsert OTP entry
       await OTPVerification.updateOne(
-        { user: user._id, type: "activate account" },
         {
-          user: user._id,
-          OTP,
+          "owner.id": user._id,
+          "owner.type": "User",
           type: "activate account",
           verificationType: "email",
+        },
+        {
+          $set: {
+            OTP,
+            type: "activate account",
+            verificationType: "email",
+            owner: {
+              id: user._id,
+              type: "User",
+            },
+          },
         },
         { upsert: true }
       );
@@ -338,11 +375,7 @@ export const loginUser = async (
   }
 };
 
-export const verifyEmail = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+export const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { OTP } = req.body;
 
@@ -350,21 +383,31 @@ export const verifyEmail = async (
       return handleError(res, 400, "OTP is required.");
     }
 
+    // Find OTP and linked user in one go
     const otpVerification = await OTPVerification.findOne({
-      OTP,
+      OTP: OTP.trim(),
       type: "activate account",
+      "owner.type": "User"
     });
+
     if (!otpVerification) {
-      return handleError(res, 400, "Invalid OTP.");
+      return handleError(res, 400, "Invalid or expired OTP.");
     }
 
-    const user = await User.findById(otpVerification.user);
+    const user = await User.findById(otpVerification.owner.id);
     if (!user) {
       return handleError(res, 404, "User not found.");
     }
 
+    if (user.emailVerified) {
+      return handleError(res, 400, "Email already verified.");
+    }
+
     user.emailVerified = true;
     await user.save();
+
+    // Remove OTP after success
+    await OTPVerification.deleteOne({ _id: otpVerification._id });
 
     // Generate token
     const token = generateToken({
@@ -373,12 +416,11 @@ export const verifyEmail = async (
       is_admin: user.is_admin,
     });
 
-    // Exclude sensitive fields from response
     const userData = _.omit(user.toObject(), ["password", "pin"]);
 
     res.status(200).json({
       success: true,
-      message: "Email verified successful.",
+      message: "Email verified successfully.",
       data: userData,
       token,
     });
@@ -386,6 +428,7 @@ export const verifyEmail = async (
     next(error);
   }
 };
+
 
 export const resetPasswordOTP = async (
   req: Request,
@@ -406,12 +449,22 @@ export const resetPasswordOTP = async (
 
     // Upsert OTP entry
     await OTPVerification.updateOne(
-      { user: user._id, type: "password" },
       {
-        user: user._id,
-        OTP,
+        "owner.id": user._id,
+        "owner.type": "User",
         type: "password",
         verificationType: "email",
+      },
+      {
+        $set: {
+          OTP,
+          type: "password",
+          verificationType: "email",
+          owner: {
+            id: user._id,
+            type: "User",
+          },
+        },
       },
       { upsert: true }
     );
@@ -456,13 +509,20 @@ export const resetPassword = async (
     const otpVerification = await OTPVerification.findOne({
       OTP,
       type: "password",
+      "owner.type": "User",
+      verificationType: "email",
     });
     if (!otpVerification) {
       return handleError(res, 400, "Invalid OTP.");
     }
 
+    const userId = otpVerification.owner?.id;
+    if (!userId) {
+      return handleError(res, 400, "User ID not found in OTP record.");
+    }
+
     // Find user
-    const user = await User.findById(otpVerification.user);
+    const user = await User.findById(otpVerification.owner?.id);
     if (!user) {
       return handleError(res, 404, "User not found.");
     }
@@ -471,14 +531,19 @@ export const resetPassword = async (
     user.password = await bcrypt.hash(newPassword, 10);
     await user.save();
 
-    const notificationData = {
-      user: user._id,
-      body: "You password has been changed",
-      type: "account",
-      title: "Password Change",
-    };
-
-    await createNotification(notificationData);
+    try {
+      const notificationData: CreateNotificationData = {
+        recipient: user._id as string,
+        recipientModel: "User" as const,
+        body: "Your password has been changed successfully",
+        type: "account",
+        title: "Password Change Notification",
+      };
+      await createNotification(notificationData);
+    } catch (error) {
+      // Continue execution even if notification fails
+      console.error('Failed to send password change notification:', error);
+    }
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 

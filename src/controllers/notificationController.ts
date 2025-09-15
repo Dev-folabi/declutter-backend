@@ -1,21 +1,28 @@
 import { Request, Response, NextFunction } from "express";
 import { Notification } from "../models/notifications";
 import { getIdFromToken } from "../function/token";
+import { CreateNotificationData } from "../types/model";
 
-export const createNotification = async (data: any) => {
-  await Notification.create({
-    ...data,
-  });
+export const createNotification = async (data: CreateNotificationData) => {
+  try {
+    const notification = await Notification.create({
+      ...data,
+    });
+    return notification;
+  } catch (error) {
+    console.error('Error creating notification:', error);
+    throw error;
+  }
 };
 
-export const getUserNotificationss = async (
+export const getUserNotifications = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const notifications = await Notification.find({
-      user: getIdFromToken(req),
+      recipient: getIdFromToken(req),
     });
     if (notifications.length > 0) {
       res.status(200).json({
@@ -43,7 +50,7 @@ export const getUserSingleNotification = async (
   try {
     let notification = await Notification.findByIdAndUpdate(
       req.params.id,
-      { $set: { is_opened: true } },
+      { $set: { is_read: true } },
       { new: true, runValidators: true }
     );
 

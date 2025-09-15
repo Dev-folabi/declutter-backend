@@ -2,8 +2,6 @@ import mongoose, { Schema } from "mongoose";
 import { isEmail } from "validator";
 import { IUser } from "../types/model";
 
-
-
 const userSchema = new Schema<IUser>(
   {
     fullName: { type: String, uppercase: true, required: true },
@@ -20,7 +18,7 @@ const userSchema = new Schema<IUser>(
     },
     schoolId: { type: Schema.Types.ObjectId, required: true, ref: "School" },
     schoolIdCardURL: { type: String },
-    nin: { type: String, unique: true, sparse: true },
+    ninURL: { type: String, unique: true, sparse: true },
     accountDetail: {
       accountNumber: { type: String },
       bankCode: { type: String },
@@ -28,26 +26,26 @@ const userSchema = new Schema<IUser>(
       accountName: { type: String },
       recipientCode: { type: String },
       balance: { type: Number, default: 0 },
-      pendingBalance: { type: Number, default: 0 }
+      pendingBalance: { type: Number, default: 0 },
     },
     pin: { type: String },
     role: { type: [String], enum: ["seller", "buyer"], required: true },
     sellerStatus: {
       type: String,
-      enum: ["approved", "pending", "reject", "not enroll"],
+      enum: ["approved", "pending", "rejected", "not enroll"],
       default: "not enroll",
       required: true,
     },
+    rejectionReason: { type: String },
+    adminComment: { type: String },
     emailVerified: { type: Boolean, default: false, required: true },
     profileImageURL: { type: String, required: false },
     sellerProfileComplete: { type: Boolean, default: false, required: true },
     is_admin: {
       type: Boolean,
-      default: false
-    }
+      default: false,
+    },
   },
-
-
 
   { timestamps: true }
 );

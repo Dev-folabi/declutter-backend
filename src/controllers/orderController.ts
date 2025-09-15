@@ -6,6 +6,7 @@ import { User } from "../models/userModel";
 import { createNotification } from "./notificationController";
 import { Order } from "../models/order";
 import { Cart } from "../models/cart";
+import { CreateNotificationData } from "../types/model";
 
 export const orderCheckout = async (
   req: Request,
@@ -13,6 +14,7 @@ export const orderCheckout = async (
   next: NextFunction
 ) => {
   try {
+    const { deliveryType, deliveryAddress } = req.body;
     const userId = getIdFromToken(req);
     const user = await User.findById(userId);
 
@@ -60,11 +62,18 @@ export const orderCheckout = async (
     }
 
     // Create the order
-    const order = await Order.create({
+    const orderData: any = {
       user: user._id,
       items: orderItems,
       totalPrice: totalOrderPrice,
-    });
+      deliveryType,
+    };
+
+    if (deliveryType === "delivery") {
+      orderData.deliveryAddress = deliveryAddress;
+    }
+
+    const order = await Order.create(orderData);
 
     // Clear the cart
     cart.items = [];
@@ -72,8 +81,9 @@ export const orderCheckout = async (
     await cart.save();
 
     // Create notification
-    const notificationData = {
-      user: user._id,
+    const notificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
       body: "Order created successfully, awaiting payment",
       type: "market",
       title: "Order Created",

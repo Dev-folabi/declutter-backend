@@ -1,17 +1,5 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-export interface ITransaction extends Document {
-  userId: string;
-  amount: number;
-  transactionDate: Date;
-  status: string;
-  charges?: number;
-  transactionType: string;
-  description?: string;
-  referenceId?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
+import mongoose, { Schema } from "mongoose";
+import { ITransaction } from "../types/model";
 
 const TransactionSchema: Schema = new Schema<ITransaction>(
   {
@@ -21,7 +9,7 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "completed", "failed", "refund"],
+      enum: ["pending", "completed", "failed", "refund", "refunded"],
       default: "pending",
     },
     charges: { type: Number, min: 0 },
@@ -32,6 +20,35 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
     },
     description: { type: String },
     referenceId: { type: String, unique: true, sparse: true },
+    refundRequest: {
+      reason: { type: String },
+      requestedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      requestedAt: { type: Date },
+      adminNotes: { type: String },
+    },
+    refundStatus: {
+      type: String,
+      enum: ["pending", "approved", "rejected", "processed"],
+      default: null,
+    },
+    refundDetails: {
+      paystackRefundId: { type: String },
+      refundAmount: { type: Number },
+      processedAt: { type: Date },
+      processedBy: { type: mongoose.Schema.Types.ObjectId, ref: "Admin" },
+    },
+    refundHistory: [
+      {
+        action: { type: String, required: true },
+        performedBy: { type: mongoose.Schema.Types.ObjectId, required: true },
+        performedAt: { type: Date, default: Date.now },
+        notes: { type: String },
+      },
+    ],
+    totalAmount: { type: Number, default: 0 },
+    sellerEarnings: { type: Number, default: 0 },
+    revenue: { type: Number, default: 0 },
+    dispute: { type: Boolean, default: false },
   },
   {
     timestamps: true,

@@ -1,17 +1,34 @@
 import { Router } from "express";
-
 import authRoute from "../routes/authRoute";
 import waitlistRoute from "../routes/waitlistRoute";
+import adminAuthRoute from "./adminRoute/adminAuth";
 import userRoute from "../routes/userRoute";
 import notificationsRoute from "../routes/notificationsRoute";
 import productRoute from "../routes/productRoute";
-import paymentRoute from "../routes/paymentRoute"
-import weListenedRoute from "../routes/weListenedRoute"
-import orderRoute from "../routes/orderRoute"
-import cartRoute from "../routes/cartRoute"
-import contactUsRoute from "../routes/contactUsRoute"
+import paymentRoute from "../routes/paymentRoute";
+import weListenedRoute from "../routes/weListenedRoute";
+import transactionRoute from "../routes/transactionRoute";
+import orderRoute from "../routes/orderRoute";
+import cartRoute from "../routes/cartRoute";
+import contactUsRoute from "../routes/contactUsRoute";
+import userManagementRoute from "./adminRoute/userManagement";
+import productManagementRoute from "../routes/adminRoute/productManagementRoute";
+import adminTicketRoute from "../routes/adminRoute/adminTicketRoute";
+import ticketRoute from "../routes/ticketRoute";
+import announcementRoute from "../routes/adminRoute/announcement";
+import categoryRoute from "./categoryRoute";
+import categoryAdminRoute from "./adminRoute/category";
+import dashboardRoute from "./dashboardRoute";
 import { verifyToken } from "../middlewares/authMiddleware";
 const router = Router();
+
+const adminRouter = Router();
+adminRouter.use("/auth", adminAuthRoute);
+adminRouter.use("/users", verifyToken, userManagementRoute);
+adminRouter.use("/product", verifyToken, productManagementRoute);
+adminRouter.use("/ticket", verifyToken, adminTicketRoute);
+adminRouter.use("/announcement", verifyToken, announcementRoute);
+adminRouter.use("/category", verifyToken, categoryAdminRoute);
 
 router.use("/waitlist", waitlistRoute);
 router.use("/auth", authRoute);
@@ -22,7 +39,11 @@ router.use("/order", verifyToken, orderRoute);
 router.use("/cart", verifyToken, cartRoute);
 router.use("/welistened", weListenedRoute);
 router.use("/contactus", contactUsRoute);
-router.use('/payment', paymentRoute);
-
+router.use("/payment", paymentRoute);
+router.use("/transactions", verifyToken, transactionRoute);
+router.use("/admin", adminRouter);
+router.use("/ticket", verifyToken, ticketRoute);
+router.use("/category", categoryRoute);
+router.use("/dashboard", dashboardRoute);
 
 export default router;

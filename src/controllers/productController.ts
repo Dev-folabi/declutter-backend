@@ -1,11 +1,14 @@
 import { Request, Response, NextFunction } from "express";
-import { ProductListingType } from "./../types/model/index";
 import { Product } from "../models/productList";
 import _ from "lodash";
 import { getIdFromToken } from "../function/token";
 import { User } from "../models/userModel";
 import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
+import { uploadMultipleToImageKit } from "../utils/imagekit";
+import { paginated_result } from "../utils/pagination";
+import { Category } from "../models/category";
+import { CreateNotificationData } from "../types/model";
 
 export const getAllUnsoldProduct = async (
   req: Request,
@@ -29,10 +32,14 @@ export const getAllUnsoldProduct = async (
 
     // Add search functionality to query if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
         { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
 
@@ -40,6 +47,8 @@ export const getAllUnsoldProduct = async (
     delete query.search;
 
     const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -74,6 +83,7 @@ export const listAProduct = async (
         message: "Unauthenticated user cannot list a product.",
         data: null,
       });
+      return;
     }
 
     if (!user?.role?.includes("seller")) {
@@ -82,11 +92,33 @@ export const listAProduct = async (
         message: "User is not a seller.",
         data: null,
       });
+      return;
     }
 
-    const { name, category, price, productImage, location, description } = req.body;
+    if (user.sellerStatus !== "approved") {
+      res.status(400).json({
+        success: false,
+       message: "Seller is not approved yet.",
+        data: null,
+      });
+      return;
+     }
 
-    if (productImage.length < 3) {
+    const { name, categoryId, price, location, description } = req.body;
+    const categoryExist = await Category.findById(categoryId);
+    if (!categoryExist) {
+      res.status(400).json({
+        success: false,
+        message: "Category does not exist.",
+        data: null,
+      });
+      return;
+    }
+
+    const files = req.files as Express.Multer.File[];
+
+    // Check if files are provided
+    if (!files || files.length < 3) {
       res.status(400).json({
         success: false,
         message: "At least three product images are required.",
@@ -95,24 +127,55 @@ export const listAProduct = async (
       return;
     }
 
+    // Separate images and videos
+    const imageFiles = files.filter((file) =>
+      file.mimetype.startsWith("image/")
+    );
+    const videoFiles = files.filter((file) =>
+      file.mimetype.startsWith("video/")
+    );
+
+    // Upload images to ImageKit
+    let productImageUrls: string[] = [];
+    let productVideoUrls: string[] = [];
+
+    if (imageFiles.length > 0) {
+      productImageUrls = await uploadMultipleToImageKit(
+        imageFiles,
+        "/products/images",
+        ["product", "marketplace"]
+      );
+    }
+
+    if (videoFiles.length > 0) {
+      productVideoUrls = await uploadMultipleToImageKit(
+        videoFiles,
+        "/products/videos",
+        ["product", "marketplace", "video"]
+      );
+    }
+
     const productId = () => {
       return `DM-${Date.now()}`;
     };
+
     const newProduct = await Product.create({
       name,
       price,
       productId: productId(),
-      category,
+      category: categoryId,
       location,
       description,
       seller: user?._id,
-      productImage
+      productImage: productImageUrls,
+      productVideos: productVideoUrls,
     });
 
     const productData = _.omit(newProduct.toObject(), ["is_sold"]);
 
-    const notificationData = {
-      user: user?._id,
+    const notificationData: CreateNotificationData = {
+      recipient: user?._id! as string,
+      recipientModel: "User" as const,
       body: "Your product listing has been successfully submitted and is now pending review by the admin.",
       type: "market",
       title: "Product Listing Notification",
@@ -144,53 +207,50 @@ export const updateAProduct = async (
 ) => {
   try {
     const user = await User.findById(getIdFromToken(req));
+    const { id } = req.params;
+    const files = req.files as Express.Multer.File[];
 
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "Unauthenticated user cannot list a product.",
-        data: null,
-      });
+    let updateData = { ...req.body };
+
+    // If new files are uploaded, process them
+    if (files && files.length > 0) {
+      const imageFiles = files.filter((file) =>
+        file.mimetype.startsWith("image/")
+      );
+      const videoFiles = files.filter((file) =>
+        file.mimetype.startsWith("video/")
+      );
+
+      if (imageFiles.length > 0) {
+        const productImageUrls = await uploadMultipleToImageKit(
+          imageFiles,
+          "/products/images",
+          ["product", "marketplace"]
+        );
+        updateData.productImage = productImageUrls;
+      }
+
+      if (videoFiles.length > 0) {
+        const productVideoUrls = await uploadMultipleToImageKit(
+          videoFiles,
+          "/products/videos",
+          ["product", "marketplace", "video"]
+        );
+        updateData.productVideos = productVideoUrls;
+      }
     }
-
-    if (!user?.role?.includes("seller")) {
-      res.status(400).json({
-        success: false,
-        message: "User is not a seller.",
-        data: null,
-      });
-    }
-
-    const product = await Product.findById(req.params.id);
-
-    if (!product) {
-      res.status(400).json({
-        success: false,
-        message: "Product not found.",
-        data: null,
-      });
-    }
-
-    if (product?.seller.toString() !== user?.id.toString()) {
-      res.status(400).json({
-        success: false,
-        message: "You are not authorized to perform this action",
-        data: null,
-      });
-    }
-
-    req.body.is_approved = false;
 
     const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      { $set: req.body },
+      id,
+      { $set: updateData },
       { new: true, runValidators: true }
     );
 
     const productData = _.omit(updatedProduct, ["is_sold"]);
 
-    const notificationData = {
-      user: user?._id,
+    const notificationData: CreateNotificationData = {
+      recipient: user?._id! as string,
+      recipientModel: "User" as const,
       body: "Product has been updated. It is awaiting review by the admin",
       type: "market",
       title: "Product Updated",
@@ -214,7 +274,9 @@ export const getSingleUnsoldProduct = async (
   next: NextFunction
 ) => {
   try {
-    const product = await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id)
+    .populate("seller", "fullName profileImageURL sellerStatus email")
+    .populate("category", "name description");
     if (product) {
       const productData = _.omit(product?.toObject(), ["is_approved"]);
 
@@ -258,10 +320,14 @@ export const getUnsoldProductsByCategory = async (
 
     // Add search functionality to query if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
         { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
 
@@ -269,9 +335,12 @@ export const getUnsoldProductsByCategory = async (
     delete query.search;
 
     const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
+
     if (products) {
       const productsData = _.map(products, (product) =>
         _.omit(product.toObject(), ["is_approved", "is_sold"])
@@ -291,154 +360,6 @@ export const getUnsoldProductsByCategory = async (
         data: null,
       });
     }
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const approveAProduct = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById(getIdFromToken(req));
-
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "You dont have the permission to view this page.",
-        data: null,
-      });
-    }
-
-    if (!user?.is_admin) {
-      res.status(400).json({
-        success: false,
-        message: "You are not authorized for this action.",
-        data: null,
-      });
-    }
-
-    const product = await Product.findById(req.params.id).populate("seller");
-
-    if (!product) {
-      res.status(400).json({
-        success: false,
-        message: "Product not found.",
-        data: null,
-      });
-    }
-
-    const updatedProduct = await Product.findByIdAndUpdate(
-      req.params.id,
-      { $set: { is_approved: true } },
-      { new: true, runValidators: true }
-    );
-
-    const productData = _.omit(updatedProduct, ["is_sold"]);
-
-    const productnotificationData = {
-      user: product?.seller.toString(),
-      body: `Your Product (${product?.name}) has been approved and has been listed`,
-      type: "market",
-      title: "Product Approval",
-    };
-
-    const notificationData = {
-      user: user?._id,
-      body: `You approved the product (${product?.name})`,
-      type: "market",
-      title: "Product Approval",
-    };
-
-    const seller = await User.findById(product?.seller);
-
-    await Promise.all([
-      createNotification(notificationData),
-      createNotification(productnotificationData),
-      sendEmail(
-        user?.email!,
-        "Product Approval Notification",
-        "You approved the product."
-      ),
-      sendEmail(
-        seller?.email!,
-        "Product Approval Notification",
-        "Your Product has been approved and has been listed."
-      ),
-    ]);
-
-    res.status(200).json({
-      success: true,
-      message: "Product updated successfully.",
-      data: productData,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const getProductsByAdmin = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById(getIdFromToken(req));
-
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "You dont have the permission to view this page.",
-        data: null,
-      });
-    }
-
-    if (!user?.is_admin) {
-      res.status(400).json({
-        success: false,
-        message: "You are not authorized for this action.",
-        data: null,
-      });
-    }
-
-    let query = { ...req.query };
-
-    delete query.page;
-    delete query.limit;
-
-    const search = req.query.search || "";
-    const page = Number(query.page) || 1;
-    const limit = Number(query.limit) || 10;
-
-    const skip = (page - 1) * limit;
-
-    // Add search functionality to query if there's a search term
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
-        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
-      ];
-    }
-    delete query.search;
-
-    const products = await Product.find(query)
-      .skip(skip)
-      .limit(limit)
-      .sort({ createdAt: -1 });
-    const productsData = _.map(products, (product) =>
-      _.omit(product.toObject(), ["is_approved", "is_sold"])
-    );
-    res.status(200).json({
-      success: true,
-      message:
-        products.length > 0
-          ? "Product retrieved successfully."
-          : "No product listed at the moment",
-      data: productsData,
-    });
   } catch (error) {
     next(error);
   }
@@ -465,10 +386,14 @@ export const getAllLongUnsoldProduct = async (
 
     // Add search functionality to query if there's a search term
     if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
-        { category: { $regex: search, $options: "i" } }, // Search by category (case insensitive)
         { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
       ];
     }
 
@@ -476,6 +401,8 @@ export const getAllLongUnsoldProduct = async (
     delete query.search;
 
     const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: 1 });
@@ -490,6 +417,73 @@ export const getAllLongUnsoldProduct = async (
           ? "Product retrieved successfully."
           : "No product listed at the moment",
       data: productsData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerProducts = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = getIdFromToken(req);
+
+    if (!sellerId) {
+      res.status(401).json({
+        success: false,
+        message: "Unauthorized: Invalid token",
+      });
+      return;
+    }
+
+    // Get pagination parameters
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    // Get search parameter
+    const search = req.query.search || "";
+
+    let query: any = {
+      seller: sellerId,
+      is_sold: false,
+    };
+
+    // Add search functionality if there's a search term
+    if (search) {
+      const categories = await Category.find({
+        name: { $regex: search, $options: "i" },
+      }).select('_id');
+      const categoryIds = categories.map((c) => c._id);
+      query.$or = [
+        { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
+        { description: { $regex: search, $options: "i" } }, // Search by description (case insensitive)
+        { category: { $in: categoryIds } }, // Search by category IDs
+      ];
+    }
+
+
+    // Get products with pagination
+    const products = await Product.find(query)
+      .populate("category", 'name description')
+      .populate("seller", 'fullName profileImageURL sellerStatus email')
+      .skip(skip)
+      .limit(limit)
+      .sort({ createdAt: -1 });
+
+    // Get total count for pagination
+    const totalProducts = await Product.countDocuments(query);
+
+    res.status(200).json({
+      success: true,
+      message:
+        products.length > 0
+          ? "Products retrieved successfully."
+          : "No products found",
+      data: paginated_result(page, limit, totalProducts, products),
     });
   } catch (error) {
     next(error);

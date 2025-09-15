@@ -1,8 +1,9 @@
 import express from "express";
 import {
-  validateProductListing,
-  validateProductUpdate,
+  validateCreateProduct,
+  validateUpdateProduct,
 } from "../../middlewares/validators";
+import { uploadMultiple } from "../../middlewares/upload";
 
 import {
   getSingleUnsoldProduct,
@@ -10,11 +11,12 @@ import {
   listAProduct,
   updateAProduct,
   getUnsoldProductsByCategory,
-  getProductsByAdmin,
-  approveAProduct,
   getAllLongUnsoldProduct,
+  getSellerProducts,
 } from "../../controllers/productController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
+import { ADMIN_ONLY_ROLES } from "../../constant";
+import { getCategory } from "../../controllers/categoryController";
 
 const router = express.Router();
 
@@ -71,6 +73,82 @@ const router = express.Router();
  *       400:
  *         description: Category not found
  *
+ * /api/product/my-products:
+ *   get:
+ *     summary: Get all products for the authenticated seller
+ *     description: Retrieve all products (approved and unapproved) belonging to the authenticated seller
+ *     tags: [Product]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 50
+ *           default: 10
+ *         description: Number of products per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term to filter products by name, category, or description
+ *     responses:
+ *       200:
+ *         description: Products retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Products retrieved successfully."
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     products:
+ *                       type: array
+ *                       items:
+ *                         $ref: '#/components/schemas/Product'
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         currentPage:
+ *                           type: integer
+ *                         totalPages:
+ *                           type: integer
+ *                         totalProducts:
+ *                           type: integer
+ *                         hasNextPage:
+ *                           type: boolean
+ *                         hasPrevPage:
+ *                           type: boolean
+ *                     summary:
+ *                       type: object
+ *                       properties:
+ *                         total:
+ *                           type: integer
+ *                         approved:
+ *                           type: integer
+ *                         unapproved:
+ *                           type: integer
+ *       401:
+ *         description: Unauthorized - Invalid or missing token
+ *       500:
+ *         description: Internal server error
+ *
  * /api/product/createproduct:
  *   post:
  *     tags: [Product]
@@ -79,7 +157,7 @@ const router = express.Router();
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             required:
@@ -87,8 +165,7 @@ const router = express.Router();
  *               - price
  *               - location
  *               - description
- *               - category
- *               - productImage
+ *               - categoryId
  *             properties:
  *               name:
  *                 type: string
@@ -98,23 +175,15 @@ const router = express.Router();
  *                 type: string
  *               description:
  *                 type: string
- *               category:
+ *               categoryId:
  *                 type: string
- *                 enum:
- *                   - electronics
- *                   - books & stationery
- *                   - clothing & accessories
- *                   - furniture
- *                   - home & kitchen
- *                   - sports & fitness equipment
- *                   - gaming & entertainment
- *                   - health & personal care
- *                   - hobbies & crafts
- *                   - miscellaneous
- *                 productImage:
- *                  type: array
- *                  items:
- *                    type: string
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Product images (up to 10 files)
+ *                 maxItems: 10
  *     responses:
  *       200:
  *         description: Product created successfully
@@ -136,7 +205,7 @@ const router = express.Router();
  *     requestBody:
  *       required: false
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -148,57 +217,22 @@ const router = express.Router();
  *                 type: string
  *               description:
  *                 type: string
- *               category:
+ *               categoryId:
  *                 type: string
- *                 enum:
- *                   - electronics
- *                   - books & stationery
- *                   - clothing & accessories
- *                   - furniture
- *                   - home & kitchen
- *                   - sports & fitness equipment
- *                   - gaming & entertainment
- *                   - health & personal care
- *                   - hobbies & crafts
- *                   - miscellaneous
- *                 productImage:
- *                  type: array
- *                  items:
- *                    type: string
+ *                 enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *               files:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Updated product images (up to 10 files)
+ *                 maxItems: 10
  *     responses:
  *       200:
  *         description: Product updated successfully
  *       400:
  *         description: Invalid data
  *
- * /api/product/admin/approveproduct/{id}:
- *   patch:
- *     tags: [Product]
- *     summary: Approve a product
- *     description: Admin approves a product listing
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *         description: Product ID
- *     responses:
- *       200:
- *         description: Product approved successfully
- *       400:
- *         description: Approval failed or product not found
- *
- * /api/product/admin/allproducts:
- *   get:
- *     tags: [Product]
- *     summary: Get all product listings as admin
- *     description: Retrieve all products from admin perspective
- *     responses:
- *       200:
- *         description: All product listings retrieved successfully
- *       400:
- *         description: Not found
  *
  * /api/product/to-own:
  *   get:
@@ -216,32 +250,51 @@ router.get("/allproducts", getAllUnsoldProduct);
 router.get("/to-own", getAllLongUnsoldProduct);
 router.get("/productincategory/:category", getUnsoldProductsByCategory);
 router.get("/product/:id", getSingleUnsoldProduct);
+router.get("/my-products", verifyToken, getSellerProducts);
 router.post(
   "/createproduct",
-  validateProductListing,
   verifyToken,
-  authorizeRoles("seller"),
+  uploadMultiple("files", 10),
+  validateCreateProduct,
   listAProduct
 );
 router.patch(
   "/updateproduct/:id",
-  validateProductUpdate,
   verifyToken,
-  authorizeRoles("seller"),
+  uploadMultiple("files", 10),
+  validateUpdateProduct,
   updateAProduct
 );
-router.get(
-  "/admin/allproducts",
-  verifyToken,
-  authorizeRoles("admin"),
-  getProductsByAdmin
-);
-router.patch(
-  "/admin/approveproduct/:id",
-  validateProductUpdate,
-  verifyToken,
-  authorizeRoles("admin"),
-  approveAProduct
-);
 
+/**
+ * @swagger
+ * /api/admin/category:
+ *   get:
+ *     summary: Get all categories
+ *     description: Allows an admin to retrieve all categories.
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Categories retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: Categories retrieved successfully
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Category'
+ *       401:
+ *         description: Unauthorized (not an admin)
+ */
+router.get("/",  getCategory);
 export default router;

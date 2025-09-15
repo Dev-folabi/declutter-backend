@@ -1,12 +1,11 @@
-import { Schema, model } from "mongoose";
-import { OTPVerificationModelType } from "../types/model";
+import { Schema, model } from 'mongoose';
+import { OTPVerificationModelType } from '../types/model';
 
 const OTPVerify = new Schema<OTPVerificationModelType>(
   {
-    user: {
-      type: Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+    owner: {
+      id: { type: Schema.Types.ObjectId, required: true, refPath: 'owner.type' },
+      type: { type: String, enum: ["User", "Admin"], required: true }
     },
     OTP: {
       type: String,
@@ -14,12 +13,8 @@ const OTPVerify = new Schema<OTPVerificationModelType>(
     },
     type: {
       type: String,
-      enum: [
-        "password",
-        "transaction pin",
-        "activate account"
-      ],
-      default: "password",
+      enum: ['password', 'transaction pin', 'activate account'],
+      default: 'password',
     },
     verificationType: {
       type: String,
@@ -31,8 +26,8 @@ const OTPVerify = new Schema<OTPVerificationModelType>(
 
 OTPVerify.index({ updatedAt: 1 }, { expireAfterSeconds: 1800 });
 
-OTPVerify.index({ user: 1, type: 1 }, { unique: true });
+OTPVerify.index({ 'owner.id': 1, type: 1 }, { unique: true });
 
-const OTPVerification = model("OTPVerification", OTPVerify);
+const OTPVerification = model('OTPVerification', OTPVerify);
 
 export default OTPVerification;

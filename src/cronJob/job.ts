@@ -37,7 +37,9 @@ export const moveFundsAfterFiveDays = async () => {
         const seller = await User.findById(product.seller);
         if (!seller || !seller.accountDetail) continue;
 
-        const creditAmount = txn.amount * 0.95;
+        const creditAmount = txn.sellerEarnings;
+
+        if (!creditAmount) continue;
 
         // Ensure there's enough pending balance
         if ((seller.accountDetail.pendingBalance || 0) < creditAmount) continue;
@@ -71,7 +73,8 @@ export const moveFundsAfterFiveDays = async () => {
         const message = `Your earnings of NGN ${creditAmount} for product "${product.name}" have been released to your wallet balance.`;
         await Promise.allSettled([
           createNotification({
-            user: seller._id,
+            recipient: seller._id as string,
+            recipientModel: "User" as const,
             body: message,
             title: "Earnings Released",
             type: "account",

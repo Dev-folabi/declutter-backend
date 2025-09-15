@@ -5,18 +5,24 @@ import { Transaction } from "../models/transactionModel";
 import { getEnvironment } from "../function/environment";
 import crypto from "crypto";
 import { User } from "../models/userModel";
-import { ProductListingType } from "../types/model";
+import {
+  CreateNotificationData,
+  ITransaction,
+  ProductListingType,
+} from "../types/model";
 import { createNotification } from "./notificationController";
 import { sendEmail } from "../utils/mail";
 import bcrypt from "bcrypt";
 import { decryptAccountDetail, encryptData } from "../utils";
+import { calculateEarnings } from "../utils/calculateEarnings";
+import { Schema } from "mongoose";
 
 const environment = getEnvironment();
 
 const PAYSTACK_WEBHOOK_SECRET =
-  environment === "local" || environment === "staging"
-    ? process.env.PAYSTACK_LIVE_SECRET_KEY!
-    : process.env.PAYSTACK_TEST_SECRET_KEY!;
+  environment === "local" || "staging"
+    ? process.env.PAYSTACK_TEST_SECRET_KEY!
+    : process.env.PAYSTACK_LIVE_SECRET_KEY!;
 
 export const getBankCodes = async (
   req: Request,
@@ -92,27 +98,44 @@ export const initiateOrderPayment = async (
       return;
     }
 
-    const charges = order.totalPrice * 0.015 + 100;
-    order.totalPrice += charges;
+    const existingTransaction = await Transaction.findOne({
+      referenceId: `txn_${order._id}`,
+    });
+
+    if (existingTransaction) {
+      res.status(400).json({
+        success: false,
+        message: "Payment already initiated for this order",
+        data: null,
+      });
+      return;
+    }
+
+    // Calculate commission & earnings (before adding gateway fee)
+    const { totalAmount, gatewayCharges, sellerEarnings, revenue } =
+      calculateEarnings(order.totalPrice);
 
     // Initiate the payment using Paystack
     const paymentData = await paystack.initiatePayment(
       (order.user as any).email,
-      order.totalPrice,
+      totalAmount,
       `txn_${order._id}`
     );
 
     // Record the transaction in the database
-    const transaction = new Transaction({
+    const transaction = new Transaction<ITransaction>({
       userId: (order.user as any)._id,
-      amount: order.totalPrice - charges,
+      amount: order.totalPrice,
       transactionDate: new Date(),
       status: "pending",
-      charges,
+      charges: gatewayCharges,
       transactionType: "credit",
       description: `Payment for Order ${order._id}`,
       referenceId: paymentData.reference,
-    });
+      totalAmount,
+      sellerEarnings,
+      revenue,
+    } as ITransaction);
 
     await transaction.save();
 
@@ -176,7 +199,7 @@ export const verifyPayment = async (
       return;
     }
 
-    if (paymentData.amount / 100 !== transaction.amount) {
+    if (paymentData.amount / 100 !== transaction.totalAmount) {
       res.status(400).json({
         success: false,
         message: "Payment amount mismatch.",
@@ -224,8 +247,9 @@ export const verifyPayment = async (
             (seller.accountDetail.pendingBalance || 0) + creditAmount;
           await seller.save();
 
-          const notificationData = {
-            user: seller._id,
+          const notificationData: CreateNotificationData = {
+            recipient: seller._id as string,
+            recipientModel: "User" as const,
             body: `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
             type: "market",
             title: "Product Sales",
@@ -260,6 +284,7 @@ export const handlePaystackWebhook = async (
   next: NextFunction
 ) => {
   const payload = req.body;
+
   const signature =
     (req.headers["x-paystack-signature"] as string) ||
     (req.headers["X-Paystack-Signature"] as string);
@@ -278,7 +303,7 @@ export const handlePaystackWebhook = async (
       await handleChargeSuccess(payload.data);
     } else if (event === "charge.failed") {
       await handleChargeFailed(payload.data);
-    } else if (event === "refund.success") {
+    } else if (event === "refund.processed") {
       await handleRefundSuccess(payload.data);
     } else {
       console.log("Unhandled Paystack event:", event);
@@ -295,6 +320,8 @@ export const handlePaystackWebhook = async (
 };
 
 const verifyWebhookSignature = (payload: any, signature: string) => {
+  console.log({ PAYSTACK_WEBHOOK_SECRET });
+
   const computedSignature = crypto
     .createHmac("sha512", PAYSTACK_WEBHOOK_SECRET)
     .update(JSON.stringify(payload))
@@ -342,8 +369,9 @@ const handleChargeSuccess = async (paymentData: any) => {
           (seller.accountDetail.pendingBalance || 0) + creditAmount;
         await seller.save();
 
-        const notificationData = {
-          user: seller._id,
+        const notificationData: CreateNotificationData = {
+          recipient: seller._id as string,
+          recipientModel: "User" as const,
           body: `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
           type: "account",
           title: "Product Sales",
@@ -380,19 +408,75 @@ const handleChargeFailed = async (paymentData: any) => {
 };
 
 const handleRefundSuccess = async (paymentData: any) => {
-  const reference = paymentData.reference;
-  const transaction = await Transaction.findOne({ referenceId: reference });
-  if (!transaction) throw new Error("Transaction not found.");
+  const refundId = paymentData.id;
+  const reference = paymentData.transaction_reference;
 
-  transaction.status = "refund";
-  transaction.transactionDate = new Date();
+  if (!reference) {
+    throw new Error("Transaction reference not found in refund data.");
+  }
+
+  const transaction = await Transaction.findOne({ referenceId: reference });
+  if (!transaction) {
+    throw new Error("Transaction not found.");
+  }
+
+  // Update transaction status
+  transaction.status = "refunded";
+  transaction.refundStatus = "processed";
+
+  // Update refund details if not already set
+  if (!transaction.refundDetails) {
+    transaction.refundDetails = {
+      paystackRefundId: refundId,
+      refundAmount: paymentData.amount / 100, // Convert from kobo
+      processedAt: new Date(),
+    };
+  }
+
+  // Add to refund history
+  if (!transaction.refundHistory) {
+    transaction.refundHistory = [];
+  }
+  transaction.refundHistory.push({
+    action: "Refund confirmed by Paystack webhook",
+    performedBy:
+      transaction.refundDetails?.processedBy ||
+      new Schema.Types.ObjectId(transaction.userId),
+    performedAt: new Date(),
+    notes: `Paystack refund ID: ${refundId}`,
+  });
+
   await transaction.save();
 
+  // Update related order status
   const orderId = transaction.referenceId?.split("_")[1];
-  const order = await Order.findById(orderId);
-  if (order) {
-    order.status = "refunded";
-    await order.save();
+  if (orderId) {
+    const order = await Order.findById(orderId);
+    if (order) {
+      order.status = "refunded";
+      await order.save();
+    }
+  }
+
+  // Send final confirmation notification
+  const user = await User.findById(transaction.userId).select("email fullName");
+  if (user) {
+    const notificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
+      body: `Your refund of ₦${transaction.refundDetails.refundAmount} has been successfully processed.`,
+      type: "refund",
+      title: "Refund Processed",
+    };
+
+    await Promise.allSettled([
+      createNotification(notificationData),
+      sendEmail(
+        user.email!,
+        "Refund Processed Successfully",
+        `Your refund of ₦${transaction.refundDetails.refundAmount} for transaction ${transaction._id} has been successfully processed. Refund ID: ${refundId}`
+      ),
+    ]);
   }
 };
 
@@ -502,15 +586,18 @@ export const withdrawFunds = async (
 
     const bodyMsg = `You have successfully withdrawn NGN ${amount}. Reference: ${reference}`;
 
+    const notificationData: CreateNotificationData = {
+      recipient: user._id as string,
+      recipientModel: "User" as const,
+      body: bodyMsg,
+      type: "account",
+      title: "Wallet Withdrawal",
+    };
+
     // Notify user via email & in-app
     Promise.allSettled([
       sendEmail(user.email, "Withdrawal Successful", bodyMsg),
-      createNotification({
-        user: user._id,
-        body: bodyMsg,
-        type: "account",
-        title: "Wallet Withdrawal",
-      }),
+      createNotification(notificationData),
     ]);
 
     res.status(200).json({
