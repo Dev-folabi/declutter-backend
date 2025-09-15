@@ -4,6 +4,7 @@ import {
   getUserOrders,
   orderCheckout,
 } from "../../controllers/orderController";
+import { validateOrderCheckout } from "../../middlewares/validators";
 
 const router = express.Router();
 
@@ -126,6 +127,35 @@ const router = express.Router();
  *     description: Converts all cart items into an order and reserves the products.
  *     tags:
  *       - Orders
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - deliveryType
+ *             properties:
+ *               deliveryType:
+ *                 type: string
+ *                 enum: [pickup, delivery]
+ *                 description: The chosen method for receiving the order.
+ *               deliveryAddress:
+ *                 type: object
+ *                 description: Required if deliveryType is 'delivery'.
+ *                 properties:
+ *                   location:
+ *                     type: string
+ *                     description: The delivery location.
+ *                   landmark:
+ *                     type: string
+ *                     description: A nearby landmark.
+ *                   primaryPhoneNumber:
+ *                     type: string
+ *                     description: The primary contact number.
+ *                   secondaryPhoneNumber:
+ *                     type: string
+ *                     description: An optional secondary contact number.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -182,6 +212,6 @@ router.get("/", getUserOrders);
 router.get("/orders/:order_id/items", getOrderItems);
 
 // Checkout cart and create an order
-router.post("/checkout", orderCheckout);
+router.post("/checkout", validateOrderCheckout, orderCheckout);
 
 export default router;

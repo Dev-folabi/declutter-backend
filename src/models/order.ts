@@ -25,12 +25,23 @@ const OrderSchema: Schema = new Schema<IOrder>(
     },
     items: [OrderItemSchema],
     totalPrice: { type: Number, required: false, min: 0 },
-  status: { 
-    type: String, 
-    required: true, 
-    enum: ["pending", "paid", "failed", "refunded"], 
-    default: "pending" 
-  },
+    status: {
+      type: String,
+      required: true,
+      enum: ["pending", "paid", "failed", "refunded"],
+      default: "pending",
+    },
+    deliveryType: {
+      type: String,
+      required: true,
+      enum: ["pickup", "delivery"],
+    },
+    deliveryAddress: {
+      location: { type: String },
+      landmark: { type: String },
+      primaryPhoneNumber: { type: String },
+      secondaryPhoneNumber: { type: String },
+    },
   },
   { timestamps: true }
 );
