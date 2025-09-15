@@ -650,6 +650,31 @@ export const validateCreateAnnouncement = [
   handleValidationErrors,
 ];
 
+export const validateOrderCheckout = [
+  body("deliveryType")
+    .notEmpty()
+    .withMessage("Delivery type is required")
+    .isIn(["pickup", "delivery"])
+    .withMessage("Invalid delivery type"),
+
+  body("deliveryAddress.location")
+    .if(body("deliveryType").equals("delivery"))
+    .notEmpty()
+    .withMessage("Delivery location is required"),
+
+  body("deliveryAddress.landmark")
+    .if(body("deliveryType").equals("delivery"))
+    .notEmpty()
+    .withMessage("Landmark is required"),
+
+  body("deliveryAddress.primaryPhoneNumber")
+    .if(body("deliveryType").equals("delivery"))
+    .notEmpty()
+    .withMessage("Primary phone number is required"),
+
+  handleValidationErrors,
+];
+
 export const validateCreateCategory = [
   body("name")
     .notEmpty()

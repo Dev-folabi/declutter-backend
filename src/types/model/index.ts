@@ -112,6 +112,13 @@ export interface IOrder extends Document {
   items: IOrderItem[];
   totalPrice: number;
   status: string;
+  deliveryType: "pickup" | "delivery";
+  deliveryAddress?: {
+    location: string;
+    landmark: string;
+    primaryPhoneNumber: string;
+    secondaryPhoneNumber?: string;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
