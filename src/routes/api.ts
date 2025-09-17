@@ -38,7 +38,7 @@ router.use("/product", productRoute);
 router.use("/order", verifyToken, orderRoute);
 router.use("/cart", verifyToken, cartRoute);
 router.use("/welistened", weListenedRoute);
-router.use("/contactus", contactUsRoute);
+router.use("/", contactUsRoute);
 router.use("/payment", paymentRoute);
 router.use("/transactions", verifyToken, transactionRoute);
 router.use("/admin", adminRouter);
