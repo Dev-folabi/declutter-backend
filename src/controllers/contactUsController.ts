@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { ContactUs } from "../models/contactUs";
 import { User } from "../models/userModel";
 import { getIdFromToken } from "../function/token";
+import { Admin } from "../models/adminModel";
 
 
 
@@ -40,6 +41,7 @@ export const getContactMessages = async (
                 message: "You dont have the permission to view this page.",
                 data: null,
             });
+            return
         }
 
         if (!(user?.is_admin)){
@@ -48,6 +50,17 @@ export const getContactMessages = async (
                 message: "You are not authorized for this action.",
                 data: null,
             });
+            return
+        }
+        const admin = await Admin.findById(getIdFromToken(req))
+
+        if (!admin) {
+            res.status(400).json({
+                success: false,
+                message: "You are not authorized for this action.",
+                data: null
+            })
+            return
         }
         
         const messages = await ContactUs.find().sort({"is_closed": 1})
