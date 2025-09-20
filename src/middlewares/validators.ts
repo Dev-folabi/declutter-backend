@@ -333,8 +333,8 @@ export const validateVerificationRequest = [
   body("status")
     .notEmpty()
     .withMessage("Status is required")
-    .isIn(["verified", "rejected"])
-    .withMessage('Status must be either "verified" or "rejected".'),
+    .isIn(["approved", "rejected"])
+    .withMessage('Status must be either "approved" or "rejected".'),
 
   body("comment").optional().isString().withMessage("Comment is required."),
   handleValidationErrors,
@@ -490,6 +490,8 @@ export const validateRegister = [
   body("fullName")
     .notEmpty()
     .withMessage("Full name is required")
+    .matches(/^[a-zA-Z\s'-]+$/)
+    .withMessage("Full name may only contain letters, spaces, hyphens, or apostrophes")
     .isString()
     .withMessage("Full name must be a string"),
   body("email")

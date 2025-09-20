@@ -83,6 +83,12 @@ export const updateProfile = async (
 
     let updateData: any = {};
     if (fullName) updateData.fullName = fullName;
+    if (email) {
+      const existingEmail = await User.findOne({email});
+      if (existingEmail && existingEmail.id !== user_id) {
+        return handleError(res, 400, "Email already in use.");
+      }
+    }
     if (email) updateData.email = email;
 
     // Handle profile image upload
@@ -363,6 +369,14 @@ export const changePassword = async (
     const isValidPassword = await bcrypt.compare(old_password, user.password);
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid old password.");
+    }
+
+    if (old_password === new_password) {
+      return handleError(
+        res,
+        400,
+        "New password must be different from the old password."
+      );
     }
 
     if (!(new_password === confirm_password)) {
