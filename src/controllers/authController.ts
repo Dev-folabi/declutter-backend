@@ -350,6 +350,10 @@ export const loginUser = async (
       );
     }
 
+    // Update lastLogin timestamp
+    user.lastLogin = new Date();
+    await user.save();
+
     // Generate token
     const token = generateToken({
       _id: user.id,
