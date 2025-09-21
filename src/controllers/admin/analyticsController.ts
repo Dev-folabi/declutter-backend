@@ -305,28 +305,25 @@ export const exportMonthlyReport = async (req: Request, res: Response) => {
     const startDate = new Date(yearNum, monthNum - 1, 1);
     const endDate = new Date(yearNum, monthNum, 0); // Last day of the month
 
-
     const orders = await Order.find({
       createdAt: { $gte: startDate, $lte: endDate },
       status: "paid",
-    }).populate({
-      path: 'items.product',
-      model: 'Product',
-    }).populate({
-      path: 'user',
-      model: 'User',
-      select: 'fullName email'
-    });
+    })
+      .populate({
+        path: "items.product",
+        model: "Product",
+      })
+      .populate({
+        path: "user",
+        model: "User",
+        select: "fullName email",
+      });
 
     const doc = new (require("jspdf").jsPDF)();
     let yOffset = 10;
 
     doc.setFontSize(18);
-    doc.text(
-      `Monthly Sales Report - ${monthNum}/${yearNum}`,
-      10,
-      yOffset
-    );
+    doc.text(`Monthly Sales Report - ${monthNum}/${yearNum}`, 10, yOffset);
     yOffset += 10;
 
     doc.setFontSize(12);
@@ -340,12 +337,16 @@ export const exportMonthlyReport = async (req: Request, res: Response) => {
       doc.text(`  Order ID: ${order._id}`, 10, yOffset);
       yOffset += 7;
       doc.text(
-        `  Customer: ${order.user?.fullName || 'N/A'} (${order.user?.email || 'N/A'})`,
+        `  Customer: ${order.user?.fullName || "N/A"} (${order.user?.email || "N/A"})`,
         10,
         yOffset
       );
       yOffset += 7;
-      doc.text(`  Product: ${order.items[0].product?.name || 'N/A'}`, 10, yOffset);
+      doc.text(
+        `  Product: ${order.items[0].product?.name || "N/A"}`,
+        10,
+        yOffset
+      );
       yOffset += 7;
       doc.text(`  Amount: #${order.items[0].price.toFixed(2)}`, 10, yOffset);
       yOffset += 7;
@@ -391,9 +392,9 @@ export const exportAnalyticsReport = async (
       transactionDate: { $gte: startDate },
     })
       .populate({
-        path: 'userId',
-        model: 'User',
-        select: 'fullName email'
+        path: "userId",
+        model: "User",
+        select: "fullName email",
       })
       .sort({ transactionDate: -1 });
 
