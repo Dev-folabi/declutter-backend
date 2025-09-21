@@ -9,6 +9,7 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
+  lastLogin?: Date;
   schoolId: Schema.Types.ObjectId;
   schoolIdCardURL?: string;
   ninURL?: string;

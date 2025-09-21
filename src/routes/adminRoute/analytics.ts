@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../../middlewares/authMiddleware';
-import { getAnalyticsData, exportAnalyticsReport } from '../../controllers/admin/analyticsController';
+import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport } from '../../controllers/admin/analyticsController';
 
 const router = Router();
 
@@ -106,8 +106,8 @@ router.get(
  * @swagger
  * /admin/analytics/export:
  *   get:
- *     summary: Export analytics report as a CSV file
- *     description: Generates and downloads a CSV file containing the total analytics report.
+ *     summary: Export a detailed analytics report as a PDF
+ *     description: Generates and downloads a detailed PDF report for the selected period, including a summary and a full list of transactions.
  *     tags: [Admin Analytics]
  *     security:
  *       - bearerAuth: []
@@ -120,9 +120,9 @@ router.get(
  *         description: The time period in days for which to generate the report (e.g., 7, 30, 90).
  *     responses:
  *       200:
- *         description: CSV report generated successfully.
+ *         description: PDF report generated successfully.
  *         content:
- *           text/csv:
+ *           application/pdf:
  *             schema:
  *               type: string
  *               format: binary
@@ -136,5 +136,50 @@ router.get(
   verifyToken,
   exportAnalyticsReport
 );
+
+/**
+ * @swagger
+ * /admin/analytics/report/monthly:
+ *   get:
+ *     summary: Export a detailed monthly transaction report as a PDF
+ *     description: Generates and downloads a detailed PDF report for a specific month, including a summary and a full list of transactions.
+ *     tags: [Admin Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: year
+ *         schema:
+ *           type: integer
+ *           example: 2024
+ *         required: true
+ *         description: The year of the report.
+ *       - in: query
+ *         name: month
+ *         schema:
+ *           type: integer
+ *           example: 9
+ *         required: true
+ *         description: The month of the report (1-12).
+ *     responses:
+ *       200:
+ *         description: PDF report generated successfully.
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Invalid input for year or month.
+ *       403:
+ *         description: Access denied.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get(
+    '/report/monthly',
+    verifyToken,
+    exportMonthlyReport
+)
 
 export default router;
