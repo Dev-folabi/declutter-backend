@@ -115,6 +115,15 @@ export const listAProduct = async (
       return;
     }
 
+    if (price <= 0) {
+      res.status(400).json({
+        success: false,
+        message: "Price must be greater than zero.",
+        data: null,
+      })
+      return
+    }
+
     const files = req.files as Express.Multer.File[];
 
     // Check if files are provided
