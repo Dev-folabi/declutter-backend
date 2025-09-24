@@ -693,3 +693,33 @@ export const validateCreateCategory = [
     .trim(),
   handleValidationErrors,
 ]
+
+export const validateContactUs = [
+  body("fullName")
+  .notEmpty()
+    .withMessage("Full name is required")
+    .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]{2,50}$/)
+    .withMessage("Full name must be 2–50 characters and may only contain letters, spaces, hyphens, or apostrophes")
+    .isString()
+    .withMessage("Full name must be a string"),
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Please provide a valid email"),
+  body("issue")
+    .notEmpty()
+    .withMessage("Issue type is required")
+    .isIn(["account", "payment", "order", "others"])
+    .withMessage(
+      "Invalid issue type. Must be one of: account, payment, order, others"
+    ),
+  body("body")
+    .notEmpty()
+    .withMessage("Message body is required")
+    .isString()
+    .withMessage("Message body must be a string")
+    .isLength({ min: 10, max: 2000 })
+    .withMessage("Message body must be between 10 and 2000 characters"),
+  handleValidationErrors,  
+]

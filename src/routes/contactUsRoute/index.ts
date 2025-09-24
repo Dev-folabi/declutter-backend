@@ -6,6 +6,7 @@ import {
   updateContactus,
   getSingleContactMessages,
 } from "../../controllers/contactUsController";
+import {validateContactUs} from "../../middlewares/validators";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
 
@@ -148,7 +149,7 @@ const router = express.Router();
  *         description: No contact messages found
  */
 
-router.post("/contact-us", sendContactUsMessage);
+router.post("/contact-us", validateContactUs, sendContactUsMessage);
 router.get(
   "/admin/all-contact-us",
   verifyToken,
