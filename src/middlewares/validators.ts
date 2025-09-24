@@ -421,6 +421,8 @@ export const validateCreateProduct = [
   body("description")
     .notEmpty()
     .withMessage("Description is required")
+    .isLength({ min: 10, max: 2000 })
+    .withMessage("Description must be between 10 and 2000 characters")
     .isString()
     .withMessage("Description must be a string"),
   body("categoryId")
