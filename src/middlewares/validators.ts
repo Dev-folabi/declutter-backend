@@ -290,7 +290,7 @@ export const validateProductUpdate = [
 
 export const validateAdminRegister = [
   body("fullName").notEmpty().withMessage("Full name is required")
-  .matches(/^[a-zA-Z\s'-]+$/)
+  .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]+$/)
   .withMessage("Full name may only contain letters, spaces, hyphens, or apostrophes"),
   body("email")
     .notEmpty()
@@ -490,7 +490,7 @@ export const validateRegister = [
   body("fullName")
     .notEmpty()
     .withMessage("Full name is required")
-    .matches(/^[a-zA-Z\s'-]+$/)
+    .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]+$/)
     .withMessage("Full name may only contain letters, spaces, hyphens, or apostrophes")
     .isString()
     .withMessage("Full name must be a string"),
