@@ -83,7 +83,10 @@ export const addToCart = async (
       handleError(res, 400, "You can't buy your own product");
       return;
     }
-    const cart = await getOrCreateCart(user._id as string);
+    let cart = await Cart.findOne({ user: user._id });
+    if (!cart) {
+      cart = await Cart.create({ user: user._id, items: [], totalPrice: 0 });
+    }
     const existingIndex = cart.items.findIndex(
       (item) => item.product.toString() === (product._id as string)
     );
@@ -101,6 +104,7 @@ export const addToCart = async (
     }
 
     cart.totalPrice += totalItemPrice;
+    cart.markModified("items");
     await cart.save();
 
     res.status(201).json({
@@ -130,7 +134,13 @@ export const removeItemFromCart = async (
       return;
     }
     const { product_id } = req.params;
-    const cart = await getOrCreateCart(user._id as string);
+
+    const cart = await Cart.findOne({ user: user._id });
+    if (!cart) {
+      handleError(res, 404, "Cart not found");
+      return;
+    }
+
     const itemIndex = cart.items.findIndex(
       (item) => item.product.toString() === product_id.toString()
     );
@@ -146,6 +156,7 @@ export const removeItemFromCart = async (
 
     cart.items.splice(itemIndex, 1);
     cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price, 0);
+    cart.markModified("items");
     await cart.save();
 
     res.status(200).json({
