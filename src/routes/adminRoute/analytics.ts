@@ -13,7 +13,7 @@ const router = Router();
 
 /**
  * @swagger
- * /admin/analytics:
+ * /api/admin/analytics:
  *   get:
  *     summary: Get analytics data for the admin dashboard
  *     description: Retrieves a comprehensive set of analytics data, including user statistics, revenue, sales performance, top products, and reports.
@@ -104,7 +104,7 @@ router.get(
 
 /**
  * @swagger
- * /admin/analytics/export:
+ * /api/admin/analytics/export:
  *   get:
  *     summary: Export a detailed analytics report as a PDF
  *     description: Generates and downloads a detailed PDF report for the selected period, including a summary and a full list of transactions.
@@ -139,7 +139,7 @@ router.get(
 
 /**
  * @swagger
- * /admin/analytics/report/monthly:
+ * /api/admin/analytics/report/monthly:
  *   get:
  *     summary: Export a detailed monthly transaction report as a PDF
  *     description: Generates and downloads a detailed PDF report for a specific month, including a summary and a full list of transactions.
