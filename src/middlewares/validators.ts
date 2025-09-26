@@ -428,6 +428,13 @@ export const validateCreateProduct = [
   body("categoryId")
     .notEmpty()
     .withMessage("categoryId is required"),
+  body("phoneNumber")
+  .notEmpty()
+  .withMessage("Phone number is required")
+  .isString()
+  .withMessage("Phone number must be a string")
+  .matches(/^\+?[1-9]\d{9,14}$/)
+  .withMessage("Invalid phone number format (must be in international format, e.g. +2348012345678)"),
   handleValidationErrors,
 ];
 
