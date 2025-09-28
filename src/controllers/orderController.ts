@@ -56,9 +56,6 @@ export const orderCheckout = async (
         quantity: cartItem.quantity,
         price: itemTotal,
       });
-
-      // Mark product as reserved
-      await Product.updateOne({ _id: product._id }, { is_reserved: true });
     }
 
     // Create the order

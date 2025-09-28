@@ -89,7 +89,7 @@ export interface ProductListingType extends Document {
 
 // Interface for CartItem
 export interface ICartItem extends Document {
-  product: Schema.Types.ObjectId;
+  product: Types.ObjectId | (ProductListingType & { _id: Types.ObjectId });
   quantity: number;
   price: number;
 }

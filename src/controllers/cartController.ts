@@ -133,17 +133,20 @@ export const removeItemFromCart = async (
       });
       return;
     }
+
     const { product_id } = req.params;
 
-    const cart = await Cart.findOne({ user: user._id });
+    const cart = await Cart.findOne({ user: user._id }).populate("items.product");
     if (!cart) {
       handleError(res, 404, "Cart not found");
       return;
     }
 
-    const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === product_id.toString()
-    );
+    // Find item index
+    const itemIndex = cart.items.findIndex((item) => {
+      const prodId = item.product._id ? item.product._id : item.product;
+      return prodId.toString() === product_id.toString();
+    });
 
     if (itemIndex === -1) {
       res.status(404).json({
@@ -154,20 +157,32 @@ export const removeItemFromCart = async (
       return;
     }
 
-    cart.items.splice(itemIndex, 1);
-    cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price, 0);
+    // If quantity > 1, decrement. Else, remove.
+    if (cart.items[itemIndex].quantity > 1) {
+      cart.items[itemIndex].quantity -= 1;
+    } else {
+      cart.items.splice(itemIndex, 1);
+    }
+
+    // Recalculate total
+    cart.totalPrice = cart.items.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0
+    );
+
     cart.markModified("items");
     await cart.save();
 
     res.status(200).json({
       success: true,
-      message: "Item removed from cart successfully.",
+      message: "Item updated in cart successfully.",
       data: cart,
     });
   } catch (error) {
     next(error);
   }
 };
+
 
 export const updateCartItem = async (
   req: Request,
