@@ -67,6 +67,11 @@ const ProductListSchema = new Schema<ProductListingType>(
       type: Boolean,
       default: false,
     },
+    sellerPhoneNumber: {
+      type: String,
+      required: true,
+      trim: true
+    },
   },
   { timestamps: true }
 );
