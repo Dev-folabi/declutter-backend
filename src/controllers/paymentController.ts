@@ -123,12 +123,13 @@ export const initiateOrderPayment = async (
     }
 
     if (unavailableItems.length > 0) {
-      return res.status(400).json({
+      res.status(400).json({
         success: false,
         message: `The following items are no longer available: ${unavailableItems.join(
           ", "
         )}. Please remove them from your cart and try again.`,
       });
+      return;
     }
 
     // Reserve products
@@ -266,14 +267,14 @@ export const verifyPayment = async (
       if (product) {
         // Update product quantity and reservation status
         await Product.findByIdAndUpdate(product._id, {
-          $inc: { quantity: -item.quantity },
+          $inc: { quantity: -item.product.quantity },
           $set: { is_reserved: false },
           $unset: { reserved_at: "" },
         });
 
         const seller = await User.findById(product.seller);
         if (seller && seller.accountDetail) {
-          const itemCredit = item.price * 0.95; // item.price is quantity * unit_price
+          const itemCredit = item.product.price * 0.95; // item.price is quantity * unit_price
           seller.accountDetail.pendingBalance =
             (seller.accountDetail.pendingBalance || 0) + itemCredit;
           await seller.save();
@@ -281,10 +282,8 @@ export const verifyPayment = async (
           const notificationData: CreateNotificationData = {
             recipient: seller._id as string,
             recipientModel: "User" as const,
-            body: `Your product "${
-              product.name
-            }" (x${
-              item.quantity
+            body: `Your product "${product.name}" (x${
+              item.product.quantity
             }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
               2
             )}.`,
@@ -298,10 +297,8 @@ export const verifyPayment = async (
             sendEmail(
               seller.email!,
               "Product Sold",
-              `Your product "${
-                product.name
-              }" (x${
-                item.quantity
+              `Your product "${product.name}" (x${
+                item.product.quantity
               }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
                 2
               )}.`
@@ -412,14 +409,14 @@ const handleChargeSuccess = async (paymentData: any) => {
     const product = item.product;
     if (product) {
       await Product.findByIdAndUpdate(product._id, {
-        $inc: { quantity: -item.quantity },
+        $inc: { quantity: -item.product.quantity },
         $set: { is_reserved: false },
         $unset: { reserved_at: "" },
       });
 
       const seller = await User.findById(product.seller);
       if (seller && seller.accountDetail) {
-        const itemCredit = item.price * 0.95;
+        const itemCredit = item.product.price * 0.95;
         seller.accountDetail.pendingBalance =
           (seller.accountDetail.pendingBalance || 0) + itemCredit;
         await seller.save();
@@ -427,10 +424,8 @@ const handleChargeSuccess = async (paymentData: any) => {
         const notificationData: CreateNotificationData = {
           recipient: seller._id as string,
           recipientModel: "User" as const,
-          body: `Your product "${
-            product.name
-          }" (x${
-            item.quantity
+          body: `Your product "${product.name}" (x${
+            item.product.quantity
           }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
             2
           )}.`,
@@ -443,10 +438,8 @@ const handleChargeSuccess = async (paymentData: any) => {
           sendEmail(
             seller.email!,
             "Product Sold",
-            `Your product "${
-              product.name
-            }" (x${
-              item.quantity
+            `Your product "${product.name}" (x${
+              item.product.quantity
             }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
               2
             )}.`
