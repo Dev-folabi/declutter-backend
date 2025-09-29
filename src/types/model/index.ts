@@ -85,7 +85,7 @@ export interface ProductListingType extends Document {
     flaggedBy: Types.ObjectId;
     date: Date;
   }[];
-  sellerPhoneNumber: string
+  sellerPhoneNumber: string,
 }
 
 // Interface for CartItem
