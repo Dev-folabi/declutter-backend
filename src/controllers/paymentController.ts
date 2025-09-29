@@ -16,6 +16,7 @@ import bcrypt from "bcrypt";
 import { decryptAccountDetail, encryptData } from "../utils";
 import { calculateEarnings } from "../utils/calculateEarnings";
 import { Schema } from "mongoose";
+import { Cart } from "../models/cart";
 
 const environment = getEnvironment();
 
@@ -255,6 +256,14 @@ export const verifyPayment = async (
             title: "Product Sales",
           };
 
+          // Clear user cart
+          const cart = await Cart.findOne({ user: userId });
+          if (cart) {
+            cart.items = [];
+            cart.totalPrice = 0;
+            await cart.save();
+          }
+
           await Promise.allSettled([
             createNotification(notificationData),
             sendEmail(
@@ -368,6 +377,14 @@ const handleChargeSuccess = async (paymentData: any) => {
         seller.accountDetail.pendingBalance =
           (seller.accountDetail.pendingBalance || 0) + creditAmount;
         await seller.save();
+
+        // clear user cart
+        const cart = await Cart.findOne({ user: transaction.userId });
+        if (cart) {
+          cart.items = [];
+          cart.totalPrice = 0;
+          await cart.save();
+        }
 
         const notificationData: CreateNotificationData = {
           recipient: seller._id as string,

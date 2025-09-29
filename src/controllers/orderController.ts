@@ -72,10 +72,6 @@ export const orderCheckout = async (
 
     const order = await Order.create(orderData);
 
-    // Clear the cart
-    cart.items = [];
-    cart.totalPrice = 0;
-    await cart.save();
 
     // Create notification
     const notificationData: CreateNotificationData = {

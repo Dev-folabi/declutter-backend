@@ -1,93 +1,21 @@
-import nodemailer from "nodemailer";
 import dotenv from "dotenv";
+import {
+  TransactionalEmailsApi,
+  TransactionalEmailsApiApiKeys,
+} from "@getbrevo/brevo";
 
 dotenv.config();
 
 const currentYear = new Date().getFullYear();
 
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-  pool: true,
-  maxConnections: 5,
-  maxMessages: 100,
-});
+// Initialize Brevo client
+const client = new TransactionalEmailsApi();
+client.setApiKey(
+  TransactionalEmailsApiApiKeys.apiKey,
+  process.env.BREVO_API_KEY as string
+);
 
-export const sendEmail = async (to: string, subject: string, text: string) => {
-  const mailOptions = {
-    from: `"DeclutMart" <${process.env.EMAIL_USER}>`,
-    to,
-    subject,
-    html: generateEmailHTML(text),
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    console.log(`Email sent successfully to ${to}!`);
-  } catch (error: any) {
-    console.error(`Error sending email to ${to}:`, error.message || error);
-    throw error;
-  }
-};
-
-// New function for bulk emails (BCC approach)
-export const sendBulkEmailBCC = async (
-  recipients: string[],
-  subject: string,
-  text: string,
-  batchSize: number = 50
-) => {
-  const batches = [];
-
-  // Split recipients into batches
-  for (let i = 0; i < recipients.length; i += batchSize) {
-    batches.push(recipients.slice(i, i + batchSize));
-  }
-
-  const results = {
-    success: 0,
-    failed: 0,
-    errors: [] as string[],
-  };
-
-  for (const [batchIndex, batch] of batches.entries()) {
-    try {
-      const mailOptions = {
-        from: `"DeclutMart" <${process.env.EMAIL_USER}>`,
-        to: process.env.EMAIL_USER,
-        bcc: batch,
-        subject,
-        html: generateEmailHTML(text),
-      };
-
-      await transporter.sendMail(mailOptions);
-      results.success += batch.length;
-      console.log(
-        `Batch ${batchIndex + 1}/${batches.length} sent successfully (${batch.length} recipients)`
-      );
-
-      // Add delay between batches to avoid rate limiting
-      if (batchIndex < batches.length - 1) {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-    } catch (error: any) {
-      results.failed += batch.length;
-      const errorMsg = `Batch ${batchIndex + 1} failed: ${error.message || error}`;
-      results.errors.push(errorMsg);
-      console.error(errorMsg);
-    }
-  }
-
-  return results;
-};
-
-// Helper function to generate email HTML (extracted for reusability)
+// Helper: generate styled HTML
 const generateEmailHTML = (text: string): string => {
   return `
     <!DOCTYPE html>
@@ -146,4 +74,69 @@ const generateEmailHTML = (text: string): string => {
     </body>
     </html>
   `;
+};
+
+// Send single email
+export const sendEmail = async (to: string, subject: string, text: string) => {
+  try {
+    const sendSmtpEmail = {
+      sender: { name: "DeclutMart", email: process.env.EMAIL_USER as string },
+      to: [{ email: to }],
+      subject,
+      htmlContent: generateEmailHTML(text),
+    };
+
+    await client.sendTransacEmail(sendSmtpEmail);
+    console.log(`✅ Email sent successfully to ${to}!`);
+  } catch (error: any) {
+    console.error(`❌ Error sending email to ${to}:`, error.message || error);
+    throw error;
+  }
+};
+
+// Send bulk emails in batches (Brevo handles lists, but we keep batching logic)
+export const sendBulkEmailBCC = async (
+  recipients: string[],
+  subject: string,
+  text: string,
+  batchSize: number = 50
+) => {
+  const batches = [];
+  for (let i = 0; i < recipients.length; i += batchSize) {
+    batches.push(recipients.slice(i, i + batchSize));
+  }
+
+  const results = { success: 0, failed: 0, errors: [] as string[] };
+
+  for (const [batchIndex, batch] of batches.entries()) {
+    try {
+      const sendSmtpEmail = {
+        sender: { name: "DeclutMart", email: process.env.EMAIL_USER as string },
+        to: [{ email: process.env.EMAIL_USER as string }], // dummy TO (yourself)
+        bcc: batch.map((email) => ({ email })), // actual recipients hidden in BCC
+        subject,
+        htmlContent: generateEmailHTML(text),
+      };
+
+      await client.sendTransacEmail(sendSmtpEmail);
+      results.success += batch.length;
+
+      console.log(
+        `✅ Batch ${batchIndex + 1}/${batches.length} sent successfully (${batch.length} recipients)`
+      );
+
+      if (batchIndex < batches.length - 1) {
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+      }
+    } catch (error: any) {
+      results.failed += batch.length;
+      const errorMsg = `❌ Batch ${batchIndex + 1} failed: ${
+        error.message || error
+      }`;
+      results.errors.push(errorMsg);
+      console.error(errorMsg);
+    }
+  }
+
+  return results;
 };
