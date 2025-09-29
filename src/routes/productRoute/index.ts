@@ -177,6 +177,10 @@ const router = express.Router();
  *                 type: string
  *               categoryId:
  *                 type: string
+ *               quantity:
+ *                 type: integer
+ *                 description: The number of items available for sale. Defaults to 1 if not provided.
+ *                 example: 5
  *               files:
  *                 type: array
  *                 items:
@@ -220,6 +224,10 @@ const router = express.Router();
  *               categoryId:
  *                 type: string
  *                 enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *               quantity:
+ *                 type: integer
+ *                 description: The updated number of items available for sale.
+ *                 example: 10
  *               files:
  *                 type: array
  *                 items:

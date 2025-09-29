@@ -30,6 +30,10 @@ const ProductListSchema = new Schema<ProductListingType>(
       type: Number,
       required: true,
     },
+    quantity: {
+      type: Number,
+      default: 1,
+    },
     description: {
       type: String,
       required: true,
@@ -55,13 +59,12 @@ const ProductListSchema = new Schema<ProductListingType>(
       default: [],
     },
   
-    is_sold: {
-      type: Boolean,
-      default: false,
-    },
     is_reserved: {
       type: Boolean,
       default: false,
+    },
+    reserved_at: {
+      type: Date,
     },
     hasSettled: {
       type: Boolean,

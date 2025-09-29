@@ -32,7 +32,7 @@ export const moveFundsAfterFiveDays = async () => {
 
       for (const item of order.items) {
         const product = item.product;
-        if (!product || !product.is_sold || product.hasSettled) continue;
+        if (!product || product.hasSettled) continue;
 
         const seller = await User.findById(product.seller);
         if (!seller || !seller.accountDetail) continue;

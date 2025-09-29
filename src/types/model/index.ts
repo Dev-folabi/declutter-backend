@@ -66,6 +66,7 @@ export interface ContactUsModelType {
 export interface ProductListingType extends Document {
   name: string;
   price: number;
+  quantity: number;
   productId: string;
   productImage: string[];
   productVideos: string[];
@@ -74,8 +75,8 @@ export interface ProductListingType extends Document {
   description: string;
   is_approved: boolean;
   rejection_reason?: string;
-  is_sold: boolean;
   is_reserved: boolean;
+  reserved_at?: Date;
   hasSettled: boolean;
   seller: Schema.Types.ObjectId;
   status: "approved" | "pending" | "rejected" | "flagged" | "removed";

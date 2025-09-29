@@ -66,7 +66,7 @@ export const addToCart = async (
 
     const product = await Product.findOne({
       _id: product_id,
-      is_sold: false,
+      quantity: { $gt: 0 },
       is_approved: true,
       is_reserved: false,
     });
@@ -78,6 +78,14 @@ export const addToCart = async (
         data: null,
       });
       return;
+    }
+
+    if (product.quantity < quantity) {
+      return handleError(
+        res,
+        400,
+        `Not enough items in stock. Only ${product.quantity} available.`
+      );
     }
     if (product.seller.toString() === userId) {
       handleError(res, 400, "You can't buy your own product");
@@ -214,7 +222,6 @@ export const updateCartItem = async (
 
     const product = await Product.findOne({
       _id: product_id,
-      is_sold: false,
       is_approved: true,
     });
 
@@ -225,6 +232,14 @@ export const updateCartItem = async (
         data: null,
       });
       return;
+    }
+
+    if (product.quantity < quantity) {
+      return handleError(
+        res,
+        400,
+        `Not enough items in stock. Only ${product.quantity} available.`
+      );
     }
 
     const cart = await Cart.findOne({ user: user._id });
