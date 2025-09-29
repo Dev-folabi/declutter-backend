@@ -17,7 +17,7 @@ export const getAllUnsoldProduct = async (
 ) => {
   try {
     let query: any = { ...req.query };
-    query.is_sold = false;
+    query.quantity = { $gt: 0 };
     query.is_approved = true;
     query.is_reserved = false;
 
@@ -52,9 +52,8 @@ export const getAllUnsoldProduct = async (
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
-    // const products = await Product.find({is_sold: false, is_approved: true})
     const productsData = _.map(products, (product) =>
-      _.omit(product.toObject(), ["is_approved", "is_sold"])
+      _.omit(product.toObject(), ["is_approved"])
     );
     res.status(200).json({
       success: true,
@@ -104,7 +103,7 @@ export const listAProduct = async (
       return;
      }
 
-    const { name, categoryId, price, location, description, phoneNumber } = req.body;
+    const { name, categoryId, price, location, description, phoneNumber, quantity } = req.body;
     const categoryExist = await Category.findById(categoryId);
     if (!categoryExist) {
       res.status(400).json({
@@ -171,6 +170,7 @@ export const listAProduct = async (
     const newProduct = await Product.create({
       name,
       price,
+      quantity,
       productId: productId(),
       category: categoryId,
       location,
@@ -181,7 +181,7 @@ export const listAProduct = async (
       sellerPhoneNumber: phoneNumber
     });
 
-    const productData = _.omit(newProduct.toObject(), ["is_sold"]);
+    const productData = _.omit(newProduct.toObject(), []);
 
     const notificationData: CreateNotificationData = {
       recipient: user?._id! as string,
@@ -256,7 +256,7 @@ export const updateAProduct = async (
       { new: true, runValidators: true }
     );
 
-    const productData = _.omit(updatedProduct, ["is_sold"]);
+    const productData = _.omit(updatedProduct, []);
 
     const notificationData: CreateNotificationData = {
       recipient: user?._id! as string,
@@ -284,7 +284,10 @@ export const getSingleUnsoldProduct = async (
   next: NextFunction
 ) => {
   try {
-    const product = await Product.findById(req.params.id)
+    const product = await Product.findOne({
+      _id: req.params.id,
+      quantity: { $gt: 0 },
+    })
     .populate("seller", "fullName profileImageURL sellerStatus email")
     .populate("category", "name description");
     if (product) {
@@ -314,7 +317,7 @@ export const getUnsoldProductsByCategory = async (
 ) => {
   try {
     let query: any = { ...req.query };
-    query.is_sold = false;
+    query.quantity = { $gt: 0 };
     query.is_approved = true;
     query.is_reserved = false;
     query.category = req.params.category;
@@ -353,7 +356,7 @@ export const getUnsoldProductsByCategory = async (
 
     if (products) {
       const productsData = _.map(products, (product) =>
-        _.omit(product.toObject(), ["is_approved", "is_sold"])
+        _.omit(product.toObject(), ["is_approved"])
       );
       res.status(200).json({
         success: true,
@@ -382,7 +385,7 @@ export const getAllLongUnsoldProduct = async (
 ) => {
   try {
     let query: any = { ...req.query };
-    query.is_sold = false;
+    query.quantity = { $gt: 0 };
     query.is_approved = true;
 
     // Remove pagination fields
@@ -416,9 +419,8 @@ export const getAllLongUnsoldProduct = async (
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: 1 });
-    // const products = await Product.find({is_sold: false, is_approved: true})
     const productsData = _.map(products, (product) =>
-      _.omit(product.toObject(), ["is_approved", "is_sold"])
+      _.omit(product.toObject(), ["is_approved"])
     );
     res.status(200).json({
       success: true,
@@ -459,7 +461,7 @@ export const getSellerProducts = async (
 
     let query: any = {
       seller: sellerId,
-      is_sold: false,
+      quantity: { $gt: 0 },
     };
 
     // Add search functionality if there's a search term

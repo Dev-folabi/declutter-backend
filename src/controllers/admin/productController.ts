@@ -172,8 +172,10 @@ export const getProductsByAdmin = async (
     if (is_approved) {
       query.is_approved = is_approved;
     }
-    if (is_sold) {
-      query.is_sold = is_sold;
+    if (is_sold === "true") {
+      query.quantity = 0;
+    } else if (is_sold === "false") {
+      query.quantity = { $gt: 0 };
     }
 
     if (search) {
