@@ -8,7 +8,10 @@ import { handleError } from "../error/errorHandler";
 
 /** Utility to get or create a cart */
 const getOrCreateCart = async (userId: string) => {
-  let cart = await Cart.findOne({ user: userId }).populate("items.product", "name productImage");
+  let cart = await Cart.findOne({ user: userId }).populate(
+    "items.product",
+    "name productImage"
+  );
   if (!cart) {
     cart = await Cart.create({ user: userId, items: [], totalPrice: 0 });
   }
@@ -81,23 +84,28 @@ export const addToCart = async (
     }
 
     if (product.quantity < quantity) {
-      return handleError(
+      handleError(
         res,
         400,
         `Not enough items in stock. Only ${product.quantity} available.`
       );
+      return;
     }
+
     if (product.seller.toString() === userId) {
       handleError(res, 400, "You can't buy your own product");
       return;
     }
+
     let cart = await Cart.findOne({ user: user._id });
     if (!cart) {
       cart = await Cart.create({ user: user._id, items: [], totalPrice: 0 });
     }
+
     const existingIndex = cart.items.findIndex(
-      (item) => item.product.toString() === (product._id as string)
+      (item) => item.product.toString() === (product._id as any).toString()
     );
+
     const totalItemPrice = quantity * Number(product.price);
 
     if (existingIndex > -1) {
@@ -112,6 +120,7 @@ export const addToCart = async (
     }
 
     cart.totalPrice += totalItemPrice;
+
     cart.markModified("items");
     await cart.save();
 
@@ -144,7 +153,9 @@ export const removeItemFromCart = async (
 
     const { product_id } = req.params;
 
-    const cart = await Cart.findOne({ user: user._id }).populate("items.product");
+    const cart = await Cart.findOne({ user: user._id }).populate(
+      "items.product"
+    );
     if (!cart) {
       handleError(res, 404, "Cart not found");
       return;
@@ -190,7 +201,6 @@ export const removeItemFromCart = async (
     next(error);
   }
 };
-
 
 export const updateCartItem = async (
   req: Request,
@@ -253,7 +263,7 @@ export const updateCartItem = async (
     }
 
     const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === (product._id as string)
+      (item) => item.product.toString() === (product._id as any).toString()
     );
 
     if (itemIndex === -1) {
@@ -262,9 +272,7 @@ export const updateCartItem = async (
         message: "Product not found in cart.",
         data: null,
       });
-      return;
     }
-
     cart.items[itemIndex].quantity = quantity;
     cart.items[itemIndex].price = quantity * Number(product.price);
 
