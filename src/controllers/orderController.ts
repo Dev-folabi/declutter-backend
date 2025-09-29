@@ -40,12 +40,22 @@ export const orderCheckout = async (
 
     const orderItems = [];
     let totalOrderPrice = 0;
+    const unavailableItems: string[] = [];
 
     for (const cartItem of cart.items) {
       const product = await Product.findById(cartItem.product);
 
-      if (!product || product.is_sold || !product.is_approved) {
-        continue; // skip invalid products
+      if (
+        !product ||
+        !product.is_approved ||
+        product.quantity < cartItem.quantity
+      ) {
+        if (product) {
+          unavailableItems.push(product.name);
+        } else {
+          unavailableItems.push(`An unknown item`);
+        }
+        continue;
       }
 
       const itemTotal = cartItem.quantity * Number(product.price);
@@ -56,9 +66,16 @@ export const orderCheckout = async (
         quantity: cartItem.quantity,
         price: itemTotal,
       });
+    }
 
-      // Mark product as reserved
-      await Product.updateOne({ _id: product._id }, { is_reserved: true });
+    if (unavailableItems.length > 0) {
+      res.status(400).json({
+        success: false,
+        message: `Some items in your cart are unavailable or don't have enough stock: ${unavailableItems.join(
+          ", "
+        )}. Please adjust your cart.`,
+      });
+      return;
     }
 
     // Create the order
@@ -75,10 +92,6 @@ export const orderCheckout = async (
 
     const order = await Order.create(orderData);
 
-    // Clear the cart
-    cart.items = [];
-    cart.totalPrice = 0;
-    await cart.save();
 
     // Create notification
     const notificationData: CreateNotificationData = {

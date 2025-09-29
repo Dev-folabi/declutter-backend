@@ -16,6 +16,8 @@ import bcrypt from "bcrypt";
 import { decryptAccountDetail, encryptData } from "../utils";
 import { calculateEarnings } from "../utils/calculateEarnings";
 import { Schema } from "mongoose";
+import { Cart } from "../models/cart";
+import { Product } from "../models/productList";
 
 const environment = getEnvironment();
 
@@ -109,6 +111,31 @@ export const initiateOrderPayment = async (
         data: null,
       });
       return;
+    }
+
+    // Check product availability and reserve items
+    const unavailableItems: string[] = [];
+    for (const item of order.items) {
+      const product = await Product.findById(item.product);
+      if (!product || product.quantity < item.quantity || product.is_reserved) {
+        unavailableItems.push(product ? product.name : "An unknown item");
+      }
+    }
+
+    if (unavailableItems.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `The following items are no longer available: ${unavailableItems.join(
+          ", "
+        )}. Please remove them from your cart and try again.`,
+      });
+    }
+
+    // Reserve products
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, {
+        $set: { is_reserved: true, reserved_at: new Date() },
+      });
     }
 
     // Calculate commission & earnings (before adding gateway fee)
@@ -235,36 +262,61 @@ export const verifyPayment = async (
 
     // Handle each product in the order
     for (const item of order.items) {
-      const product = item.product;
-      if (product && !product.is_sold) {
-        product.is_sold = true;
-        await product.save();
+      const product = item.product; // This is the populated product document
+      if (product) {
+        // Update product quantity and reservation status
+        await Product.findByIdAndUpdate(product._id, {
+          $inc: { quantity: -item.quantity },
+          $set: { is_reserved: false },
+          $unset: { reserved_at: "" },
+        });
 
         const seller = await User.findById(product.seller);
         if (seller && seller.accountDetail) {
-          const creditAmount = transaction.amount * 0.95;
+          const itemCredit = item.price * 0.95; // item.price is quantity * unit_price
           seller.accountDetail.pendingBalance =
-            (seller.accountDetail.pendingBalance || 0) + creditAmount;
+            (seller.accountDetail.pendingBalance || 0) + itemCredit;
           await seller.save();
 
           const notificationData: CreateNotificationData = {
             recipient: seller._id as string,
             recipientModel: "User" as const,
-            body: `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
+            body: `Your product "${
+              product.name
+            }" (x${
+              item.quantity
+            }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
+              2
+            )}.`,
             type: "market",
-            title: "Product Sales",
+            title: "Product Sold",
           };
 
+          // Notifications can be sent inside the loop
           await Promise.allSettled([
             createNotification(notificationData),
             sendEmail(
               seller.email!,
-              "Product Sales",
-              `Your Product "${product.name}" has been sold and credited with NGN ${creditAmount}`
+              "Product Sold",
+              `Your product "${
+                product.name
+              }" (x${
+                item.quantity
+              }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
+                2
+              )}.`
             ),
           ]);
         }
       }
+    }
+
+    // Clear user cart after processing all items in the order
+    const cart = await Cart.findOne({ user: userId });
+    if (cart) {
+      cart.items = [];
+      cart.totalPrice = 0;
+      await cart.save();
     }
 
     res.status(200).json({
@@ -358,23 +410,32 @@ const handleChargeSuccess = async (paymentData: any) => {
 
   for (const item of order.items) {
     const product = item.product;
-    if (product && !product.is_sold) {
-      product.is_sold = true;
-      await product.save();
+    if (product) {
+      await Product.findByIdAndUpdate(product._id, {
+        $inc: { quantity: -item.quantity },
+        $set: { is_reserved: false },
+        $unset: { reserved_at: "" },
+      });
 
       const seller = await User.findById(product.seller);
       if (seller && seller.accountDetail) {
-        const creditAmount = transaction.amount * 0.95;
+        const itemCredit = item.price * 0.95;
         seller.accountDetail.pendingBalance =
-          (seller.accountDetail.pendingBalance || 0) + creditAmount;
+          (seller.accountDetail.pendingBalance || 0) + itemCredit;
         await seller.save();
 
         const notificationData: CreateNotificationData = {
           recipient: seller._id as string,
           recipientModel: "User" as const,
-          body: `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`,
+          body: `Your product "${
+            product.name
+          }" (x${
+            item.quantity
+          }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
+            2
+          )}.`,
           type: "account",
-          title: "Product Sales",
+          title: "Product Sold",
         };
 
         await Promise.allSettled([
@@ -382,11 +443,25 @@ const handleChargeSuccess = async (paymentData: any) => {
           sendEmail(
             seller.email!,
             "Product Sold",
-            `Your product "${product.name}" has been sold and credited with NGN ${creditAmount}`
+            `Your product "${
+              product.name
+            }" (x${
+              item.quantity
+            }) has been sold and your pending balance credited with ₦${itemCredit.toFixed(
+              2
+            )}.`
           ),
         ]);
       }
     }
+  }
+
+  // Clear user cart after processing all items
+  const cart = await Cart.findOne({ user: transaction.userId });
+  if (cart) {
+    cart.items = [];
+    cart.totalPrice = 0;
+    await cart.save();
   }
 };
 
@@ -404,6 +479,14 @@ const handleChargeFailed = async (paymentData: any) => {
   if (order) {
     order.status = "failed";
     await order.save();
+
+    // Release reserved products
+    for (const item of order.items) {
+      await Product.findByIdAndUpdate(item.product, {
+        $set: { is_reserved: false },
+        $unset: { reserved_at: "" },
+      });
+    }
   }
 };
 
@@ -455,6 +538,13 @@ const handleRefundSuccess = async (paymentData: any) => {
     if (order) {
       order.status = "refunded";
       await order.save();
+
+      // Restore product quantities
+      for (const item of order.items) {
+        await Product.findByIdAndUpdate(item.product, {
+          $inc: { quantity: item.quantity },
+        });
+      }
     }
   }
 

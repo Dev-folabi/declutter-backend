@@ -66,6 +66,7 @@ export interface ContactUsModelType {
 export interface ProductListingType extends Document {
   name: string;
   price: number;
+  quantity: number;
   productId: string;
   productImage: string[];
   productVideos: string[];
@@ -74,8 +75,8 @@ export interface ProductListingType extends Document {
   description: string;
   is_approved: boolean;
   rejection_reason?: string;
-  is_sold: boolean;
   is_reserved: boolean;
+  reserved_at?: Date;
   hasSettled: boolean;
   seller: Schema.Types.ObjectId;
   status: "approved" | "pending" | "rejected" | "flagged" | "removed";
@@ -84,11 +85,12 @@ export interface ProductListingType extends Document {
     flaggedBy: Types.ObjectId;
     date: Date;
   }[];
+  sellerPhoneNumber: string
 }
 
 // Interface for CartItem
 export interface ICartItem extends Document {
-  product: Schema.Types.ObjectId;
+  product: Types.ObjectId | (ProductListingType & { _id: Types.ObjectId });
   quantity: number;
   price: number;
 }
