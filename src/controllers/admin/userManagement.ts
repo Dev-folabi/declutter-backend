@@ -4,7 +4,10 @@ import { User } from '../../models/userModel';
 import { AdminActivityLog } from '../../models/adminAction';
 import { sendEmail } from '../../utils/mail';
 import { paginated_result } from '../../utils/pagination';
+import { getIdFromToken } from '../../function/token';
+import { Admin } from '../../models/adminModel';
 import _ from 'lodash';
+import { log } from 'console';
 
 export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -116,37 +119,79 @@ export const verifySellerDocuments = async (
 // Activate or suspend user
 export const updateUserStatus = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { status, note } = req.body;
+    const { action, reason } = req.body;
     const { userId } = req.params;
+
+    const adminId = getIdFromToken(req);
+    const admin = await Admin.findById(adminId)
+    if (!admin) return handleError(res, 401, "You are not authorized to perform this action.");
 
     const user = await User.findById(userId);
     if (!user) return handleError(res, 404, 'User not found');
 
-    //   update user status and isSuspended flag
-    user.status = status;
-    user.isSuspended = status === 'suspended';
-    //   then save the user
+    let logAction = '';
+
+    if (action === "suspend") {
+  
+      if (user.suspension.isSuspended) {
+        return handleError(res, 400, "User is already suspended");
+      }
+
+      logAction = 'suspended_user';
+      user.suspension = {
+        isSuspended: true,
+        reason: reason || "No reason provided",
+        actionBy: (req as any).admin._id,
+        actionAt: new Date(),
+      }
+
+    } else if (action === "activate") {
+
+      if (!user.suspension.isSuspended) {
+        return handleError(res, 400, "User is not suspended");
+      }
+
+      logAction = 'activated_user';
+      user.suspension = {
+        isSuspended: false,
+        reason: reason || "No reason provided",
+        actionBy: (req as any).admin._id,
+        actionAt: new Date(),
+      }
+    }
+
     await user.save();
 
     // Send email notification to the user
-    const subject = `Your Account Status has been Updated to ${status}`;
-    const message = `<p>Hello ${user.fullName},</p><p>Your account status has been updated to ${status}.</p>${note ? `<p>Note: ${note}</p>` : ''}`;
+    const subject =
+      action === "suspend"
+        ? "Important: Your Account has been Suspended"
+        : "Goodnews: Your Account has been Activated";
+    const message =
+      action === "suspend"
+        ? `Your account has been suspended. Reason: ${reason || "No reason provided"}.`
+        : "Your account has been reactivated and is now active.";
+
     await sendEmail(user.email, subject, message);
 
     //   omit senitive data from the respnse
     const sanitizedUser = _.omit(user.toObject(), ['password', 'pin']);
+
     await AdminActivityLog.create({
       admin: (req as any).admin._id,
       user: userId,
-      action: `Updated status to ${status}`,
-      note,
+      action: logAction,
+      reason,
     });
 
     res.status(200).json({
       success: true,
-      message: `User status updated to ${status}`,
+      message: action === "suspend"
+        ? "User account has been suspended successfully."
+        : "User account has been activated successfully.",
       data: sanitizedUser,
     });
+
   } catch (error) {
     next(error);
   }
