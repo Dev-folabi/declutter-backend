@@ -32,7 +32,12 @@ export interface IUser extends Document {
   profileImageURL: string;
   is_admin: boolean;
   status: "active" | "inactive" | "suspended";
-  isSuspended: boolean;
+  suspension: {
+    isSuspended: boolean;
+    reason?: string;
+    actionBy?: Schema.Types.ObjectId;
+    actionAt?: Date;
+  };
 }
 
 export interface OTPVerificationModelType {

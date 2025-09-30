@@ -347,10 +347,10 @@ export const validateStatusUpdate = [
     .isMongoId()
     .withMessage("Invalid user Id format"),
 
-  body("status")
+  body("action")
     .notEmpty()
-    .withMessage("Status is required")
-    .isIn(["active", "inactive", "suspended"])
+    .withMessage("Action is required")
+    .isIn(["activate", "suspend"])
     .withMessage('Status must be one of "active", "inactive", or "suspended"'),
 
   handleValidationErrors,
