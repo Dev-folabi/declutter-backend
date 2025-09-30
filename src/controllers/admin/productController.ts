@@ -331,3 +331,26 @@ export const flagOrRemoveListing = async (
     next(err);
   }
 };
+
+export const getSingleProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const product = await Product.findOne({
+      _id: req.params.id,
+      quantity: { $gt: 0 },
+    })
+    .populate("seller", "fullName profileImageURL sellerStatus email")
+    .populate("category", "name description");
+    
+    res.status(200).json({
+        success: true,
+        message: "Product retrieved successfully.",
+        data: productData,
+      });
+  } catch (error) {
+    next(error);
+  }
+};
