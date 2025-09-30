@@ -348,7 +348,7 @@ export const getSingleProduct = async (
     res.status(200).json({
         success: true,
         message: "Product retrieved successfully.",
-        data: productData,
+        data: product,
       });
   } catch (error) {
     next(error);
