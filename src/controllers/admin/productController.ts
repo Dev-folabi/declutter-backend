@@ -340,7 +340,6 @@ export const getSingleProduct = async (
   try {
     const product = await Product.findOne({
       _id: req.params.id,
-      quantity: { $gt: 0 },
     })
     .populate("seller", "fullName profileImageURL sellerStatus email")
     .populate("category", "name description");
