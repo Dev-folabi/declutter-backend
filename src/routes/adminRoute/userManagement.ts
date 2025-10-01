@@ -58,6 +58,13 @@ const router = express.Router();
  *           type: string
  *         required: false
  *         description: Search by name or email
+ *       - in: query
+ *         name: isSuspended
+ *         schema:
+ *           type: boolean
+ *           example: true
+ *         description: Filter users by suspension status (true or false)
+ * 
  *     responses:
  *       200:
  *         description: Users fetched successfully
