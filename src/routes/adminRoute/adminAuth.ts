@@ -5,6 +5,7 @@ import {
   verifyAdminEmail,
   resetAdminPasswordOTP,
   resetAdminPassword,
+  getAdminUsers,
 } from "../../controllers/admin/authController";
 
 import {
@@ -14,6 +15,8 @@ import {
   validateResetPassword,
   validateResetPasswordOTP,
 } from "../../middlewares/validators";
+
+import { verifyToken, authorizeRoles } from "../../middlewares/authMiddleware"; // Import middleware
 
 const router = express.Router();
 /**
@@ -112,7 +115,6 @@ const router = express.Router();
  *         description: Admin not found
  *
  * /api/admin/auth/reset-password:
-
  *   post:
  *     summary: Reset password using OTP
  *     tags: [Admin Authentication]
@@ -124,17 +126,43 @@ const router = express.Router();
  *             type: object
  *             required: [OTP, newPassword]
  *             properties:
- *               OTP:
- *                 type: string
- *               newPassword:
- *                 type: string
+ *               OTP:\
+ *                 type: string\
+ *               newPassword:\
+ *                 type: string\
+ *     responses:
+ *       '200':\
+ *         description: Password reset successful\
+ *       '400':\
+ *         description: Missing fields or invalid OTP\
+ *       '404':\
+ *         description: Admin not found
+ * /api/admin/auth/users:
+ *   get:
+ *     summary: Get all admin users (Super Admin only)
+ *     tags: [Admin Authentication]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       '200':
- *         description: Password reset successful
- *       '400':
- *         description: Missing fields or invalid OTP
- *       '404':
- *         description: Admin not found
+ *         description: Admin users fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Admin' # Assuming you have an Admin schema defined
+ *       '401':
+ *         description: Unauthorized
+ *       '403':
+ *         description: Access denied
  */
 
 // Admin-only routes
@@ -147,5 +175,8 @@ router.post(
 );
 router.post("/reset-password", validateResetPassword, resetAdminPassword);
 router.post("/verify-otp", validateVerifyEmailOTP, verifyAdminEmail);
+
+// Super Admin route to get all admin users
+router.get("/users", verifyToken, authorizeRoles("super_admin"), getAdminUsers);
 
 export default router;
