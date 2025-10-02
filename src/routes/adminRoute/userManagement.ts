@@ -131,22 +131,47 @@ const router = express.Router();
  *             required:
  *               - status
  *             properties:
- *               status:
+ *               action:
  *                 type: string
- *                 enum: [active, inactive, suspended]
- *                 description: New status to apply
- *               note:
+ *                 enum: [activate, suspend]
+ *                 description: Action to perform on the user account
+ *               reason:
  *                 type: string
- *                 description: Optional admin note or reason
+ *                 description: Reason for suspending or activating the user
  *     responses:
  *       200:
- *         description: User status updated
+ *         description: User status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User account has been suspended successfully."
+ *                 data:
+ *                   type: object
+ *                   description: Sanitized user object (password and pin omitted)
  *       400:
- *         description: Invalid status or bad request
+ *         description: Invalid request (e.g., user already suspended or not suspended, validation error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User is already suspended"
+ *       401:
+ *         description: Unauthorized - admin authentication required
  *       404:
  *         description: User not found
- *       401:
- *         description: Unauthorized
  */
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
