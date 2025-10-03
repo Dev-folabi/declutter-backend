@@ -166,6 +166,7 @@ const router = express.Router();
  *               - location
  *               - description
  *               - categoryId
+ *               - phoneNumber
  *             properties:
  *               name:
  *                 type: string
@@ -181,6 +182,10 @@ const router = express.Router();
  *                 type: integer
  *                 description: The number of items available for sale. Defaults to 1 if not provided.
  *                 example: 5
+ *               phoneNumber:
+ *                 type: string
+ *                 description: Phone number must be in international format
+ *                 example: "+2348012345678"
  *               files:
  *                 type: array
  *                 items:

@@ -3,11 +3,12 @@ import {
   getAllUsers,
   verifySellerDocuments,
   updateUserStatus,
+  getAdminUsers,
 } from "../../controllers/admin/userManagement";
 import { validateVerificationRequest } from "../../middlewares/validators";
 import { validateStatusUpdate } from "../../middlewares/validators";
-import { authorizeRoles } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
+import { verifyToken, authorizeRoles } from "../../middlewares/authMiddleware"; 
 
 const router = express.Router();
 /**
@@ -58,6 +59,13 @@ const router = express.Router();
  *           type: string
  *         required: false
  *         description: Search by name or email
+ *       - in: query
+ *         name: isSuspended
+ *         schema:
+ *           type: boolean
+ *           example: true
+ *         description: Filter users by suspension status (true or false)
+ * 
  *     responses:
  *       200:
  *         description: Users fetched successfully
@@ -131,22 +139,74 @@ const router = express.Router();
  *             required:
  *               - status
  *             properties:
- *               status:
+ *               action:
  *                 type: string
- *                 enum: [active, inactive, suspended]
- *                 description: New status to apply
- *               note:
+ *                 enum: [activate, suspend]
+ *                 description: Action to perform on the user account
+ *               reason:
  *                 type: string
- *                 description: Optional admin note or reason
+ *                 description: Reason for suspending or activating the user
  *     responses:
  *       200:
- *         description: User status updated
+ *         description: User status updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "User account has been suspended successfully."
+ *                 data:
+ *                   type: object
+ *                   description: Sanitized user object (password and pin omitted)
  *       400:
- *         description: Invalid status or bad request
+ *         description: Invalid request (e.g., user already suspended or not suspended, validation error)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: false
+ *                 message:
+ *                   type: string
+ *                   example: "User is already suspended"
+ *       401:
+ *         description: Unauthorized - admin authentication required
  *       404:
  *         description: User not found
- *       401:
+ * 
+ * /api/admin/users/admin:
+ *   get:
+ *     summary: Get all admin users (Super Admin only)
+ *     tags: [Admin Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Admin users fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Admin'
+ *       '401':
  *         description: Unauthorized
+ *       '403':
+ *         description: Access denied
  */
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
@@ -162,5 +222,9 @@ router.patch(
   validateStatusUpdate,
   updateUserStatus
 );
+
+
+// Super Admin route to get all admin users
+router.get("/admin", verifyToken, authorizeRoles("super_admin"), getAdminUsers);
 
 export default router;

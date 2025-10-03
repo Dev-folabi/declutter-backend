@@ -13,7 +13,7 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
   try {
     const page = Number(req.query.page) || 1;
     const per_page = Number(req.query.limit) || 10;
-    const { status, sellerStatus, roles, search = '' } = req.query;
+    const { status, sellerStatus, roles, isSuspended, search = '' } = req.query;
 
     const filters: any = {};
 
@@ -25,6 +25,12 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     if (status) filters.status = status;
     if (sellerStatus) filters.sellerStatus = sellerStatus;
     if (roles) filters.role = roles;
+    if (isSuspended === 'true') {    
+      filters['suspension.isSuspended'] = true;
+    } else if (isSuspended === 'false') {
+      filters['suspension.isSuspended'] = false;
+    }
+  
 
     // Count total number of users matching the filters
     const count = await User.countDocuments(filters);
@@ -192,6 +198,23 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
       data: sanitizedUser,
     });
 
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const admins = await Admin.find().select("-password");
+    res.status(200).json({
+      success: true,
+      message: "Admin users fetched successfully.",
+      data: admins,
+    });
   } catch (error) {
     next(error);
   }
