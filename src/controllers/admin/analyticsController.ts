@@ -3,7 +3,6 @@ import { User } from "../../models/userModel";
 import { Order } from "../../models/order";
 import { Product } from "../../models/productList";
 import { Transaction } from "../../models/transactionModel";
-import mongoose from "mongoose";
 import PDFDocument from "pdfkit";
 import { handleError } from "../../error/errorHandler";
 
@@ -16,6 +15,57 @@ const calculatePercentageChange = (
   }
   return ((current - previous) / previous) * 100;
 };
+
+const _getUserGrowthChartData = async () => {
+    const months = Array.from({ length: 12 }, (_, i) => {
+      const d = new Date();
+      d.setMonth(d.getMonth() - i);
+      return {
+        month: d.toLocaleString("default", { month: "short" }),
+        year: d.getFullYear(),
+        startDate: new Date(d.getFullYear(), d.getMonth(), 1),
+        endDate: new Date(d.getFullYear(), d.getMonth() + 1, 0),
+      };
+    }).reverse();
+
+    const newUsersData = await User.aggregate([
+      {
+        $group: {
+          _id: {
+            year: { $year: "$createdAt" },
+            month: { $month: "$createdAt" },
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    const returningUsersData = await User.aggregate([
+        {
+            $group: {
+                _id: {
+                    year: { $year: "$lastLogin" },
+                    month: { $month: "$lastLogin" },
+                },
+                count: { $sum: 1 },
+            },
+        },
+    ]);
+
+    return months.map((m) => {
+      const newUsers = newUsersData.find(
+        (d) => d._id.year === m.year && d._id.month === m.startDate.getMonth() + 1
+      );
+      const returningUsers = returningUsersData.find(
+        (d) => d._id.year === m.year && d._id.month === m.startDate.getMonth() + 1
+      );
+      return {
+        month: m.month,
+        newUsers: newUsers ? newUsers.count : 0,
+        returningUsers: returningUsers ? returningUsers.count : 0,
+      };
+    });
+}
 
 // Private helper function to get summary data
 const _getAnalyticsSummary = async (period: number) => {
@@ -278,6 +328,157 @@ export const getAnalyticsData = async (
         },
         topProducts,
         totalReport,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const exportUserGrowthChart = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userGrowthChart = await _getUserGrowthChartData();
+
+    const doc = new PDFDocument({ margin: 50 });
+    const reportName = "User_Growth_Chart.pdf";
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="${reportName}"`
+    );
+    doc.pipe(res);
+
+    doc.fontSize(20).text("User Growth Chart", { align: "center" });
+    doc.moveDown(2);
+
+    const tableTop = doc.y;
+    const monthX = 50;
+    const newUsersX = 250;
+    const returningUsersX = 450;
+
+    doc
+      .fontSize(10)
+      .text("Month", monthX, tableTop)
+      .text("New Users", newUsersX, tableTop)
+      .text("Returning Users", returningUsersX, tableTop);
+
+    doc
+      .moveTo(monthX - 10, doc.y)
+      .lineTo(returningUsersX + 100, doc.y)
+      .stroke();
+    doc.moveDown();
+
+    userGrowthChart.forEach((row) => {
+      const y = doc.y;
+      doc
+        .fontSize(10)
+        .text(row.month, monthX, y)
+        .text(row.newUsers.toString(), newUsersX, y)
+        .text(row.returningUsers.toString(), returningUsersX, y);
+      doc.moveDown();
+    });
+
+    doc.end();
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAdminDashboard = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const period = parseInt(req.query.period as string, 10) || 7;
+    const now = new Date();
+    const startDate = new Date(now.getTime() - period * 24 * 60 * 60 * 1000);
+
+    // Top-level stats
+    const totalUsers = await User.countDocuments();
+    const totalListings = await Product.countDocuments();
+    const totalTransactions = await Transaction.countDocuments({ status: "completed" });
+    const reports = await Order.countDocuments({ status: "paid" });
+
+    // User Growth Chart (New vs. Returning Users)
+    const userGrowthChart = await _getUserGrowthChartData();
+
+    // Top Products
+    const topProductsData = await Order.aggregate([
+      { $match: { status: "paid", createdAt: { $gte: startDate } } },
+      { $unwind: "$items" },
+      {
+        $lookup: {
+          from: "products",
+          localField: "items.product",
+          foreignField: "_id",
+          as: "productDetails",
+        },
+      },
+      { $unwind: "$productDetails" },
+      {
+        $lookup: {
+            from: "categories",
+            localField: "productDetails.category",
+            foreignField: "_id",
+            as: "categoryDetails"
+        }
+      },
+      { $unwind: "$categoryDetails" },
+      {
+        $group: {
+          _id: "$categoryDetails.name",
+          totalSold: { $sum: "$items.price" },
+        },
+      },
+      { $sort: { totalSold: -1 } },
+      { $limit: 5 },
+    ]);
+
+    const totalSalesForPeriod = await Order.aggregate([
+        { $match: { status: "paid", createdAt: { $gte: startDate } } },
+        { $unwind: "$items" },
+        { $group: { _id: null, total: { $sum: "$items.price" } } },
+    ]);
+    const totalSales = totalSalesForPeriod.length > 0 ? totalSalesForPeriod[0].total : 1;
+
+    const topProducts = topProductsData.map((p) => ({
+        name: p._id,
+        percentage: (p.totalSold / totalSales) * 100,
+    }));
+
+    // Pending Listings
+    const pendingListings = await Product.find({ status: "pending" })
+      .sort({ createdAt: -1 })
+      .limit(3)
+      .select("name price createdAt");
+
+    // Sales Record
+    const salesRecord = await Order.find({ status: { $in: ["paid", "pending", "failed"] } })
+        .sort({ createdAt: -1 })
+        .limit(4)
+        .populate({
+            path: "items.product",
+            model: "Product",
+            select: "name price"
+        })
+        .select("items status createdAt");
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalUsers,
+        totalListings,
+        totalTransactions,
+        reports,
+        userGrowthChart,
+        topProducts,
+        pendingListings,
+        salesRecord,
       },
     });
   } catch (error) {
