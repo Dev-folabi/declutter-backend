@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../../middlewares/authMiddleware';
-import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport } from '../../controllers/admin/analyticsController';
+import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport, getAdminDashboard, exportUserGrowthChart } from '../../controllers/admin/analyticsController';
 
 const router = Router();
 
@@ -101,6 +101,64 @@ router.get(
   verifyToken,
   getAnalyticsData
 );
+
+/**
+ * @swagger
+ * /api/admin/analytics/dashboard:
+ *   get:
+ *     summary: Get data for the new admin dashboard
+ *     description: Retrieves all data required for the new admin dashboard UI.
+ *     tags: [Admin Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: period
+ *         schema:
+ *           type: integer
+ *           default: 7
+ *         description: The time period in days for which to retrieve analytics data (e.g., 7, 30, 90).
+ *     responses:
+ *       200:
+ *         description: Dashboard data retrieved successfully.
+ *       403:
+ *         description: Access denied.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get(
+    '/dashboard',
+    verifyToken,
+    getAdminDashboard
+)
+
+/**
+ * @swagger
+ * /api/admin/analytics/dashboard/export-user-growth:
+ *   get:
+ *     summary: Export the User Growth Chart as a PDF
+ *     description: Generates and downloads a PDF of the user growth chart.
+ *     tags: [Admin Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: PDF report generated successfully.
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       403:
+ *         description: Access denied.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get(
+    '/dashboard/export-user-growth',
+    verifyToken,
+    exportUserGrowthChart
+)
 
 /**
  * @swagger
