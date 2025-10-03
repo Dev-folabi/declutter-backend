@@ -202,3 +202,20 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
     next(error);
   }
 };
+
+export const getAdminUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const admins = await Admin.find().select("-password");
+    res.status(200).json({
+      success: true,
+      message: "Admin users fetched successfully.",
+      data: admins,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

@@ -3,11 +3,12 @@ import {
   getAllUsers,
   verifySellerDocuments,
   updateUserStatus,
+  getAdminUsers,
 } from "../../controllers/admin/userManagement";
 import { validateVerificationRequest } from "../../middlewares/validators";
 import { validateStatusUpdate } from "../../middlewares/validators";
-import { authorizeRoles } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
+import { verifyToken, authorizeRoles } from "../../middlewares/authMiddleware"; 
 
 const router = express.Router();
 /**
@@ -179,6 +180,33 @@ const router = express.Router();
  *         description: Unauthorized - admin authentication required
  *       404:
  *         description: User not found
+ * 
+ * /api/admin/users/admin:
+ *   get:
+ *     summary: Get all admin users (Super Admin only)
+ *     tags: [Admin Authentication]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       '200':
+ *         description: Admin users fetched successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/Admin'
+ *       '401':
+ *         description: Unauthorized
+ *       '403':
+ *         description: Access denied
  */
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
@@ -194,5 +222,9 @@ router.patch(
   validateStatusUpdate,
   updateUserStatus
 );
+
+
+// Super Admin route to get all admin users
+router.get("/admin", verifyToken, authorizeRoles("super_admin"), getAdminUsers);
 
 export default router;

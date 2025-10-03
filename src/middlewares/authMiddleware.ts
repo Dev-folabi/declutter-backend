@@ -38,7 +38,7 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
     const user = (req as any).user as { role: string[]; is_admin: boolean };
 
     // If user is an admin, allow access regardless of their roles
-    if (user.is_admin) {
+    if (user.role.includes("super_admin")) {
       next();
       return;
     }
