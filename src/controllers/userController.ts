@@ -189,33 +189,39 @@ export const updateBankDetail = async (
     // if (!otp) {
     //   return handleError(res, 400, "Invalid OTP.");
     // }
-
-    const detail = await paystack.createRecipient(
-      accountNumber as string,
-      bankCode as string
-    );
-    const recipientCode = detail.recipient_code;
-    const account = detail.details;
-
-    const encryptedAccountNumber = encryptData(accountNumber);
-    const encryptedbankCode = encryptData(bankCode);
-    const encryptedRecipientCode = encryptData(recipientCode);
-    const encryptedBankName = encryptData(account.bank_name);
-
-    const accountDetail = {
-      accountName: account.account_name,
-      accountNumber: encryptedAccountNumber,
-      bankCode: encryptedbankCode,
-      bankName: encryptedBankName,
-      recipientCode: encryptedRecipientCode,
-    };
-
-    await User.updateOne(
-      { _id: user_id },
-      { accountDetail },
-      { new: true, upsert: true }
-    );
-    user.save();
+    let detail;
+    try {
+      detail = await paystack.createRecipient(
+        accountNumber as string,
+        bankCode as string
+      );
+    } catch (err: any) {
+      const msg = err?.response?.body?.message || "Invalid bank code or account number.";
+      return handleError(res, 400, msg);
+      
+    }  
+      const recipientCode = detail.recipient_code;
+      const account = detail.details;
+  
+      const encryptedAccountNumber = encryptData(accountNumber);
+      const encryptedbankCode = encryptData(bankCode);
+      const encryptedRecipientCode = encryptData(recipientCode);
+      const encryptedBankName = encryptData(account.bank_name);
+  
+      const accountDetail = {
+        accountName: account.account_name,
+        accountNumber: encryptedAccountNumber,
+        bankCode: encryptedbankCode,
+        bankName: encryptedBankName,
+        recipientCode: encryptedRecipientCode,
+      };
+  
+      await User.updateOne(
+        { _id: user_id },
+        { accountDetail },
+        { new: true, upsert: true }
+      );
+      user.save();
 
     const notificationData: CreateNotificationData = {
       recipient: user_id,
@@ -285,6 +291,9 @@ export const updatePin = async (
     );
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
+    }
+    if(withdrawalPin === new_pin){
+      return handleError(res, 400, "New pin must be different from the old pin.");
     }
 
     if (!(new_pin === confirm_pin)) {
