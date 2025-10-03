@@ -3,7 +3,6 @@ import { User } from "../../models/userModel";
 import { Order } from "../../models/order";
 import { Product } from "../../models/productList";
 import { Transaction } from "../../models/transactionModel";
-import mongoose from "mongoose";
 import PDFDocument from "pdfkit";
 import { handleError } from "../../error/errorHandler";
 
