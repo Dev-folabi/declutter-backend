@@ -126,10 +126,10 @@ export const listAProduct = async (
     const files = req.files as Express.Multer.File[];
 
     // Check if files are provided
-    if (!files || files.length < 3) {
+    if (!files || files.length === 0) {
       res.status(400).json({
         success: false,
-        message: "At least three product images are required.",
+        message: "Please upload product images.",
         data: null,
       });
       return;
@@ -142,6 +142,15 @@ export const listAProduct = async (
     const videoFiles = files.filter((file) =>
       file.mimetype.startsWith("video/")
     );
+
+    if (imageFiles.length < 3) {
+      res.status(400).json({
+        success: false,
+        message: "Please upload at least 3 product images.",
+        data: null,
+      });
+      return;
+    }
 
     // Upload images to ImageKit
     let productImageUrls: string[] = [];
@@ -162,6 +171,7 @@ export const listAProduct = async (
         ["product", "marketplace", "video"]
       );
     }
+   
 
     const productId = () => {
       return `DM-${Date.now()}`;

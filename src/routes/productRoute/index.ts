@@ -186,7 +186,10 @@ const router = express.Router();
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Product images (up to 10 files)
+ *                 description: >
+ *                   Upload Product images and optional videos (up to 10 files total)
+ *                   - At least 3 image files are required
+ *                   - Videos are optional
  *                 maxItems: 10
  *     responses:
  *       200:
