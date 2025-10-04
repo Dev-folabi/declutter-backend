@@ -99,7 +99,9 @@ export const validateChangePassword = [
       minNumbers: 1,
       minSymbols: 1,
     })
-    .withMessage( "Password must be 8 characters containing at least a special character, a number, an uppercase and lowercase letter"),
+    .withMessage(
+      "Password must be 8 characters containing at least a special character, a number, an uppercase and lowercase letter"
+    ),
   body("confirm_password")
     .notEmpty()
     .withMessage("Password is required")
@@ -185,7 +187,8 @@ export const validateResetPassword = [
       minSymbols: 1,
     })
     .withMessage(
-      "Password must be 8 characters containing at least a special character, a number, an uppercase and lowercase letter")
+      "Password must be 8 characters containing at least a special character, a number, an uppercase and lowercase letter"
+    )
     .isLength({ min: 8 })
     .withMessage("New password must be at least 8 characters long"),
   handleValidationErrors,
@@ -289,9 +292,13 @@ export const validateProductUpdate = [
 ];
 
 export const validateAdminRegister = [
-  body("fullName").notEmpty().withMessage("Full name is required")
-  .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]+$/)
-  .withMessage("Full name may only contain letters, spaces, hyphens, or apostrophes"),
+  body("fullName")
+    .notEmpty()
+    .withMessage("Full name is required")
+    .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]+$/)
+    .withMessage(
+      "Full name may only contain letters, spaces, hyphens, or apostrophes"
+    ),
   body("email")
     .notEmpty()
     .withMessage("Email is required")
@@ -313,7 +320,7 @@ export const validateAdminRegister = [
   body("role")
     .notEmpty()
     .withMessage("Role is required")
-    .isIn(["super_admin", "admin", "support_agent", "account_officer" ])
+    .isIn(["super_admin", "admin", "support_agent", "account_officer"])
     .withMessage(
       "Invalid role. Role must be either 'super_admin', 'admin', or 'support_agent'"
     )
@@ -351,7 +358,7 @@ export const validateStatusUpdate = [
     .notEmpty()
     .withMessage("Action is required")
     .isIn(["activate", "suspend"])
-    .withMessage('Status must be one of "active", "inactive", or "suspended"'),
+    .withMessage('Action must be either "activate" or "suspend"'),
 
   handleValidationErrors,
 ];
@@ -425,16 +432,16 @@ export const validateCreateProduct = [
     .withMessage("Description must be between 10 and 2000 characters")
     .isString()
     .withMessage("Description must be a string"),
-  body("categoryId")
-    .notEmpty()
-    .withMessage("categoryId is required"),
+  body("categoryId").notEmpty().withMessage("categoryId is required"),
   body("phoneNumber")
-  .notEmpty()
-  .withMessage("Phone number is required")
-  .isString()
-  .withMessage("Phone number must be a string")
-  .matches(/^\+?[1-9]\d{9,14}$/)
-  .withMessage("Invalid phone number format (must be in international format, e.g. +2348012345678)"),
+    .notEmpty()
+    .withMessage("Phone number is required")
+    .isString()
+    .withMessage("Phone number must be a string")
+    .matches(/^\+?[1-9]\d{9,14}$/)
+    .withMessage(
+      "Invalid phone number format (must be in international format, e.g. +2348012345678)"
+    ),
   handleValidationErrors,
 ];
 
@@ -459,9 +466,7 @@ export const validateUpdateProduct = [
     .notEmpty()
     .withMessage("Price cannot be empty"),
 
-  body("categoryId")
-    .notEmpty()
-    .withMessage("categoryId is required"),
+  body("categoryId").notEmpty().withMessage("categoryId is required"),
 
   check("location")
     .if((value, { req }) => req.body.location)
@@ -500,7 +505,9 @@ export const validateRegister = [
     .notEmpty()
     .withMessage("Full name is required")
     .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]+$/)
-    .withMessage("Full name may only contain letters, spaces, hyphens, or apostrophes")
+    .withMessage(
+      "Full name may only contain letters, spaces, hyphens, or apostrophes"
+    )
     .isString()
     .withMessage("Full name must be a string"),
   body("email")
@@ -703,14 +710,16 @@ export const validateCreateCategory = [
     .withMessage("Description must not exceed 500 characters")
     .trim(),
   handleValidationErrors,
-]
+];
 
 export const validateContactUs = [
   body("fullName")
-  .notEmpty()
+    .notEmpty()
     .withMessage("Full name is required")
     .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]{2,50}$/)
-    .withMessage("Full name must be 2–50 characters and may only contain letters, spaces, hyphens, or apostrophes")
+    .withMessage(
+      "Full name must be 2–50 characters and may only contain letters, spaces, hyphens, or apostrophes"
+    )
     .isString()
     .withMessage("Full name must be a string"),
   body("email")
@@ -732,5 +741,5 @@ export const validateContactUs = [
     .withMessage("Message body must be a string")
     .isLength({ min: 10, max: 2000 })
     .withMessage("Message body must be between 10 and 2000 characters"),
-  handleValidationErrors,  
-]
+  handleValidationErrors,
+];
