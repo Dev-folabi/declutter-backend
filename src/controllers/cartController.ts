@@ -66,6 +66,10 @@ export const addToCart = async (
     }
 
     const { product_id, quantity = 1 } = req.body;
+    if (quantity <= 0) {
+      handleError(res, 400, "Quantity must be greater than 0.");
+      return;
+    }
 
     const product = await Product.findOne({
       _id: product_id,
@@ -156,8 +160,18 @@ export const removeItemFromCart = async (
     const cart = await Cart.findOne({ user: user._id }).populate(
       "items.product"
     );
-    if (!cart) {
-      handleError(res, 404, "Cart not found");
+    if (!cart || cart.items.length === 0) {
+      handleError(res, 404, "Cart is empty");
+      return;
+    }
+
+    const product = await Product.findById(product_id);
+    if (!product) {
+      res.status(404).json({
+        success: false,
+        message: "Product not found.",
+        data: null,
+      });
       return;
     }
 
@@ -179,6 +193,7 @@ export const removeItemFromCart = async (
     // If quantity > 1, decrement. Else, remove.
     if (cart.items[itemIndex].quantity > 1) {
       cart.items[itemIndex].quantity -= 1;
+      cart.items[itemIndex].price -= Number(product.price);
     } else {
       cart.items.splice(itemIndex, 1);
     }
@@ -202,89 +217,91 @@ export const removeItemFromCart = async (
   }
 };
 
-export const updateCartItem = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const userId = getIdFromToken(req);
-    const user = await User.findById(userId);
-    if (!user) {
-      res.status(401).json({
-        success: false,
-        message: "Unauthorized. Please log in.",
-        data: null,
-      });
-      return;
-    }
+//  This controller has been deprecated. Add and Remove cart endpoint should be use instead.
+// export const updateCartItem = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     const userId = getIdFromToken(req);
+//     const user = await User.findById(userId);
+//     if (!user) {
+//       res.status(401).json({
+//         success: false,
+//         message: "Unauthorized. Please log in.",
+//         data: null,
+//       });
+//       return;
+//     }
 
-    const { product_id, quantity } = req.body;
+//     const { product_id, quantity } = req.body;
 
-    if (!product_id || !Number.isInteger(quantity) || quantity < 1) {
-      res.status(400).json({
-        success: false,
-        message: "Valid product_id and quantity (integer >= 1) are required.",
-        data: null,
-      });
-      return;
-    }
+//     if (!product_id || !Number.isInteger(quantity) || quantity < 1) {
+//       res.status(400).json({
+//         success: false,
+//         message: "Valid product_id and quantity (integer >= 1) are required.",
+//         data: null,
+//       });
+//       return;
+//     }
 
-    const product = await Product.findOne({
-      _id: product_id,
-      is_approved: true,
-    });
+//     const product = await Product.findOne({
+//       _id: product_id,
+//       is_approved: true,
+//     });
 
-    if (!product) {
-      res.status(404).json({
-        success: false,
-        message: "Product not found or unavailable.",
-        data: null,
-      });
-      return;
-    }
+//     if (!product) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Product not found or unavailable.",
+//         data: null,
+//       });
+//       return;
+//     }
 
-    if (product.quantity < quantity) {
-      return handleError(
-        res,
-        400,
-        `Not enough items in stock. Only ${product.quantity} available.`
-      );
-    }
+//     if (product.quantity < quantity) {
+//       return handleError(
+//         res,
+//         400,
+//         `Not enough items in stock. Only ${product.quantity} available.`
+//       );
+//     }
 
-    const cart = await Cart.findOne({ user: user._id });
-    if (!cart) {
-      res.status(404).json({
-        success: false,
-        message: "Cart not found.",
-        data: null,
-      });
-      return;
-    }
+//     const cart = await Cart.findOne({ user: user._id });
+//     if (!cart || cart.items.length === 0) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Cart is empty.",
+//         data: null,
+//       });
+//       return;
+//     }
 
-    const itemIndex = cart.items.findIndex(
-      (item) => item.product.toString() === (product._id as any).toString()
-    );
+//     const itemIndex = cart.items.findIndex(
+//       (item) => item.product.toString() === (product._id as any).toString()
+//     );
 
-    if (itemIndex === -1) {
-      res.status(404).json({
-        success: false,
-        message: "Product not found in cart.",
-        data: null,
-      });
-    }
-    cart.items[itemIndex].quantity = quantity;
-    cart.items[itemIndex].price = quantity * Number(product.price);
+//     if (itemIndex === -1) {
+//       res.status(404).json({
+//         success: false,
+//         message: "Product not found in cart.",
+//         data: null,
+//       });
+//       return;
+//     }
+//     cart.items[itemIndex].quantity = quantity;
+//     cart.items[itemIndex].price = quantity * Number(product.price);
 
-    cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price, 0);
-    await cart.save();
+//     cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price, 0);
+//     await cart.save();
 
-    res.status(200).json({
-      success: true,
-      message: "Cart item updated successfully.",
-      data: cart,
-    });
-  } catch (error) {
-    next(error);
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       message: "Cart item updated successfully.",
+//       data: cart,
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
