@@ -87,6 +87,11 @@ export const addToCart = async (
       return;
     }
 
+    if (quantity < 1 ) {
+      handleError(res, 400, "Quantity must be at least 1");
+      return;
+    }
+
     if (product.quantity < quantity) {
       handleError(
         res,
