@@ -14,7 +14,7 @@ const router = express.Router();
 
 /**
  * @swagger
- * /api/tickets/create:
+ * /api/ticket/create:
  *   post:
  *     summary: Create a new support ticket
  *     tags: [Support Tickets]
