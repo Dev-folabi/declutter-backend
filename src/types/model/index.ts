@@ -149,6 +149,7 @@ export interface IAdmin extends Document {
   otp?: string;
   otpExpires?: Date;
   is_admin: boolean;
+  profileImageURL?: string;
 }
 
 // interface for admin activity log
