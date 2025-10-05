@@ -21,9 +21,19 @@ export const getAllUnsoldProduct = async (
     query.is_approved = true;
     query.is_reserved = false;
 
-    // Remove pagination fields
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
+
+    // Remove pagination and price fields from query
     delete query.page;
     delete query.limit;
+    delete query.minPrice;
+    delete query.maxPrice;
 
     const search = req.query.search || "";
     const page = Number(req.query.page) || 1;
@@ -332,9 +342,19 @@ export const getUnsoldProductsByCategory = async (
     query.is_reserved = false;
     query.category = req.params.category;
 
-    // Remove pagination fields
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
+
+    // Remove pagination and price fields from query
     delete query.page;
     delete query.limit;
+    delete query.minPrice;
+    delete query.maxPrice;
 
     const search = req.query.search || "";
     const page = Number(req.query.page) || 1;
@@ -398,9 +418,19 @@ export const getAllLongUnsoldProduct = async (
     query.quantity = { $gt: 0 };
     query.is_approved = true;
 
-    // Remove pagination fields
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
+
+    // Remove pagination and price fields from query
     delete query.page;
     delete query.limit;
+    delete query.minPrice;
+    delete query.maxPrice;
 
     const search = req.query.search || "";
     const page = Number(req.query.page) || 1;
@@ -473,6 +503,14 @@ export const getSellerProducts = async (
       seller: sellerId,
       quantity: { $gt: 0 },
     };
+
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
 
     // Add search functionality if there's a search term
     if (search) {

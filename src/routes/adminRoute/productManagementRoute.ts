@@ -91,6 +91,16 @@ const router = Express.Router();
  *         schema:
  *           type: string
  *         description: Search term to match name, category, or description
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: All product listings retrieved successfully

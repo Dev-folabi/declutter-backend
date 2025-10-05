@@ -464,7 +464,7 @@ export const getAdminDashboard = async (
         .populate({
             path: "items.product",
             model: "Product",
-            select: "name price"
+            select: "name price productImage"
         })
         .select("items status createdAt");
 

@@ -18,7 +18,8 @@ const AdminSchema = new Schema<IAdmin>(
     is_admin: {
       type: Boolean,
       default: true
-    }
+    },
+    profileImageURL: { type: String, required: false },
   },
   { timestamps: true }
 );
