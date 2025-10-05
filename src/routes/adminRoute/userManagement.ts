@@ -202,13 +202,17 @@ const router = express.Router();
  *
  *   /api/admin/users/admin:
  *     get:
- *       summary: Get all admin users (Super Admin only)
+ *       summary: Get all admin users with role-based filtering
+ *       description: >
+ *         Retrieves a list of admin users.
+ *         - A `super_admin` will receive a list of all admin users.
+ *         - A regular `admin` will receive a list of all admin users except for other `super_admin`s.
  *       tags: [Admin Authentication]
  *       security:
  *         - bearerAuth: []
  *       responses:
  *         '200':
- *           description: Admin users fetched successfully
+ *           description: Admin users fetched successfully.
  *           content:
  *             application/json:
  *               schema:
@@ -264,7 +268,11 @@ const router = express.Router();
  *           description: Unauthorized
  *   /api/admin/users/admin/{adminId}:
  *     get:
- *       summary: Get a single admin user by ID (Super Admin only)
+ *       summary: Get a single admin user by ID with role-based filtering
+ *       description: >
+ *         Retrieves a single admin user by their ID.
+ *         - A `super_admin` can retrieve any admin user's profile.
+ *         - A regular `admin` can retrieve any admin user's profile except for a `super_admin`'s.
  *       tags: [Admin Authentication]
  *       security:
  *         - bearerAuth: []
@@ -315,7 +323,7 @@ router.patch(
 );
 
 // Super Admin route to get all admin users
-router.get("/admin", verifyToken, authorizeRoles("super_admin"), getAdminUsers);
-router.get("/admin/:adminId", verifyToken, authorizeRoles("super_admin"), getAdminById);
+router.get("/admin", authorizeRoles(...ADMIN_ONLY_ROLES), getAdminUsers);
+router.get("/admin/:adminId", authorizeRoles(...ADMIN_ONLY_ROLES), getAdminById);
 
 export default router;

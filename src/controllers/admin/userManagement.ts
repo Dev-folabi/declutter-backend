@@ -231,7 +231,18 @@ export const getAdminUsers = async (
   next: NextFunction
 ) => {
   try {
-    const admins = await Admin.find().select("fullName email role emailVerified is_admin profileImageURL createdAt updatedAt");
+    const requestingAdmin = (req as any).admin;
+
+    if (!requestingAdmin) {
+      return handleError(res, 401, "Unauthorized: Admin details not found in token.");
+    }
+
+    let query = {};
+    if (requestingAdmin.role !== 'super_admin') {
+      query = { role: { $ne: 'super_admin' } };
+    }
+
+    const admins = await Admin.find(query).select("fullName email role emailVerified is_admin profileImageURL createdAt updatedAt");
     res.status(200).json({
       success: true,
       message: "Admin users fetched successfully.",
@@ -245,16 +256,26 @@ export const getAdminUsers = async (
 export const getAdminById = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { adminId } = req.params;
-    const admin = await Admin.findById(adminId).select('fullName email role emailVerified is_admin profileImageURL createdAt updatedAt');
+    const requestingAdmin = (req as any).admin;
 
-    if (!admin) {
+    if (!requestingAdmin) {
+      return handleError(res, 401, "Unauthorized: Admin details not found in token.");
+    }
+
+    const targetAdmin = await Admin.findById(adminId).select('fullName email role emailVerified is_admin profileImageURL createdAt updatedAt');
+
+    if (!targetAdmin) {
       return handleError(res, 404, 'Admin not found');
+    }
+
+    if (requestingAdmin.role !== 'super_admin' && targetAdmin.role === 'super_admin') {
+      return handleError(res, 403, 'Forbidden: You do not have permission to view this admin.');
     }
 
     res.status(200).json({
       success: true,
       message: 'Admin fetched successfully',
-      data: admin,
+      data: targetAdmin,
     });
   } catch (error) {
     next(error);
