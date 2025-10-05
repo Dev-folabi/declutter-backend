@@ -1,46 +1,51 @@
-import { Request, Response, NextFunction } from 'express';
-import { handleError } from '../../error/errorHandler';
-import { User } from '../../models/userModel';
-import { AdminActivityLog } from '../../models/adminAction';
-import { sendEmail } from '../../utils/mail';
-import { paginated_result } from '../../utils/pagination';
-import { getIdFromToken } from '../../function/token';
-import { Admin } from '../../models/adminModel';
-import _ from 'lodash';
-import { log } from 'console';
+import { Request, Response, NextFunction } from "express";
+import { handleError } from "../../error/errorHandler";
+import { User } from "../../models/userModel";
+import { AdminActivityLog } from "../../models/adminAction";
+import { sendEmail } from "../../utils/mail";
+import { paginated_result } from "../../utils/pagination";
+import { getIdFromToken } from "../../function/token";
+import { Admin } from "../../models/adminModel";
+import _ from "lodash";
+import { log } from "console";
 
-export const getAllUsers = async (req: Request, res: Response, next: NextFunction) => {
+export const getAllUsers = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const page = Number(req.query.page) || 1;
     const per_page = Number(req.query.limit) || 10;
-    const { status, sellerStatus, roles, isSuspended, search = '' } = req.query;
+    const { status, sellerStatus, roles, isSuspended, search = "" } = req.query;
 
     const filters: any = {};
 
     if (search) {
-      const searchRegex = { $regex: search, $options: 'i' };
+      const searchRegex = { $regex: search, $options: "i" };
       filters.$or = [{ fullName: searchRegex }, { email: searchRegex }];
     }
 
     if (status) filters.status = status;
     if (sellerStatus) filters.sellerStatus = sellerStatus;
     if (roles) {
-      const rolesArray = (roles as string).split(',');
+      const rolesArray = (roles as string).split(",");
       filters.role = { $in: rolesArray };
     }
-    if (isSuspended === 'true') {
-      filters['suspension.isSuspended'] = true;
-    } else if (isSuspended === 'false') {
-      filters['suspension.isSuspended'] = false;
+    if (isSuspended === "true") {
+      filters["suspension.isSuspended"] = true;
+    } else if (isSuspended === "false") {
+      filters["suspension.isSuspended"] = false;
     }
-
 
     // Count total number of users matching the filters
     const count = await User.countDocuments(filters);
 
     // Query the users collection using filters, pagination and sort
     const users = await User.find(filters)
-      .select('fullName email role sellerStatus suspension profileImageURL createdAt') //  Explicitly select fields
+      .select(
+        "fullName email role sellerStatus suspension profileImageURL createdAt"
+      ) //  Explicitly select fields
       .skip((page - 1) * per_page)
       .limit(per_page)
       .sort({ createdAt: -1 });
@@ -50,30 +55,33 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
       message: "Users fetched successfully",
       data: paginated_result(page, per_page, count, users),
     });
-
   } catch (error) {
     next(error);
   }
 };
 
-export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
+export const getUserById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { userId } = req.params;
-    const user = await User.findById(userId).select('-password -pin');
+    const user = await User.findById(userId).select("-password -pin");
 
     if (!user) {
-      return handleError(res, 404, 'User not found');
+      return handleError(res, 404, "User not found");
     }
 
     res.status(200).json({
       success: true,
-      message: 'User fetched successfully',
+      message: "User fetched successfully",
       data: user,
     });
   } catch (error) {
     next(error);
   }
-}
+};
 
 // verify or reject user documents
 export const verifySellerDocuments = async (
@@ -93,17 +101,16 @@ export const verifySellerDocuments = async (
       user.sellerStatus = "approved";
     } else if (status === "rejected") {
       if (!reason) {
-        res
-          .status(400)
-          .json({ success: false, message: "Reason for rejection is required." })
+        res.status(400).json({
+          success: false,
+          message: "Reason for rejection is required.",
+        });
         return;
       }
       user.sellerStatus = "rejected";
       user.rejectionReason = reason;
     } else {
-      res
-        .status(400)
-        .json({ success: false, message: "Invalid status." })
+      res.status(400).json({ success: false, message: "Invalid status." });
       return;
     }
 
@@ -145,47 +152,53 @@ export const verifySellerDocuments = async (
 };
 
 // Activate or suspend user
-export const updateUserStatus = async (req: Request, res: Response, next: NextFunction) => {
+export const updateUserStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { action, reason } = req.body;
     const { userId } = req.params;
 
     const adminId = getIdFromToken(req);
-    const admin = await Admin.findById(adminId)
-    if (!admin) return handleError(res, 401, "You are not authorized to perform this action.");
+    const admin = await Admin.findById(adminId);
+    if (!admin)
+      return handleError(
+        res,
+        401,
+        "You are not authorized to perform this action."
+      );
 
     const user = await User.findById(userId);
-    if (!user) return handleError(res, 404, 'User not found');
+    if (!user) return handleError(res, 404, "User not found");
 
-    let logAction = '';
+    let logAction = "";
 
     if (action === "suspend") {
-  
       if (user.suspension.isSuspended) {
         return handleError(res, 400, "User is already suspended");
       }
 
-      logAction = 'suspended_user';
+      logAction = "suspended_user";
       user.suspension = {
         isSuspended: true,
         reason: reason || "No reason provided",
         actionBy: (req as any).admin._id,
         actionAt: new Date(),
-      }
-
+      };
     } else if (action === "activate") {
-
       if (!user.suspension.isSuspended) {
         return handleError(res, 400, "User is not suspended");
       }
 
-      logAction = 'activated_user';
+      logAction = "activated_user";
       user.suspension = {
         isSuspended: false,
         reason: reason || "No reason provided",
         actionBy: (req as any).admin._id,
         actionAt: new Date(),
-      }
+      };
     }
 
     await user.save();
@@ -203,7 +216,7 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
     await sendEmail(user.email, subject, message);
 
     //   omit senitive data from the respnse
-    const sanitizedUser = _.omit(user.toObject(), ['password', 'pin']);
+    const sanitizedUser = _.omit(user.toObject(), ["password", "pin"]);
 
     await AdminActivityLog.create({
       admin: (req as any).admin._id,
@@ -214,12 +227,12 @@ export const updateUserStatus = async (req: Request, res: Response, next: NextFu
 
     res.status(200).json({
       success: true,
-      message: action === "suspend"
-        ? "User account has been suspended successfully."
-        : "User account has been activated successfully.",
+      message:
+        action === "suspend"
+          ? "User account has been suspended successfully."
+          : "User account has been activated successfully.",
       data: sanitizedUser,
     });
-
   } catch (error) {
     next(error);
   }
@@ -234,15 +247,31 @@ export const getAdminUsers = async (
     const requestingAdmin = (req as any).admin;
 
     if (!requestingAdmin) {
-      return handleError(res, 401, "Unauthorized: Admin details not found in token.");
+      return handleError(
+        res,
+        401,
+        "Unauthorized: Admin details not found in token."
+      );
     }
 
     let query = {};
-    if (requestingAdmin.role !== 'super_admin') {
-      query = { role: { $ne: 'super_admin' } };
+
+    const getAdminRole = await Admin.findById(requestingAdmin._id);
+    if (!getAdminRole) {
+      return handleError(
+        res,
+        401,
+        "Unauthorized: Admin details not found in token."
+      );
     }
 
-    const admins = await Admin.find(query).select("fullName email role emailVerified is_admin profileImageURL createdAt updatedAt");
+    if (getAdminRole.role !== "super_admin") {
+      query = { role: { $ne: "super_admin" } };
+    }
+
+    const admins = await Admin.find(query).select(
+      "fullName email role emailVerified is_admin profileImageURL createdAt updatedAt"
+    );
     res.status(200).json({
       success: true,
       message: "Admin users fetched successfully.",
@@ -253,31 +282,48 @@ export const getAdminUsers = async (
   }
 };
 
-export const getAdminById = async (req: Request, res: Response, next: NextFunction) => {
+export const getAdminById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { adminId } = req.params;
     const requestingAdmin = (req as any).admin;
 
     if (!requestingAdmin) {
-      return handleError(res, 401, "Unauthorized: Admin details not found in token.");
+      return handleError(
+        res,
+        401,
+        "Unauthorized: Admin details not found in token."
+      );
     }
 
-    const targetAdmin = await Admin.findById(adminId).select('fullName email role emailVerified is_admin profileImageURL createdAt updatedAt');
+    const targetAdmin = await Admin.findById(adminId).select(
+      "fullName email role emailVerified is_admin profileImageURL createdAt updatedAt"
+    );
 
     if (!targetAdmin) {
-      return handleError(res, 404, 'Admin not found');
+      return handleError(res, 404, "Admin not found");
     }
 
-    if (requestingAdmin.role !== 'super_admin' && targetAdmin.role === 'super_admin') {
-      return handleError(res, 403, 'Forbidden: You do not have permission to view this admin.');
+    if (
+      requestingAdmin.role !== "super_admin" &&
+      targetAdmin.role === "super_admin"
+    ) {
+      return handleError(
+        res,
+        403,
+        "Forbidden: You do not have permission to view this admin."
+      );
     }
 
     res.status(200).json({
       success: true,
-      message: 'Admin fetched successfully',
+      message: "Admin fetched successfully",
       data: targetAdmin,
     });
   } catch (error) {
     next(error);
   }
-}
+};
