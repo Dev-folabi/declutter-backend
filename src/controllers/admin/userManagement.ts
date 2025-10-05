@@ -24,20 +24,23 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
 
     if (status) filters.status = status;
     if (sellerStatus) filters.sellerStatus = sellerStatus;
-    if (roles) filters.role = roles;
-    if (isSuspended === 'true') {    
+    if (roles) {
+      const rolesArray = (roles as string).split(',');
+      filters.role = { $in: rolesArray };
+    }
+    if (isSuspended === 'true') {
       filters['suspension.isSuspended'] = true;
     } else if (isSuspended === 'false') {
       filters['suspension.isSuspended'] = false;
     }
-  
+
 
     // Count total number of users matching the filters
     const count = await User.countDocuments(filters);
 
     // Query the users collection using filters, pagination and sort
     const users = await User.find(filters)
-      .select('-password -pin') //  Exclude sensitive fields
+      .select('fullName email role sellerStatus suspension profileImageURL createdAt') //  Explicitly select fields
       .skip((page - 1) * per_page)
       .limit(per_page)
       .sort({ createdAt: -1 });
@@ -52,6 +55,25 @@ export const getAllUsers = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
+
+export const getUserById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId).select('-password -pin');
+
+    if (!user) {
+      return handleError(res, 404, 'User not found');
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'User fetched successfully',
+      data: user,
+    });
+  } catch (error) {
+    next(error);
+  }
+}
 
 // verify or reject user documents
 export const verifySellerDocuments = async (
@@ -209,7 +231,7 @@ export const getAdminUsers = async (
   next: NextFunction
 ) => {
   try {
-    const admins = await Admin.find().select("-password");
+    const admins = await Admin.find().select("fullName email role emailVerified is_admin profileImageURL createdAt updatedAt");
     res.status(200).json({
       success: true,
       message: "Admin users fetched successfully.",
@@ -219,3 +241,22 @@ export const getAdminUsers = async (
     next(error);
   }
 };
+
+export const getAdminById = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { adminId } = req.params;
+    const admin = await Admin.findById(adminId).select('fullName email role emailVerified is_admin profileImageURL createdAt updatedAt');
+
+    if (!admin) {
+      return handleError(res, 404, 'Admin not found');
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Admin fetched successfully',
+      data: admin,
+    });
+  } catch (error) {
+    next(error);
+  }
+}

@@ -155,3 +155,26 @@ export const createAnnouncement = async (
     next(error);
   }
 };
+
+export const getAnnouncementHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const announcements = await Announcement.find()
+      .populate({
+        path: "createdBy",
+        select: "fullName email role",
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      message: "Announcement history fetched successfully.",
+      data: announcements,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

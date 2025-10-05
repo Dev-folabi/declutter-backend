@@ -31,6 +31,17 @@ const router = express.Router();
  *     tags: [Product]
  *     summary: Get all product listings
  *     description: Retrieve all product listings
+ *     parameters:
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: All product listings retrieved successfully
@@ -67,6 +78,16 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Product category
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: Product listings retrieved successfully
@@ -101,6 +122,16 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Search term to filter products by name, category, or description
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: Products retrieved successfully
@@ -255,6 +286,17 @@ const router = express.Router();
  *     tags: [Product]
  *     summary: Get all products listed for a long time
  *     description: Retrieve products that have been listed for a long duration
+ *     parameters:
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: Product listings retrieved successfully

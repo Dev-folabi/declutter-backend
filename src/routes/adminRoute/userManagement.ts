@@ -4,6 +4,8 @@ import {
   verifySellerDocuments,
   updateUserStatus,
   getAdminUsers,
+  getUserById,
+  getAdminById,
 } from "../../controllers/admin/userManagement";
 import { validateVerificationRequest } from "../../middlewares/validators";
 import { validateStatusUpdate } from "../../middlewares/validators";
@@ -53,7 +55,7 @@ const router = express.Router();
  *           in: query
  *           schema:
  *             type: string
- *             enum: [pending, approved, rejected, not_enroll]
+ *             enum: [pending, approved, rejected, "not enroll"]
  *           required: false
  *           description: Filter by seller status
  *         - name: roles
@@ -61,7 +63,7 @@ const router = express.Router();
  *           schema:
  *             type: string
  *           required: false
- *           description: Filter by role
+ *           description: Filter by role (comma-separated for multiple values)
  *         - name: search
  *           in: query
  *           schema:
@@ -226,9 +228,79 @@ const router = express.Router();
  *           description: Unauthorized
  *         '403':
  *           description: Access denied
+ *   /api/admin/users/{userId}:
+ *     get:
+ *       tags: [User Management]
+ *       summary: Get a single user by ID
+ *       description: Admin can fetch a single user's details by their ID.
+ *       security:
+ *         - bearerAuth: []
+ *       parameters:
+ *         - name: userId
+ *           in: path
+ *           required: true
+ *           schema:
+ *             type: string
+ *           description: ID of the user to retrieve
+ *       responses:
+ *         '200':
+ *           description: User fetched successfully
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   success:
+ *                     type: boolean
+ *                     example: true
+ *                   message:
+ *                     type: string
+ *                     example: "User fetched successfully"
+ *                   data:
+ *                     type: object
+ *         '404':
+ *           description: User not found
+ *         '401':
+ *           description: Unauthorized
+ *   /api/admin/users/admin/{adminId}:
+ *     get:
+ *       summary: Get a single admin user by ID (Super Admin only)
+ *       tags: [Admin Authentication]
+ *       security:
+ *         - bearerAuth: []
+ *       parameters:
+ *         - name: adminId
+ *           in: path
+ *           required: true
+ *           schema:
+ *             type: string
+ *           description: ID of the admin to retrieve
+ *       responses:
+ *         '200':
+ *           description: Admin user fetched successfully
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   success:
+ *                     type: boolean
+ *                     example: true
+ *                   message:
+ *                     type: string
+ *                     example: "Admin user fetched successfully"
+ *                   data:
+ *                     $ref: '#/components/schemas/Admin'
+ *         '401':
+ *           description: Unauthorized
+ *         '403':
+ *           description: Access denied
+ *         '404':
+ *           description: Admin not found
  */
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
+router.get("/:userId", authorizeRoles(...ADMIN_ONLY_ROLES), getUserById);
 router.patch(
   "/:userId/verify-seller",
   authorizeRoles(...ADMIN_ONLY_ROLES),
@@ -244,5 +316,6 @@ router.patch(
 
 // Super Admin route to get all admin users
 router.get("/admin", verifyToken, authorizeRoles("super_admin"), getAdminUsers);
+router.get("/admin/:adminId", verifyToken, authorizeRoles("super_admin"), getAdminById);
 
 export default router;
