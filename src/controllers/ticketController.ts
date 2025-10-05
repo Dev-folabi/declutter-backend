@@ -58,7 +58,7 @@ export const createTicket = async (
     }
 
     const ticket = await SupportTicket.create({
-      user: userId,
+      userId,
       subject,
       description,
       issueType,
