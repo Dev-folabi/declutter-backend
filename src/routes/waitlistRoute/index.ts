@@ -2,6 +2,7 @@ import express from "express";
 import {
   collectWaitlistEmail,
   sendWaitlistMessage,
+  getWaitlistEmails,
 } from "../../controllers/waitlistController";
 import { validateWaitlist } from "../../middlewares/validators";
 
@@ -30,6 +31,24 @@ const router = express.Router();
  *         description: Email added to waitlist successfully
  *       400:
  *         description: Invalid email format or email already on waitlist
+ *   get:
+ *     tags: [Waitlist]
+ *     summary: Get waitlist emails
+ *     description: Retrieve all emails on the waitlist
+ *     responses:
+ *       200:
+ *         description: A list of waitlist emails
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 type: object
+ *                 properties:
+ *                   email:
+ *                     type: string
+ *                     description: User email on the waitlist
+ *                     example: user@example.com
  *
  * /api/waitlist/message:
  *   post:
@@ -46,5 +65,6 @@ const router = express.Router();
 
 router.post("/", validateWaitlist, collectWaitlistEmail);
 router.post("/message", sendWaitlistMessage);
+router.get("/", getWaitlistEmails);
 
 export default router;

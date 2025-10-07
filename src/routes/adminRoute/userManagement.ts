@@ -308,6 +308,11 @@ const router = express.Router();
  */
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllUsers);
+
+// Super Admin route to get all admin users
+router.get("/admin", authorizeRoles(...ADMIN_ONLY_ROLES), getAdminUsers);
+router.get("/admin/:adminId", authorizeRoles(...ADMIN_ONLY_ROLES), getAdminById);
+
 router.get("/:userId", authorizeRoles(...ADMIN_ONLY_ROLES), getUserById);
 router.patch(
   "/:userId/verify-seller",
@@ -321,9 +326,5 @@ router.patch(
   validateStatusUpdate,
   updateUserStatus
 );
-
-// Super Admin route to get all admin users
-router.get("/admin", authorizeRoles(...ADMIN_ONLY_ROLES), getAdminUsers);
-router.get("/admin/:adminId", authorizeRoles(...ADMIN_ONLY_ROLES), getAdminById);
 
 export default router;

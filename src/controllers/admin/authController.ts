@@ -19,7 +19,7 @@ export const registerAdmin = async (
   next: NextFunction
 ) => {
   try {
-    const { fullName, email, password, role } = req.body;
+    const { fullName, email, role } = req.body;
     // Basic validation for admin
     if (!ROLES.includes(role)) {
       handleError(res, 400, `Invalid role. Must be : ${ROLES.join(", ")}`);
@@ -31,6 +31,9 @@ export const registerAdmin = async (
       handleError(res, 400, "Email already exists, please login.");
       return;
     }
+
+    // Generate a random 6-digit numeric password
+    const password = Math.floor(100000 + Math.random() * 900000).toString();
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,49 +47,27 @@ export const registerAdmin = async (
       emailVerified: true,
     });
 
-    // Generate OTP and expiration timestamp
-    // const OTP = generateOTP();
 
-    // // Upsert OTP for this admin
-    // await OTPVerification.updateOne(
-    //   {
-    //     "owner.id": newAdmin._id,
-    //     "owner.type": "Admin",
-    //     type: "activate account",
-    //   },
-    //   {
-    //     owner: {
-    //       id: newAdmin._id,
-    //       type: "Admin",
-    //     },
-    //     OTP,
-    //     type: "activate account",
-    //     verificationType: "email",
-    //   },
-    //   { upsert: true }
-    // );
+    // // Send Password email
+    const firstName = fullName.split(" ")[0];
+    await sendEmail(
+      email,
+      "Admin Password",
+      `
+        <p>Hi ${firstName},</p>
+        <p>You successfully registered as an admin. Please use the password below to activate your account:</p>
+        <h2>${password}</h2>
 
-    // // Send OTP email
-    // const firstName = fullName.split(" ")[0];
-    // await sendEmail(
-    //   email,
-    //   "Verify Your Email - Admin Registration",
-    //   `
-    //     <p>Hi ${firstName},</p>
-    //     <p>You successfully registered as an admin. Please use the OTP below to activate your account:</p>
-    //     <h2>${OTP}</h2>
-    //     <p>This OTP is valid for <strong>30 minutes</strong>.</p>
-    //     <p>If you didn’t request this, please ignore this email.</p>
-    //     <br/>
-    //   `
-    // );
+        <p>If you didn’t request this, please ignore this email.</p>
+        <br/>
+      `
+    );
 
     const sanitizedAdmin = _.omit(newAdmin.toObject(), ["password"]);
-
     // Send success response
     res.status(201).json({
       success: true,
-      message: "Admin registered successfully. OTP sent to email.",
+      message: "Admin registered successfully. password sent to email.",
       data: sanitizedAdmin,
     });
   } catch (error: any) {
