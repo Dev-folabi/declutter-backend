@@ -6,6 +6,83 @@ import { Transaction } from "../../models/transactionModel";
 import PDFDocument from "pdfkit";
 import { handleError } from "../../error/errorHandler";
 
+export const getTransactionStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const [
+      balance,
+      totalTransactions,
+      completedTransactions,
+      failedTransactions,
+      sellersPendingBalance,
+      sellersBalance,
+      commissionEarnings,
+      totalRefunds,
+    ] = await Promise.all([
+      // Balance: Total completed credit transactions
+      Transaction.aggregate([
+        { $match: { status: "completed", transactionType: "credit" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      // Total Transaction: Sum of amounts all transactions
+      Transaction.aggregate([
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      // Completed: Sum of amounts all complete transactions
+      Transaction.aggregate([
+        { $match: { status: "completed" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      // Failed: Sum of amounts all failed transactions
+      Transaction.aggregate([
+        { $match: { status: "failed" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+      // Sellers Pending Balance: The sum of the pendingBalance from all seller accounts
+      User.aggregate([
+        { $match: { role: "seller", "accountDetail.pendingBalance": { $exists: true } } },
+        { $group: { _id: null, total: { $sum: "$accountDetail.pendingBalance" } } },
+      ]),
+      // Sellers Balance: The sum of the availableBalance for all sellers
+      User.aggregate([
+        { $match: { role: "seller", "accountDetail.availableBalance": { $exists: true } } },
+        { $group: { _id: null, total: { $sum: "$accountDetail.availableBalance" } } },
+      ]),
+      // Commission Earnings: The sum of the revenue generated from complete credit transactions
+      Transaction.aggregate([
+        { $match: { status: "completed", transactionType: "credit" } },
+        { $group: { _id: null, total: { $sum: "$revenue" } } },
+      ]),
+      // Total Refunds: the total sum amounts of 'refunded' transactions
+      Transaction.aggregate([
+        { $match: { status: "refunded" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    const extractTotal = (result: any[]) => result.length > 0 ? result[0].total : 0;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        balance: extractTotal(balance),
+        totalTransactions: extractTotal(totalTransactions),
+        completed: extractTotal(completedTransactions),
+        failed: extractTotal(failedTransactions),
+        sellersPendingBalance: extractTotal(sellersPendingBalance),
+        sellersBalance: extractTotal(sellersBalance),
+        commissionEarnings: extractTotal(commissionEarnings),
+        totalRefunds: extractTotal(totalRefunds),
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 const calculatePercentageChange = (
   current: number,
   previous: number
