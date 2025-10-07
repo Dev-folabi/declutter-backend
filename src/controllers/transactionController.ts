@@ -26,20 +26,22 @@ export const getTransactionById = async (
     )) as ITransaction;
 
     if (!transaction) {
-      return res.status(404).json({
+       res.status(404).json({
         success: false,
         message: "Transaction not found",
       });
+      return;
     }
 
     if (
       !isAdmin &&
       transaction.userId.toString() !== user._id.toString()
     ) {
-      return res.status(403).json({
+       res.status(403).json({
         success: false,
         message: "You are not authorized to view this transaction",
       });
+      return;
     }
 
     // Populate user information
@@ -63,7 +65,7 @@ export const getTransactionById = async (
       }
     }
 
-    return res.status(200).json({
+     res.status(200).json({
       success: true,
       message: "Transaction retrieved successfully",
       data: {

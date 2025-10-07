@@ -1,6 +1,13 @@
-import { Router } from 'express';
-import { verifyToken } from '../../middlewares/authMiddleware';
-import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport, getAdminDashboard, exportUserGrowthChart, getTransactionSummary } from '../../controllers/admin/analyticsController';
+import { Router } from "express";
+import { verifyToken } from "../../middlewares/authMiddleware";
+import {
+  getAnalyticsData,
+  exportAnalyticsReport,
+  exportMonthlyReport,
+  getAdminDashboard,
+  exportUserGrowthChart,
+  getTransactionStats,
+} from "../../controllers/admin/analyticsController";
 
 const router = Router();
 
@@ -96,11 +103,7 @@ const router = Router();
  *       500:
  *         description: Internal server error.
  */
-router.get(
-  '/',
-  verifyToken,
-  getAnalyticsData
-);
+router.get("/", verifyToken, getAnalyticsData);
 
 /**
  * @swagger
@@ -126,11 +129,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/dashboard',
-    verifyToken,
-    getAdminDashboard
-)
+router.get("/dashboard", verifyToken, getAdminDashboard);
 
 /**
  * @swagger
@@ -154,11 +153,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/dashboard/export-user-growth',
-    verifyToken,
-    exportUserGrowthChart
-)
+router.get("/dashboard/export-user-growth", verifyToken, exportUserGrowthChart);
 
 /**
  * @swagger
@@ -189,11 +184,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-  '/export',
-  verifyToken,
-  exportAnalyticsReport
-);
+router.get("/export", verifyToken, exportAnalyticsReport);
 
 /**
  * @swagger
@@ -234,11 +225,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/report/monthly',
-    verifyToken,
-    exportMonthlyReport
-)
+router.get("/report/monthly", verifyToken, exportMonthlyReport);
 
 /**
  * @swagger
@@ -283,10 +270,6 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/transaction-summary',
-    verifyToken,
-    getTransactionSummary
-)
+router.get("/transaction-stats", verifyToken, getTransactionStats);
 
 export default router;

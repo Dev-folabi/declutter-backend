@@ -676,16 +676,15 @@ router.get(
   validateTransactionId,
   getUserRefundStatus
 );
-// Refund request endpoint (requires authentication)
-router.post("/refund-request/:transactionId", verifyToken, createRefundRequest);
-
 // Admin endpoints (require admin authentication)
 router.get(
   "/:transactionId",
   verifyToken,
-  validateTransactionId,
   getTransactionById
 );
+// Refund request endpoint (requires authentication)
+router.post("/refund-request/:transactionId", verifyToken, createRefundRequest);
+
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllTransactions);
 router.get(
   "/refund-requests",

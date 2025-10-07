@@ -6,7 +6,7 @@ import { Transaction } from "../../models/transactionModel";
 import PDFDocument from "pdfkit";
 import { handleError } from "../../error/errorHandler";
 
-export const getTransactionSummary = async (
+export const getTransactionStats = async (
   req: Request,
   res: Response,
   next: NextFunction
