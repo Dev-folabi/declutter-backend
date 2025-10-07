@@ -17,43 +17,163 @@ client.setApiKey(
 
 // Helper: generate styled HTML
 const generateEmailHTML = (text: string): string => {
+  const currentYear = new Date().getFullYear();
+  
   return `
     <!DOCTYPE html>
-    <html>
+    <html lang="en">
     <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>DeclutMart</title>
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          background-color: #f4f4f4;
+        * {
           margin: 0;
           padding: 0;
+          box-sizing: border-box;
         }
+        
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: linear-gradient(135deg, #f5f5f5 0%, #e8e8e8 100%);
+          margin: 0;
+          padding: 20px;
+          line-height: 1.6;
+        }
+        
         .email-container {
           max-width: 600px;
-          margin: 20px auto;
+          margin: 0 auto;
           background: #ffffff;
-          padding: 20px;
-          border-radius: 8px;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
         }
+        
         .header {
+          background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+          padding: 30px 20px;
           text-align: center;
-          padding-bottom: 20px;
+          position: relative;
+          overflow: hidden;
         }
+        
+        .header::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          right: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        }
+        
         .header img {
-          max-width: 120px;
+          max-width: 150px;
+          height: auto;
+          position: relative;
+          z-index: 1;
+          filter: brightness(0) invert(1);
         }
+        
+        .content-wrapper {
+          padding: 40px 30px;
+        }
+        
         .content {
-          text-align: left;
           font-size: 16px;
-          line-height: 1.6;
+          line-height: 1.8;
           color: #333;
+          margin-bottom: 30px;
         }
+        
+        .content p {
+          margin-bottom: 16px;
+        }
+        
+        .content strong {
+          color: #2C3E50;
+          font-weight: 600;
+        }
+        
+        .content a {
+          color: #FF6B35;
+          text-decoration: none;
+          font-weight: 500;
+          border-bottom: 2px solid transparent;
+          transition: border-color 0.3s ease;
+        }
+        
+        .content a:hover {
+          border-bottom-color: #FF6B35;
+        }
+        
+        .signature {
+          margin-top: 35px;
+          padding-top: 25px;
+          border-top: 2px solid #FFE5D9;
+        }
+        
+        .signature p {
+          margin: 8px 0;
+          color: #666;
+          font-size: 15px;
+        }
+        
+        .signature .team-name {
+          color: #FF6B35;
+          font-weight: 700;
+          font-size: 17px;
+          margin-top: 5px;
+        }
+        
         .footer {
+          background: #2C3E50;
+          padding: 25px 20px;
           text-align: center;
-          font-size: 12px;
-          color: #888;
-          margin-top: 20px;
+          color: #fff;
+        }
+        
+        .footer p {
+          font-size: 13px;
+          opacity: 0.8;
+          margin: 5px 0;
+        }
+        
+        .footer .copyright {
+          font-weight: 600;
+          opacity: 1;
+          font-size: 14px;
+        }
+        
+        .divider {
+          width: 60px;
+          height: 3px;
+          background: linear-gradient(90deg, #FF6B35 0%, #FF8C42 100%);
+          margin: 20px auto;
+          border-radius: 2px;
+        }
+        
+        @media only screen and (max-width: 600px) {
+          body {
+            padding: 10px;
+          }
+          
+          .content-wrapper {
+            padding: 30px 20px;
+          }
+          
+          .header {
+            padding: 25px 15px;
+          }
+          
+          .header img {
+            max-width: 120px;
+          }
+          
+          .content {
+            font-size: 15px;
+          }
         }
       </style>
     </head>
@@ -62,13 +182,23 @@ const generateEmailHTML = (text: string): string => {
         <div class="header">
           <img src="${process.env.DECLUTMART_LOGO}" alt="DeclutMart" />
         </div>
-        <div class="content">
-          ${text}
-          <p>Thank you,</p>
-          <p><strong>DeclutMart Team</strong></p>
+        
+        <div class="content-wrapper">
+          <div class="divider"></div>
+          
+          <div class="content">
+            ${text}
+          </div>
+          
+          <div class="signature">
+            <p>Thank you,</p>
+            <p class="team-name">DeclutMart Team</p>
+          </div>
         </div>
+        
         <div class="footer">
-          &copy; ${currentYear} DeclutMart. All rights reserved.
+          <p class="copyright">&copy; ${currentYear} DeclutMart. All rights reserved.</p>
+          <p>Helping students declutter, one item at a time.</p>
         </div>
       </div>
     </body>

@@ -3,7 +3,7 @@ import { SupportTicket } from "../models/supportTicket";
 import { getIdFromToken } from "../function/token";
 import { User } from "../models/userModel";
 import { Admin } from "../models/adminModel";
-import { sendEmail } from "../utils/mail";
+import { sendBulkEmailBCC, sendEmail } from "../utils/mail";
 import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { Types } from "mongoose";
 import { createNotification } from "./notificationController";
@@ -71,11 +71,17 @@ export const createTicket = async (
       is_admin: true,
       role: { $in: ["admin", "super_admin"] },
     });
-    const adminEmails = admins.map((admin) => admin.email).join(",");
-    sendEmail(
+    const adminEmails = admins.map((admin) => admin.email);
+    sendBulkEmailBCC(
       adminEmails,
       "New Support Ticket Created",
-      `A new support ticket has been created by user ${user.fullName}. Subject: ${subject}. Issue Type: ${issueType}. Description: ${description}`
+      `A new support ticket has been created by user ${user.fullName}. 
+      </br>
+      Subject: ${subject}. 
+      </br>
+      Issue Type: ${issueType}. 
+      <br/>
+      Description: ${description}`
     );
 
     // Create in-app notifications for all admins
@@ -150,7 +156,9 @@ export const addReplyToTicket = async (
         sendEmail(
           user.email,
           "New Reply to Your Support Ticket",
-          `Admin replied to your support ticket with subject: ${ticket.subject}. Reply: ${reply}`
+          `Admin replied to your support ticket with subject: ${ticket.subject}. 
+          </br>
+          Reply: ${reply}`
         );
       }
     } else {
