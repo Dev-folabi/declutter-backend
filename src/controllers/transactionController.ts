@@ -8,6 +8,75 @@ import paystack from "../service/paystack";
 import { Order } from "../models/order";
 import { Admin } from "../models/adminModel";
 import { CreateNotificationData } from "../types/model";
+import { ITransaction } from "../types/model";
+import { Product } from "../models/productList";
+
+export const getTransactionById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { transactionId } = req.params;
+    const user = (req as any).user;
+    const isAdmin = (req as any).admin;
+
+    const transaction = (await Transaction.findById(
+      transactionId
+    )) as ITransaction;
+
+    if (!transaction) {
+       res.status(404).json({
+        success: false,
+        message: "Transaction not found",
+      });
+      return;
+    }
+
+    if (
+      !isAdmin &&
+      transaction.userId.toString() !== user._id.toString()
+    ) {
+       res.status(403).json({
+        success: false,
+        message: "You are not authorized to view this transaction",
+      });
+      return;
+    }
+
+    // Populate user information
+    await transaction.populate([
+      { path: "userId", select: "fullName email" },
+      { path: "refundRequest.requestedBy", select: "fullName email" },
+      { path: "refundHistory.performedBy", select: "fullName email role" },
+      { path: "refundDetails.processedBy", select: "fullName email role" },
+    ]);
+
+    let orderDetails = null;
+    if (transaction.referenceId && transaction.referenceId.startsWith("order_")) {
+      const orderId = transaction.referenceId.split("_")[1];
+      const order = await Order.findById(orderId).populate({
+        path: "items.product",
+        model: Product,
+        select: "name description price productImage",
+      });
+      if (order) {
+        orderDetails = order;
+      }
+    }
+
+     res.status(200).json({
+      success: true,
+      message: "Transaction retrieved successfully",
+      data: {
+        transaction,
+        orderDetails,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const getAllTransactions = async (
   req: Request,
