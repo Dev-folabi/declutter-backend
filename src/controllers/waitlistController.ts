@@ -88,3 +88,20 @@ export const sendWaitlistMessage = async (
     next(error);
   }
 };
+
+export const getWaitlistEmails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    // Get all waitlist emails
+    const waitlistEmails = await Waitlist.find().select("email -_id");
+
+    // Respond with the waitlist emails
+    res.status(200).json(waitlistEmails);
+  } catch (error) {
+    console.error("Error fetching waitlist emails:", error);
+    next(error);
+  }
+};

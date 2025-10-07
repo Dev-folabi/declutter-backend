@@ -79,9 +79,11 @@ const generateEmailHTML = (text: string): string => {
 // Send single email
 export const sendEmail = async (to: string, subject: string, text: string) => {
   try {
+    const recipients = to.split(',').map(email => ({ email: email.trim() }));
+
     const sendSmtpEmail = {
       sender: { name: "DeclutMart", email: process.env.EMAIL_USER as string },
-      to: [{ email: to }],
+      to: recipients,
       subject,
       htmlContent: generateEmailHTML(text),
     };
