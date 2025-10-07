@@ -45,9 +45,19 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    lastLogin: {
+      type: Date,
+    },
+    suspension: {
+      isSuspended: { type: Boolean, default: false },
+      reason: { type: String },
+      actionBy: { type: Schema.Types.ObjectId, ref: "Admin" },
+      actionAt: { type: Date },
+    },
   },
 
   { timestamps: true }
 );
 
 export const User = mongoose.model<IUser>("User", userSchema);
+ 

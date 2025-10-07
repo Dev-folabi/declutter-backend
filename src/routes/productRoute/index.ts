@@ -31,6 +31,17 @@ const router = express.Router();
  *     tags: [Product]
  *     summary: Get all product listings
  *     description: Retrieve all product listings
+ *     parameters:
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: All product listings retrieved successfully
@@ -67,6 +78,16 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Product category
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: Product listings retrieved successfully
@@ -101,6 +122,16 @@ const router = express.Router();
  *         schema:
  *           type: string
  *         description: Search term to filter products by name, category, or description
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: Products retrieved successfully
@@ -166,6 +197,7 @@ const router = express.Router();
  *               - location
  *               - description
  *               - categoryId
+ *               - phoneNumber
  *             properties:
  *               name:
  *                 type: string
@@ -177,12 +209,23 @@ const router = express.Router();
  *                 type: string
  *               categoryId:
  *                 type: string
+ *               quantity:
+ *                 type: integer
+ *                 description: The number of items available for sale. Defaults to 1 if not provided.
+ *                 example: 5
+ *               phoneNumber:
+ *                 type: string
+ *                 description: Phone number must be in international format
+ *                 example: "+2348012345678"
  *               files:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
- *                 description: Product images (up to 10 files)
+ *                 description: >
+ *                   Upload Product images and optional videos (up to 10 files total)
+ *                   - At least 3 image files are required
+ *                   - Videos are optional
  *                 maxItems: 10
  *     responses:
  *       200:
@@ -220,6 +263,10 @@ const router = express.Router();
  *               categoryId:
  *                 type: string
  *                 enum: [electronics, books & stationery, clothing & accessories, furniture, home & kitchen, sports & fitness equipment, gaming & entertainment, health & personal care, hobbies & crafts, miscellaneous]
+ *               quantity:
+ *                 type: integer
+ *                 description: The updated number of items available for sale.
+ *                 example: 10
  *               files:
  *                 type: array
  *                 items:
@@ -239,6 +286,17 @@ const router = express.Router();
  *     tags: [Product]
  *     summary: Get all products listed for a long time
  *     description: Retrieve products that have been listed for a long duration
+ *     parameters:
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: Product listings retrieved successfully

@@ -18,12 +18,14 @@ import ticketRoute from "../routes/ticketRoute";
 import announcementRoute from "../routes/adminRoute/announcement";
 import categoryRoute from "./categoryRoute";
 import categoryAdminRoute from "./adminRoute/category";
+import analyticsRoute from "./adminRoute/analytics";
 import dashboardRoute from "./dashboardRoute";
 import { verifyToken } from "../middlewares/authMiddleware";
 const router = Router();
 
 const adminRouter = Router();
 adminRouter.use("/auth", adminAuthRoute);
+adminRouter.use("/analytics", analyticsRoute);
 adminRouter.use("/users", verifyToken, userManagementRoute);
 adminRouter.use("/product", verifyToken, productManagementRoute);
 adminRouter.use("/ticket", verifyToken, adminTicketRoute);

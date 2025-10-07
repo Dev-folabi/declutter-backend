@@ -1,5 +1,5 @@
 import Express from "express";
-import { moderateProductListing, getProductsByAdmin, flagOrRemoveListing } from "../../controllers/admin/productController";
+import { moderateProductListing, getProductsByAdmin, flagOrRemoveListing, getSingleProduct } from "../../controllers/admin/productController";
 import { validateModeration, validateFlagOrRemove } from "../../middlewares/validators";
 import { authorizeRoles } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
@@ -48,6 +48,24 @@ const router = Express.Router();
  *       404:
  *         description: Product or Admin not found
  * 
+ * /api/admin/product/{id}:
+  *   get:
+  *     tags: [Product]
+  *     summary: Get a single product by ID
+  *     description: Retrieve details of a product using its ID
+  *     parameters:
+  *       - in: path
+  *         name: id
+  *         required: true
+  *         schema:
+  *           type: string
+  *         description: Product ID
+  *     responses:
+  *       200:
+  *         description: Product retrieved successfully
+  *       400:
+  *         description: Product not found
+ * 
  * /api/admin/product/allproducts:
  *   get:
  *     tags: [Admin Product Management]
@@ -73,6 +91,16 @@ const router = Express.Router();
  *         schema:
  *           type: string
  *         description: Search term to match name, category, or description
+ *       - in: query
+ *         name: minPrice
+ *         schema:
+ *           type: number
+ *         description: Minimum price for the product
+ *       - in: query
+ *         name: maxPrice
+ *         schema:
+ *           type: number
+ *         description: Maximum price for the product
  *     responses:
  *       200:
  *         description: All product listings retrieved successfully
@@ -128,6 +156,11 @@ router.patch('/moderate-product/:id',
 router.get('/allproducts', 
   authorizeRoles(...ADMIN_ONLY_ROLES), 
   getProductsByAdmin
+);
+
+router.get('/product/:id', 
+  authorizeRoles(...ADMIN_ONLY_ROLES), 
+  getSingleProduct
 );
 
 router.patch('/flag/:productId', 

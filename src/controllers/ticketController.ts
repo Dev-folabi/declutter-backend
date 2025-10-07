@@ -58,7 +58,7 @@ export const createTicket = async (
     }
 
     const ticket = await SupportTicket.create({
-      user: userId,
+      userId,
       subject,
       description,
       issueType,
@@ -67,7 +67,10 @@ export const createTicket = async (
     });
 
     // Notify all the Admins via email
-    const admins = await Admin.find({ is_admin: true });
+    const admins = await Admin.find({
+      is_admin: true,
+      role: { $in: ["admin", "super_admin"] },
+    });
     const adminEmails = admins.map((admin) => admin.email).join(",");
     sendEmail(
       adminEmails,

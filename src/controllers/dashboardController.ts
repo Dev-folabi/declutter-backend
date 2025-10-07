@@ -33,8 +33,8 @@ export const getSellerDashboard = async (req: Request, res: Response, next: Next
     // --- Summary Cards & Sales ---
     const [totalUploadedItems, availableItems, soldItems, salesData] = await Promise.all([
       Product.countDocuments({ seller: sellerId }),
-      Product.countDocuments({ seller: sellerId, is_sold: false }),
-      Product.countDocuments({ seller: sellerId, is_sold: true }),
+      Product.countDocuments({ seller: sellerId, quantity: { $gt: 0 } }),
+      Product.countDocuments({ seller: sellerId, quantity: 0 }),
       Order.aggregate([
         { $unwind: '$items' },
         {

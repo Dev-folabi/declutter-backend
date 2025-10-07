@@ -17,13 +17,23 @@ export const getAllUnsoldProduct = async (
 ) => {
   try {
     let query: any = { ...req.query };
-    query.is_sold = false;
+    query.quantity = { $gt: 0 };
     query.is_approved = true;
     query.is_reserved = false;
 
-    // Remove pagination fields
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
+
+    // Remove pagination and price fields from query
     delete query.page;
     delete query.limit;
+    delete query.minPrice;
+    delete query.maxPrice;
 
     const search = req.query.search || "";
     const page = Number(req.query.page) || 1;
@@ -52,9 +62,8 @@ export const getAllUnsoldProduct = async (
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
-    // const products = await Product.find({is_sold: false, is_approved: true})
     const productsData = _.map(products, (product) =>
-      _.omit(product.toObject(), ["is_approved", "is_sold"])
+      _.omit(product.toObject(), ["is_approved"])
     );
     res.status(200).json({
       success: true,
@@ -104,7 +113,7 @@ export const listAProduct = async (
       return;
      }
 
-    const { name, categoryId, price, location, description } = req.body;
+    const { name, categoryId, price, location, description, phoneNumber, quantity } = req.body;
     const categoryExist = await Category.findById(categoryId);
     if (!categoryExist) {
       res.status(400).json({
@@ -115,13 +124,22 @@ export const listAProduct = async (
       return;
     }
 
+    if (price <= 0) {
+      res.status(400).json({
+        success: false,
+        message: "Price must be greater than zero.",
+        data: null,
+      })
+      return
+    }
+
     const files = req.files as Express.Multer.File[];
 
     // Check if files are provided
-    if (!files || files.length < 3) {
+    if (!files || files.length === 0) {
       res.status(400).json({
         success: false,
-        message: "At least three product images are required.",
+        message: "Please upload product images.",
         data: null,
       });
       return;
@@ -134,6 +152,15 @@ export const listAProduct = async (
     const videoFiles = files.filter((file) =>
       file.mimetype.startsWith("video/")
     );
+
+    if (imageFiles.length < 3) {
+      res.status(400).json({
+        success: false,
+        message: "Please upload at least 3 product images.",
+        data: null,
+      });
+      return;
+    }
 
     // Upload images to ImageKit
     let productImageUrls: string[] = [];
@@ -154,6 +181,7 @@ export const listAProduct = async (
         ["product", "marketplace", "video"]
       );
     }
+   
 
     const productId = () => {
       return `DM-${Date.now()}`;
@@ -162,6 +190,7 @@ export const listAProduct = async (
     const newProduct = await Product.create({
       name,
       price,
+      quantity,
       productId: productId(),
       category: categoryId,
       location,
@@ -169,9 +198,10 @@ export const listAProduct = async (
       seller: user?._id,
       productImage: productImageUrls,
       productVideos: productVideoUrls,
+      sellerPhoneNumber: phoneNumber
     });
 
-    const productData = _.omit(newProduct.toObject(), ["is_sold"]);
+    const productData = _.omit(newProduct.toObject(), []);
 
     const notificationData: CreateNotificationData = {
       recipient: user?._id! as string,
@@ -246,7 +276,7 @@ export const updateAProduct = async (
       { new: true, runValidators: true }
     );
 
-    const productData = _.omit(updatedProduct, ["is_sold"]);
+    const productData = _.omit(updatedProduct, []);
 
     const notificationData: CreateNotificationData = {
       recipient: user?._id! as string,
@@ -274,7 +304,10 @@ export const getSingleUnsoldProduct = async (
   next: NextFunction
 ) => {
   try {
-    const product = await Product.findById(req.params.id)
+    const product = await Product.findOne({
+      _id: req.params.id,
+      quantity: { $gt: 0 },
+    })
     .populate("seller", "fullName profileImageURL sellerStatus email")
     .populate("category", "name description");
     if (product) {
@@ -304,14 +337,24 @@ export const getUnsoldProductsByCategory = async (
 ) => {
   try {
     let query: any = { ...req.query };
-    query.is_sold = false;
+    query.quantity = { $gt: 0 };
     query.is_approved = true;
     query.is_reserved = false;
     query.category = req.params.category;
 
-    // Remove pagination fields
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
+
+    // Remove pagination and price fields from query
     delete query.page;
     delete query.limit;
+    delete query.minPrice;
+    delete query.maxPrice;
 
     const search = req.query.search || "";
     const page = Number(req.query.page) || 1;
@@ -343,7 +386,7 @@ export const getUnsoldProductsByCategory = async (
 
     if (products) {
       const productsData = _.map(products, (product) =>
-        _.omit(product.toObject(), ["is_approved", "is_sold"])
+        _.omit(product.toObject(), ["is_approved"])
       );
       res.status(200).json({
         success: true,
@@ -372,12 +415,22 @@ export const getAllLongUnsoldProduct = async (
 ) => {
   try {
     let query: any = { ...req.query };
-    query.is_sold = false;
+    query.quantity = { $gt: 0 };
     query.is_approved = true;
 
-    // Remove pagination fields
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
+
+    // Remove pagination and price fields from query
     delete query.page;
     delete query.limit;
+    delete query.minPrice;
+    delete query.maxPrice;
 
     const search = req.query.search || "";
     const page = Number(req.query.page) || 1;
@@ -406,9 +459,8 @@ export const getAllLongUnsoldProduct = async (
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: 1 });
-    // const products = await Product.find({is_sold: false, is_approved: true})
     const productsData = _.map(products, (product) =>
-      _.omit(product.toObject(), ["is_approved", "is_sold"])
+      _.omit(product.toObject(), ["is_approved"])
     );
     res.status(200).json({
       success: true,
@@ -449,8 +501,16 @@ export const getSellerProducts = async (
 
     let query: any = {
       seller: sellerId,
-      is_sold: false,
+      quantity: { $gt: 0 },
     };
+
+    // Price range filter
+    if (req.query.minPrice) {
+      query.price = { ...query.price, $gte: Number(req.query.minPrice) };
+    }
+    if (req.query.maxPrice) {
+      query.price = { ...query.price, $lte: Number(req.query.maxPrice) };
+    }
 
     // Add search functionality if there's a search term
     if (search) {

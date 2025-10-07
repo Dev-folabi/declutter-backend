@@ -158,7 +158,7 @@ export const getProductsByAdmin = async (
       return;
     }
 
-    const { search = "", status, is_approved, is_sold } = req.query;
+    const { search = "", status, is_approved, is_sold, minPrice, maxPrice } = req.query;
     const page = Number(req.query.page) || 1;
     const limit = Number(req.query.limit) || 10;
     const skip = (page - 1) * limit;
@@ -172,8 +172,18 @@ export const getProductsByAdmin = async (
     if (is_approved) {
       query.is_approved = is_approved;
     }
-    if (is_sold) {
-      query.is_sold = is_sold;
+    if (is_sold === "true") {
+      query.quantity = 0;
+    } else if (is_sold === "false") {
+      query.quantity = { $gt: 0 };
+    }
+
+    // Price range filter
+    if (minPrice) {
+      query.price = { ...query.price, $gte: Number(minPrice) };
+    }
+    if (maxPrice) {
+      query.price = { ...query.price, $lte: Number(maxPrice) };
     }
 
     if (search) {
@@ -196,6 +206,7 @@ export const getProductsByAdmin = async (
 
     const products = await Product.find(query)
       .populate("category")
+      .populate("seller", "fullName profileImageURL")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -327,5 +338,27 @@ export const flagOrRemoveListing = async (
     return;
   } catch (err) {
     next(err);
+  }
+};
+
+export const getSingleProduct = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const product = await Product.findOne({
+      _id: req.params.id,
+    })
+    .populate("seller", "fullName profileImageURL sellerStatus email")
+    .populate("category", "name description");
+    
+    res.status(200).json({
+        success: true,
+        message: "Product retrieved successfully.",
+        data: product,
+      });
+  } catch (error) {
+    next(error);
   }
 };

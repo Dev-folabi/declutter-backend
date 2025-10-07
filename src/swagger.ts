@@ -50,6 +50,47 @@ const swaggerDefinition = {
           },
         },
       },
+      Admin: {
+        type: "object",
+        properties: {
+          _id: {
+            type: "string",
+            example: "60d0fe4f5311236168a109cb",
+          },
+          fullName: {
+            type: "string",
+            example: "John Doe",
+          },
+          email: {
+            type: "string",
+            example: "john.doe@example.com",
+          },
+          role: {
+            type: "string",
+            example: "super_admin",
+          },
+          emailVerified: {
+            type: "boolean",
+            example: true,
+          },
+          is_admin: {
+            type: "boolean",
+            example: true,
+          },
+          profileImageURL: {
+            type: "string",
+            example: "http://example.com/avatar.jpg",
+          },
+          createdAt: {
+            type: "string",
+            format: "date-time",
+          },
+          updatedAt: {
+            type: "string",
+            format: "date-time",
+          },
+        },
+      },
     },
   },
 };

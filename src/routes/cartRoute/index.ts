@@ -3,7 +3,6 @@ import {
   getUserCart,
   addToCart,
   removeItemFromCart,
-  updateCartItem,
 } from "../../controllers/cartController";
 
 const router = express.Router();
@@ -69,34 +68,36 @@ const router = express.Router();
  *         description: Item removed
  */
 
-/**
- * @swagger
- * /api/cart/update:
- *   patch:
- *     summary: Update item quantity in cart
- *     tags: [Cart]
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               product_id:
- *                 type: string
- *               quantity:
- *                 type: number
- *             required:
- *               - product_id
- *               - quantity
- *     responses:
- *       200:
- *         description: Cart updated
- */
+// /**
+//  * @swagger
+//  * /api/cart/update:
+//  *   patch:
+//  *     summary: Update item quantity in cart
+//  *     tags: [Cart]
+//  *     requestBody:
+//  *       required: true
+//  *       content:
+//  *         application/json:
+//  *           schema:
+//  *             type: object
+//  *             properties:
+//  *               product_id:
+//  *                 type: string
+//  *               quantity:
+//  *                 type: number
+//  *             required:
+//  *               - product_id
+//  *               - quantity
+//  *     responses:
+//  *       200:
+//  *         description: Cart updated
+//  */
 
 router.get("/", getUserCart);
 router.post("/add", addToCart);
 router.delete("/remove/:product_id", removeItemFromCart);
-router.patch("/update", updateCartItem);
+
+//  This endpoint has been deprecated. Add and Remove cart endpoint should be use instead.
+// router.patch("/update", updateCartItem);
 
 export default router;

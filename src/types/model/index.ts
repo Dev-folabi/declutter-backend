@@ -9,6 +9,7 @@ export interface IUser extends Document {
   fullName: string;
   email: string;
   password: string;
+  lastLogin?: Date;
   schoolId: Schema.Types.ObjectId;
   schoolIdCardURL?: string;
   ninURL?: string;
@@ -31,7 +32,12 @@ export interface IUser extends Document {
   profileImageURL: string;
   is_admin: boolean;
   status: "active" | "inactive" | "suspended";
-  isSuspended: boolean;
+  suspension: {
+    isSuspended: boolean;
+    reason?: string;
+    actionBy?: Schema.Types.ObjectId;
+    actionAt?: Date;
+  };
 }
 
 export interface OTPVerificationModelType {
@@ -65,6 +71,7 @@ export interface ContactUsModelType {
 export interface ProductListingType extends Document {
   name: string;
   price: number;
+  quantity: number;
   productId: string;
   productImage: string[];
   productVideos: string[];
@@ -73,8 +80,8 @@ export interface ProductListingType extends Document {
   description: string;
   is_approved: boolean;
   rejection_reason?: string;
-  is_sold: boolean;
   is_reserved: boolean;
+  reserved_at?: Date;
   hasSettled: boolean;
   seller: Schema.Types.ObjectId;
   status: "approved" | "pending" | "rejected" | "flagged" | "removed";
@@ -83,11 +90,12 @@ export interface ProductListingType extends Document {
     flaggedBy: Types.ObjectId;
     date: Date;
   }[];
+  sellerPhoneNumber: string,
 }
 
 // Interface for CartItem
 export interface ICartItem extends Document {
-  product: Schema.Types.ObjectId;
+  product: Types.ObjectId | (ProductListingType & { _id: Types.ObjectId });
   quantity: number;
   price: number;
 }
@@ -141,6 +149,7 @@ export interface IAdmin extends Document {
   otp?: string;
   otpExpires?: Date;
   is_admin: boolean;
+  profileImageURL?: string;
 }
 
 // interface for admin activity log
