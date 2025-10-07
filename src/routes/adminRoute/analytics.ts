@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { verifyToken } from '../../middlewares/authMiddleware';
-import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport, getAdminDashboard, exportUserGrowthChart } from '../../controllers/admin/analyticsController';
+import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport, getAdminDashboard, exportUserGrowthChart, getTransactionSummary } from '../../controllers/admin/analyticsController';
 
 const router = Router();
 
@@ -238,6 +238,55 @@ router.get(
     '/report/monthly',
     verifyToken,
     exportMonthlyReport
+)
+
+/**
+ * @swagger
+ * /api/admin/analytics/transaction-summary:
+ *   get:
+ *     summary: Get transaction summary for dashboard cards
+ *     description: Retrieves key transaction metrics for display on the admin dashboard.
+ *     tags: [Admin Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transaction summary retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     balance:
+ *                       type: number
+ *                     totalTransactions:
+ *                       type: number
+ *                     completed:
+ *                       type: number
+ *                     failed:
+ *                       type: number
+ *                     sellersPendingBalance:
+ *                       type: number
+ *                     sellersBalance:
+ *                       type: number
+ *                     commissionEarnings:
+ *                       type: number
+ *                     totalRefunds:
+ *                       type: number
+ *       403:
+ *         description: Access denied.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get(
+    '/transaction-summary',
+    verifyToken,
+    getTransactionSummary
 )
 
 export default router;
