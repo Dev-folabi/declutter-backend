@@ -1,12 +1,16 @@
-import { Request, Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from "express";
 import { User } from "../models/userModel";
-import { Product } from '../models/productList';
-import { Order } from '../models/order';
-import { Transaction } from '../models/transactionModel';
-import { paginated_result } from '../utils/pagination';
+import { Product } from "../models/productList";
+import { Order } from "../models/order";
+import { Transaction } from "../models/transactionModel";
+import { paginated_result } from "../utils/pagination";
 import { getIdFromToken } from "../function/token";
 
-export const getSellerDashboard = async (req: Request, res: Response, next: NextFunction) => {
+export const getSellerDashboard = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const user = await User.findById(getIdFromToken(req));
   if (!user) {
     res.status(400).json({
@@ -22,52 +26,53 @@ export const getSellerDashboard = async (req: Request, res: Response, next: Next
 
   try {
     // Check if the user is a seller
-    if (!user.role.includes('seller')) {
+    if (!user.role.includes("seller")) {
       res.status(403).json({
         success: false,
-        message: 'Access denied. You must be a seller to view this dashboard.',
+        message: "Access denied. You must be a seller to view this dashboard.",
       });
       return;
     }
 
     // --- Summary Cards & Sales ---
-    const [totalUploadedItems, availableItems, soldItems, salesData] = await Promise.all([
-      Product.countDocuments({ seller: sellerId }),
-      Product.countDocuments({ seller: sellerId, quantity: { $gt: 0 } }),
-      Product.countDocuments({ seller: sellerId, quantity: 0 }),
-      Order.aggregate([
-        { $unwind: '$items' },
-        {
-          $lookup: {
-            from: 'products',
-            localField: 'items.product',
-            foreignField: '_id',
-            as: 'productDetails'
-          }
-        },
-        { $unwind: '$productDetails' },
-        {
-          $match: {
-            'productDetails.seller': sellerId,
-            'status': 'paid'
-          }
-        },
-        {
-          $group: {
-            _id: null,
-            totalSales: { $sum: '$items.price' }
-          }
-        }
-      ])
-    ]);
+    const [totalUploadedItems, availableItems, soldItems, salesData] =
+      await Promise.all([
+        Product.countDocuments({ seller: sellerId }),
+        Product.countDocuments({ seller: sellerId, quantity: { $gt: 0 } }),
+        Product.countDocuments({ seller: sellerId, quantity: 0 }),
+        Order.aggregate([
+          { $unwind: "$items" },
+          {
+            $lookup: {
+              from: "products",
+              localField: "items.product",
+              foreignField: "_id",
+              as: "productDetails",
+            },
+          },
+          { $unwind: "$productDetails" },
+          {
+            $match: {
+              "productDetails.seller": sellerId,
+              status: "paid",
+            },
+          },
+          {
+            $group: {
+              _id: null,
+              totalSales: { $sum: "$items.price" },
+            },
+          },
+        ]),
+      ]);
 
     const totalSales = salesData.length > 0 ? salesData[0].totalSales : 0;
 
     // --- Withdrawal History ---
     const withdrawalQuery = {
       userId: sellerId,
-      transactionType: 'debit',
-      description: 'Wallet Withdrawal',
+      transactionType: "debit",
+      description: "Wallet Withdrawal",
     };
     const pageNumber = parseInt(page as string, 10);
     const limitNumber = parseInt(limit as string, 10);
@@ -81,45 +86,74 @@ export const getSellerDashboard = async (req: Request, res: Response, next: Next
       Transaction.countDocuments(withdrawalQuery),
     ]);
 
-    const withdrawalHistory = paginated_result(pageNumber, limitNumber, totalWithdrawals, withdrawals, skip);
+    const withdrawalHistory = paginated_result(
+      pageNumber,
+      limitNumber,
+      totalWithdrawals,
+      withdrawals,
+      skip
+    );
 
     // --- Sales History ---
-    const sellerProducts = await Product.find({ seller: sellerId }).select('_id');
-    const sellerProductIds = sellerProducts.map(p => p._id);
+    const sellerProducts = await Product.find({ seller: sellerId }).select(
+      "_id"
+    );
+    const sellerProductIds = sellerProducts.map((p) => p._id);
 
-    const salesHistoryQuery = { 'items.product': { $in: sellerProductIds } };
+    const salesHistoryQuery = { "items.product": { $in: sellerProductIds } };
 
     const [sales, totalSalesCount] = await Promise.all([
       Order.find(salesHistoryQuery)
         .populate({
-          path: 'items.product',
-          select: 'name productImage price'
+          path: "items.product",
+          select: "name productImage price _id",
         })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limitNumber),
-      Order.countDocuments(salesHistoryQuery)
+      Order.countDocuments(salesHistoryQuery),
     ]);
 
-    const formattedSales = sales.map(order => {
-      const items = order.items.filter(item =>
-        sellerProductIds.includes((item.product as any)._id.toString())
-      );
-      return {
-        ...order.toObject(),
-        items: items.map(item => {
-          const product: any = item.product;
-          return {
-            name: product.name,
-            price: item.price,
-            productImage: product.productImage[0] || null
-          };
-        }),
-        status: order.status === 'paid' ? 'Completed' : order.status === 'refunded' ? 'Returned' : order.status
-      }
-    });
+    const formattedSales = sales
+      .map((order) => {
+        const items = order.items.filter((item) =>
+          sellerProductIds.some(
+            (id) =>
+              (id as any).toString() === (item.product as any)._id.toString()
+          )
+        );
 
-    const salesHistory = paginated_result(pageNumber, limitNumber, totalSalesCount, formattedSales, skip);
+        // Skip orders with no matching items
+        if (items.length === 0) return null;
+
+        return {
+          ...order.toObject(),
+          items: items.map((item) => {
+            const product: any = item.product;
+            return {
+              _id: product._id,
+              name: product.name,
+              price: item.price,
+              productImage: product.productImage[0] || null,
+            };
+          }),
+          status:
+            order.status === "paid"
+              ? "Completed"
+              : order.status === "refunded"
+                ? "Returned"
+                : order.status,
+        };
+      })
+      .filter((order) => order !== null); // Remove null entries
+
+    const salesHistory = paginated_result(
+      pageNumber,
+      limitNumber,
+      totalSalesCount,
+      formattedSales,
+      skip
+    );
 
     res.status(200).json({
       success: true,
@@ -134,7 +168,6 @@ export const getSellerDashboard = async (req: Request, res: Response, next: Next
         salesHistory,
       },
     });
-
   } catch (error) {
     next(error);
   }
