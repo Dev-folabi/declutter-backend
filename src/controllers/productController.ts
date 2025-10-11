@@ -501,7 +501,6 @@ export const getSellerProducts = async (
 
     let query: any = {
       seller: sellerId,
-      quantity: { $gt: 0 },
     };
 
     // Price range filter
