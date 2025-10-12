@@ -25,7 +25,7 @@ export const cancelExpiredTransactions = async () => {
         if (order) {
           // Release reserved products
           for (const item of order.items) {
-            await Product.findByIdAndUpdate(item.product, {
+            await Product.findByIdAndUpdate((item.product as any)._id, {
               $set: { is_reserved: false },
               $unset: { reserved_at: "" },
             });
