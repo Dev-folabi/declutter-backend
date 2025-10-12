@@ -132,7 +132,7 @@ export const initiateOrderPayment = async (
       calculateEarnings(order.totalPrice);
 
     // Initiate the payment using Paystack
-    const referenceId = generateReferenceId(order._id as string);
+    const referenceId = generateReferenceId(order._id as any);
     const paymentData = await paystack.initiatePayment(
       (order.user as any).email,
       totalAmount,
