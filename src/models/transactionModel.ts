@@ -9,7 +9,7 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
     status: {
       type: String,
       required: true,
-      enum: ["pending", "completed", "failed", "refund", "refunded"],
+      enum: ["pending", "completed", "failed", "refund", "refunded", "cancelled"],
       default: "pending",
     },
     charges: { type: Number, min: 0 },
@@ -49,6 +49,7 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
     sellerEarnings: { type: Number, default: 0 },
     revenue: { type: Number, default: 0 },
     dispute: { type: Boolean, default: false },
+    expiresAt: { type: Date },
   },
   {
     timestamps: true,

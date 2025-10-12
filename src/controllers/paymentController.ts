@@ -18,6 +18,7 @@ import { calculateEarnings } from "../utils/calculateEarnings";
 import { Schema } from "mongoose";
 import { Cart } from "../models/cart";
 import { Product } from "../models/productList";
+import { generateReferenceId } from "../utils/referenceGenerator";
 
 const environment = getEnvironment();
 
@@ -100,19 +101,6 @@ export const initiateOrderPayment = async (
       return;
     }
 
-    const existingTransaction = await Transaction.findOne({
-      referenceId: `txn_${order._id}`,
-    });
-
-    if (existingTransaction) {
-      res.status(400).json({
-        success: false,
-        message: "Payment already initiated for this order",
-        data: null,
-      });
-      return;
-    }
-
     // Check product availability and reserve items
     const unavailableItems: string[] = [];
     for (const item of order.items) {
@@ -144,13 +132,15 @@ export const initiateOrderPayment = async (
       calculateEarnings(order.totalPrice);
 
     // Initiate the payment using Paystack
+    const referenceId = generateReferenceId(order._id);
     const paymentData = await paystack.initiatePayment(
       (order.user as any).email,
       totalAmount,
-      `txn_${order._id}`
+      referenceId
     );
 
     // Record the transaction in the database
+    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // 1 hour from now
     const transaction = new Transaction<ITransaction>({
       userId: (order.user as any)._id,
       amount: order.totalPrice,
@@ -159,10 +149,11 @@ export const initiateOrderPayment = async (
       charges: gatewayCharges,
       transactionType: "credit",
       description: `Payment for Order ${order._id}`,
-      referenceId: paymentData.reference,
+      referenceId: referenceId,
       totalAmount,
       sellerEarnings,
       revenue,
+      expiresAt,
     } as ITransaction);
 
     await transaction.save();
