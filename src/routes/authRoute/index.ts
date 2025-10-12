@@ -5,6 +5,7 @@ import {
   validateRegister,
   validateResetPassword,
   validateResetPasswordOTP,
+  validateResendVerificationOTP,
   validateVerifyEmailOTP,
 } from "../../middlewares/validators";
 import {
@@ -14,6 +15,7 @@ import {
   registerUser,
   resetPasswordOTP,
   resetPassword,
+  resendVerificationOtp,
   verifyEmail,
 } from "../../controllers/authController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
@@ -196,6 +198,28 @@ const router = express.Router();
  *         description: Email verified successful
  *       400:
  *         description: User not found
+ *
+ * /api/auth/resend-otp:
+ *   post:
+ *     tags: [Authentication]
+ *     summary: Resend verification OTP
+ *     description: Resend OTP to user's email if their account is not yet verified
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: A new OTP has been sent to your email
+ *       400:
+ *         description: Email is already verified
+ *       404:
+ *         description: User not found
  */
 router.post(
   "/school",
@@ -219,5 +243,10 @@ router.post("/login", validateLogin, loginUser);
 router.post("/reset-password-otp", validateResetPasswordOTP, resetPasswordOTP);
 router.post("/reset-password", validateResetPassword, resetPassword);
 router.post("/verify-otp", validateVerifyEmailOTP, verifyEmail);
+router.post(
+  "/resend-otp",
+  validateResendVerificationOTP,
+  resendVerificationOtp
+);
 
 export default router;

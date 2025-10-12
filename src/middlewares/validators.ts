@@ -27,6 +27,15 @@ export const validateWaitlist = [
   handleValidationErrors,
 ];
 
+export const validateResendVerificationOTP = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email address"),
+  handleValidationErrors,
+];
+
 export const validateAddSchoolsBulk = [
   body("schools")
     .isArray({ min: 1 })

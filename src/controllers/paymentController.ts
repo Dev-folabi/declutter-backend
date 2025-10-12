@@ -87,6 +87,30 @@ export const initiateOrderPayment = async (
   const userId = (req as any).user._id;
 
   try {
+    // Find and cancel any previous pending transactions for this user
+    const pendingTransactions = await Transaction.find({
+      userId,
+      status: "pending",
+    });
+
+    for (const trans of pendingTransactions) {
+      trans.status = "cancelled";
+      await trans.save();
+
+      const orderId = trans.referenceId?.split("_")[1];
+      if (orderId) {
+        const oldOrder = await Order.findById(orderId);
+        if (oldOrder) {
+          for (const item of oldOrder.items) {
+            await Product.findByIdAndUpdate(item.product, {
+              $set: { is_reserved: false },
+              $unset: { reserved_at: "" },
+            });
+          }
+        }
+      }
+    }
+
     // Find the order by ID and ensure it's associated with the authenticated user
     const order = await Order.findOne({ _id: order_id, user: userId }).populate(
       "user"
