@@ -1,6 +1,7 @@
 import express from "express";
 import {
   getAllTransactions,
+  getTransactionById,
   approveOrRejectRefund,
   getRefundHistory,
   getUserTransactions,
@@ -618,6 +619,53 @@ import { validateTransactionId } from "../../middlewares/validators";
  *         description: Forbidden - admin-only access.
  */
 
+/**
+ * @swagger
+ * /api/transactions/{transactionId}:
+ *   get:
+ *     summary: Get a single transaction by ID
+ *     description: Retrieves detailed information for a single transaction. Accessible by admins or the user who owns the transaction.
+ *     tags: [Transactions]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: transactionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: The ID of the transaction to retrieve.
+ *         example: "60f7b3b3b3b3b3b3b3b3b3b3"
+ *     responses:
+ *       200:
+ *         description: Transaction retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                   example: "Transaction retrieved successfully"
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     transaction:
+ *                       $ref: '#/components/schemas/Transaction'
+ *                     orderDetails:
+ *                       type: object
+ *                       description: "Details of the order related to this transaction, if applicable."
+ *       401:
+ *         description: Unauthorized - invalid or missing token.
+ *       403:
+ *         description: Forbidden - user is not authorized to view this transaction.
+ *       404:
+ *         description: Transaction not found.
+ */
+
 const router = express.Router();
 
 // User endpoints (require authentication)
@@ -628,10 +676,15 @@ router.get(
   validateTransactionId,
   getUserRefundStatus
 );
+// Admin endpoints (require admin authentication)
+router.get(
+  "/:transactionId",
+  verifyToken,
+  getTransactionById
+);
 // Refund request endpoint (requires authentication)
 router.post("/refund-request/:transactionId", verifyToken, createRefundRequest);
 
-// Admin endpoints (require admin authentication)
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllTransactions);
 router.get(
   "/refund-requests",

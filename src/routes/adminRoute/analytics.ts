@@ -1,6 +1,13 @@
-import { Router } from 'express';
-import { verifyToken } from '../../middlewares/authMiddleware';
-import { getAnalyticsData, exportAnalyticsReport, exportMonthlyReport, getAdminDashboard, exportUserGrowthChart } from '../../controllers/admin/analyticsController';
+import { Router } from "express";
+import { verifyToken } from "../../middlewares/authMiddleware";
+import {
+  getAnalyticsData,
+  exportAnalyticsReport,
+  exportMonthlyReport,
+  getAdminDashboard,
+  exportUserGrowthChart,
+  getTransactionStats,
+} from "../../controllers/admin/analyticsController";
 
 const router = Router();
 
@@ -96,11 +103,7 @@ const router = Router();
  *       500:
  *         description: Internal server error.
  */
-router.get(
-  '/',
-  verifyToken,
-  getAnalyticsData
-);
+router.get("/", verifyToken, getAnalyticsData);
 
 /**
  * @swagger
@@ -126,11 +129,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/dashboard',
-    verifyToken,
-    getAdminDashboard
-)
+router.get("/dashboard", verifyToken, getAdminDashboard);
 
 /**
  * @swagger
@@ -154,11 +153,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/dashboard/export-user-growth',
-    verifyToken,
-    exportUserGrowthChart
-)
+router.get("/dashboard/export-user-growth", verifyToken, exportUserGrowthChart);
 
 /**
  * @swagger
@@ -189,11 +184,7 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-  '/export',
-  verifyToken,
-  exportAnalyticsReport
-);
+router.get("/export", verifyToken, exportAnalyticsReport);
 
 /**
  * @swagger
@@ -234,10 +225,51 @@ router.get(
  *       500:
  *         description: Internal server error.
  */
-router.get(
-    '/report/monthly',
-    verifyToken,
-    exportMonthlyReport
-)
+router.get("/report/monthly", verifyToken, exportMonthlyReport);
+
+/**
+ * @swagger
+ * /api/admin/analytics/transaction-summary:
+ *   get:
+ *     summary: Get transaction summary for dashboard cards
+ *     description: Retrieves key transaction metrics for display on the admin dashboard.
+ *     tags: [Admin Analytics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Transaction summary retrieved successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     balance:
+ *                       type: number
+ *                     totalTransactions:
+ *                       type: number
+ *                     completed:
+ *                       type: number
+ *                     failed:
+ *                       type: number
+ *                     sellersPendingBalance:
+ *                       type: number
+ *                     sellersBalance:
+ *                       type: number
+ *                     commissionEarnings:
+ *                       type: number
+ *                     totalRefunds:
+ *                       type: number
+ *       403:
+ *         description: Access denied.
+ *       500:
+ *         description: Internal server error.
+ */
+router.get("/transaction-stats", verifyToken, getTransactionStats);
 
 export default router;
