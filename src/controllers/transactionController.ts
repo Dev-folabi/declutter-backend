@@ -78,6 +78,93 @@ export const getTransactionById = async (
   }
 };
 
+export const getSellerSalesHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = (req as any).user?._id;
+    const page = Number(req.query.page) || 1;
+    const per_page = Number(req.query.limit) || 10;
+    const { status } = req.query;
+
+    const filters: any = { "items.product.seller": sellerId };
+
+    if (status) {
+      filters.status = status;
+    }
+
+    const count = await Order.countDocuments(filters);
+
+    if ((page - 1) * per_page >= count) {
+      res.status(200).json({
+        success: true,
+        message: "No sales history on this page",
+        data: paginated_result(page, per_page, count, []),
+      });
+      return;
+    }
+
+    const sales = await Order.find(filters)
+      .populate("items.product", "name price productImage")
+      .populate("user", "fullName email")
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * per_page)
+      .limit(per_page);
+
+    res.status(200).json({
+      success: true,
+      message: "Seller sales history fetched successfully",
+      data: paginated_result(page, per_page, count, sales),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerWithdrawalHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = (req as any).user?._id;
+    const page = Number(req.query.page) || 1;
+    const per_page = Number(req.query.limit) || 10;
+
+    const filters: any = {
+      userId: sellerId,
+      transactionType: "debit",
+      description: "Wallet Withdrawal",
+    };
+
+    const count = await Transaction.countDocuments(filters);
+
+    if ((page - 1) * per_page >= count) {
+      res.status(200).json({
+        success: true,
+        message: "No withdrawal history on this page",
+        data: paginated_result(page, per_page, count, []),
+      });
+      return;
+    }
+
+    const withdrawals = await Transaction.find(filters)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * per_page)
+      .limit(per_page);
+
+    res.status(200).json({
+      success: true,
+      message: "Seller withdrawal history fetched successfully",
+      data: paginated_result(page, per_page, count, withdrawals),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAllTransactions = async (
   req: Request,
   res: Response,

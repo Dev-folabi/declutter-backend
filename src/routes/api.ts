@@ -21,6 +21,7 @@ import categoryAdminRoute from "./adminRoute/category";
 import analyticsRoute from "./adminRoute/analytics";
 import dashboardRoute from "./dashboardRoute";
 import { verifyToken } from "../middlewares/authMiddleware";
+import sellerRoute from "./sellerRoute";
 const router = Router();
 
 const adminRouter = Router();
@@ -47,5 +48,6 @@ router.use("/admin", adminRouter);
 router.use("/ticket", verifyToken, ticketRoute);
 router.use("/category", categoryRoute);
 router.use("/dashboard", dashboardRoute);
+router.use("/seller", sellerRoute);
 
 export default router;

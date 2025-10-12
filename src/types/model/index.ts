@@ -166,7 +166,7 @@ export interface ITransaction extends Document {
   userId: string;
   amount: number;
   transactionDate: Date;
-  status: string;
+  status: "pending" | "completed" | "failed" | "refund" | "refunded" | "cancelled";
   charges?: number;
   transactionType: string;
   description?: string;
@@ -194,7 +194,7 @@ export interface ITransaction extends Document {
   totalAmount?: number;
   sellerEarnings?: number;
   revenue?: number;
-
+  expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }
