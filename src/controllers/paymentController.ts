@@ -87,6 +87,32 @@ export const initiateOrderPayment = async (
   const userId = (req as any).user._id;
 
   try {
+    // Find and cancel any previous pending transactions for this user
+    const pendingTransactions = await Transaction.find({
+      userId,
+      status: "pending",
+    });
+
+    for (const trans of pendingTransactions) {
+      trans.status = "cancelled";
+      await trans.save();
+
+      const orderId = trans.referenceId?.split("_")[1];
+
+      if (orderId) {
+        const oldOrder = await Order.findById(orderId);
+
+        if (oldOrder) {
+          for (const item of oldOrder.items) {
+            await Product.findByIdAndUpdate((item.product as any)._id, {
+              $set: { is_reserved: false },
+              $unset: { reserved_at: "" },
+            });
+          }
+        }
+      }
+    }
+
     // Find the order by ID and ensure it's associated with the authenticated user
     const order = await Order.findOne({ _id: order_id, user: userId }).populate(
       "user"
@@ -122,9 +148,14 @@ export const initiateOrderPayment = async (
 
     // Reserve products
     for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $set: { is_reserved: true, reserved_at: new Date() },
-      });
+      const product = await Product.findById(item.product);
+      if (product) {
+        if (item.quantity >= product.quantity) {
+          await Product.findByIdAndUpdate(item.product, {
+            $set: { is_reserved: true, reserved_at: new Date() },
+          });
+        }
+      }
     }
 
     // Calculate commission & earnings (before adding gateway fee)
@@ -360,8 +391,6 @@ export const handlePaystackWebhook = async (
 };
 
 const verifyWebhookSignature = (payload: any, signature: string) => {
-  console.log({ PAYSTACK_WEBHOOK_SECRET });
-
   const computedSignature = crypto
     .createHmac("sha512", PAYSTACK_WEBHOOK_SECRET)
     .update(JSON.stringify(payload))
@@ -466,10 +495,13 @@ const handleChargeFailed = async (paymentData: any) => {
 
     // Release reserved products
     for (const item of order.items) {
-      await Product.findByIdAndUpdate(item.product, {
-        $set: { is_reserved: false },
-        $unset: { reserved_at: "" },
-      });
+      const product = await Product.findById(item.product);
+      if (product) {
+        await Product.findByIdAndUpdate(item.product, {
+          $set: { is_reserved: false },
+          $unset: { reserved_at: "" },
+        });
+      }
     }
   }
 };

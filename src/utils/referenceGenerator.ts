@@ -8,5 +8,5 @@ import { Types } from "mongoose";
 export const generateReferenceId = (orderId: Types.ObjectId): string => {
   const timestamp = new Date().getTime();
   const randomSuffix = Math.random().toString(36).substring(2, 8);
-  return `TX-${orderId.toString()}-${timestamp}-${randomSuffix}`;
+  return `TX_${orderId.toString()}_${timestamp}_${randomSuffix}`;
 };

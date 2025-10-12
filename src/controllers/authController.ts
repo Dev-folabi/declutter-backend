@@ -78,6 +78,77 @@ export const addSchoolsBulk = async (
   }
 };
 
+export const resendVerificationOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return handleError(res, 400, "Email is required.");
+    }
+
+    // Find user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return handleError(res, 404, "User not found.");
+    }
+
+    // Check if email is already verified
+    if (user.emailVerified) {
+      return handleError(res, 400, "Email is already verified.");
+    }
+
+    // Generate a new OTP
+    const OTP = generateOTP();
+
+    // Upsert OTP entry
+    await OTPVerification.updateOne(
+      {
+        "owner.id": user._id,
+        "owner.type": "User",
+        type: "activate account",
+        verificationType: "email",
+      },
+      {
+        $set: {
+          OTP,
+          type: "activate account",
+          verificationType: "email",
+          owner: {
+            id: user._id,
+            type: "User",
+          },
+        },
+      },
+      { upsert: true }
+    );
+
+    // Send email
+    await sendEmail(
+      user.email,
+      "Verify Your Email - New OTP",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>You requested a new OTP to verify your email. Use the OTP below:</p>
+        <h2>${OTP}</h2>
+        <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <br />
+      `
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "A new OTP has been sent to your email.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getSchools = async (
   req: Request,
   res: Response,

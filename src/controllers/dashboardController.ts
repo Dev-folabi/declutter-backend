@@ -100,7 +100,10 @@ export const getSellerDashboard = async (
     );
     const sellerProductIds = sellerProducts.map((p) => p._id);
 
-    const salesHistoryQuery = { "items.product": { $in: sellerProductIds } };
+    const salesHistoryQuery = {
+      "items.product": { $in: sellerProductIds },
+      status: "paid",
+    };
 
     const [sales, totalSalesCount] = await Promise.all([
       Order.find(salesHistoryQuery)
