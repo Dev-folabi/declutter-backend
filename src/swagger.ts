@@ -50,6 +50,32 @@ const swaggerDefinition = {
           },
         },
       },
+      Product: {
+        type: "object",
+        properties: {
+          _id: { type: "string" },
+          name: { type: "string" },
+          price: { type: "number" },
+          category: { type: "string" },
+          location: { type: "string" },
+          description: { type: "string" },
+          productImage: { type: "array", items: { type: "string" } },
+        },
+      },
+      PaginatedProducts: {
+        type: "object",
+        properties: {
+          currentPage: { type: "integer" },
+          totalPages: { type: "integer" },
+          totalProducts: { type: "integer" },
+          products: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/Product",
+            },
+          },
+        },
+      },
       Admin: {
         type: "object",
         properties: {

@@ -482,3 +482,112 @@ export const requestOTP = async (
     `
   );
 };
+
+export const becomeSeller = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const userId = getIdFromToken(req);
+    const user = await User.findById(userId);
+
+    if (!user) {
+      return handleError(res, 404, "User not found");
+    }
+
+    if (user.role.includes("seller")) {
+      return handleError(res, 400, "User is already a seller");
+    }
+
+    const { accountNumber, bankCode, pin } = req.body;
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+
+    if (!files.schoolIdCard || !files.nin) {
+      return handleError(res, 400, "School ID card and NIN are required");
+    }
+
+    const schoolIdCardFile = files.schoolIdCard[0];
+    const ninFile = files.nin[0];
+
+    const [schoolIdCardUpload, ninUpload] = await Promise.all([
+      uploadToImageKit({
+        file: schoolIdCardFile.buffer,
+        fileName: schoolIdCardFile.originalname,
+        folder: "/documents",
+        tags: ["seller-document", "school-id-card"],
+      }),
+      uploadToImageKit({
+        file: ninFile.buffer,
+        fileName: ninFile.originalname,
+        folder: "/documents",
+        tags: ["seller-document", "nin"],
+      }),
+    ]);
+
+    let detail;
+    try {
+      detail = await paystack.createRecipient(
+        accountNumber as string,
+        bankCode as string
+      );
+    } catch (err: any) {
+      const msg =
+        err?.response?.body?.message || "Invalid bank code or account number.";
+      return handleError(res, 400, msg);
+    }
+    const recipientCode = detail.recipient_code;
+    const account = detail.details;
+
+    const encryptedAccountNumber = encryptData(accountNumber);
+    const encryptedbankCode = encryptData(bankCode);
+    const encryptedRecipientCode = encryptData(recipientCode);
+    const encryptedBankName = encryptData(account.bank_name);
+
+    const accountDetail = {
+      accountName: account.account_name,
+      accountNumber: encryptedAccountNumber,
+      bankCode: encryptedbankCode,
+      bankName: encryptedBankName,
+      recipientCode: encryptedRecipientCode,
+    };
+
+    const hashedPin = await bcrypt.hash(pin, 10);
+
+    user.schoolIdCardURL = schoolIdCardUpload.url;
+    user.ninURL = ninUpload.url;
+    user.accountDetail = accountDetail;
+    user.pin = hashedPin;
+    user.role.push("seller");
+    user.sellerStatus = "pending";
+
+    await user.save();
+
+    const notificationData: CreateNotificationData = {
+      recipient: userId,
+      recipientModel: "User" as const,
+      body: "Your application to become a seller has been received and is under review.",
+      type: "account",
+      title: "Seller Application",
+    };
+
+    await createNotification(notificationData);
+
+    await sendEmail(
+      user.email,
+      "Seller Application Received",
+      `
+        Hi ${user?.fullName.split(" ")[0] || "User"},
+        <p>Your application to become a seller has been received and is currently under review. You will be notified once the process is complete.</p>
+        <br />
+      `
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Seller application submitted successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
