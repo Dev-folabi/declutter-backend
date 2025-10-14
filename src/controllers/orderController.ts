@@ -134,6 +134,7 @@ export const getUserOrders = async (
 
     const orders = await Order.find({ user: user._id })
       .populate("items.product", "name productImage") // Select key product fields
+      .populate("transaction", "transactionId") // Populate transactionId
       .sort({ createdAt: -1 }); // Most recent first
 
     res.status(200).json({

@@ -17,8 +17,11 @@ import {
 } from "../../controllers/userController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { uploadSingle } from "../../middlewares/upload";
+import becomeSellerRoute from "./becomeSellerRoute";
 
 const router = express.Router();
+
+router.use("/", becomeSellerRoute);
 
 /**
  * @swagger
