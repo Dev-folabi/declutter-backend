@@ -30,8 +30,28 @@ const router = express.Router();
  *   get:
  *     tags: [Product]
  *     summary: Get all product listings
- *     description: Retrieve all product listings
+ *     description: Retrieve all product listings with pagination
  *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           default: 1
+ *         description: Page number for pagination
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *           maximum: 100
+ *           default: 10
+ *         description: Number of products per page
+ *       - in: query
+ *         name: search
+ *         schema:
+ *           type: string
+ *         description: Search term for products
  *       - in: query
  *         name: minPrice
  *         schema:
@@ -45,6 +65,17 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: All product listings retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   $ref: '#/components/schemas/PaginatedProducts'
  *       400:
  *         description: Error retrieving products
  *

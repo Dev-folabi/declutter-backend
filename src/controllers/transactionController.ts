@@ -78,6 +78,133 @@ export const getTransactionById = async (
   }
 };
 
+export const getSellerSalesHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = (req as any).user?._id;
+    const pageNumber = Number(req.query.page) || 1;
+    const limitNumber = Number(req.query.limit) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
+
+    // Get all product IDs belonging to the seller
+    const sellerProducts = await Product.find({ seller: sellerId }).select(
+      "_id"
+    );
+    const sellerProductIds = sellerProducts.map((p) => p._id);
+
+    const salesHistoryQuery = {
+      "items.product": { $in: sellerProductIds },
+      status: "paid",
+    };
+
+    const [sales, totalSalesCount] = await Promise.all([
+      Order.find(salesHistoryQuery)
+        .populate({
+          path: "items.product",
+          select: "name productImage price _id",
+        })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limitNumber),
+      Order.countDocuments(salesHistoryQuery),
+    ]);
+
+    const formattedSales = sales
+      .map((order) => {
+        const items = order.items.filter((item) =>
+          sellerProductIds.some(
+            (id) =>
+              (id as any).toString() === (item.product as any)._id.toString()
+          )
+        );
+
+        // Skip orders with no matching items
+        if (items.length === 0) return null;
+
+        return {
+          ...order.toObject(),
+          items: items.map((item) => {
+            const product: any = item.product;
+            return {
+              _id: product._id,
+              name: product.name,
+              price: item.price,
+              productImage: product.productImage[0] || null,
+            };
+          }),
+          status:
+            order.status === "paid"
+              ? "Completed"
+              : order.status === "refunded"
+                ? "Returned"
+                : order.status,
+        };
+      })
+      .filter((order) => order !== null); // Remove null entries
+
+    const salesHistory = paginated_result(
+      pageNumber,
+      limitNumber,
+      totalSalesCount,
+      formattedSales,
+      skip
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Seller sales history fetched successfully",
+      data: salesHistory,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getSellerWithdrawalHistory = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const sellerId = (req as any).user?._id;
+    const page = Number(req.query.page) || 1;
+    const per_page = Number(req.query.limit) || 10;
+
+    const filters: any = {
+      userId: sellerId,
+      transactionType: "debit",
+      description: "Wallet Withdrawal",
+    };
+
+    const count = await Transaction.countDocuments(filters);
+
+    if ((page - 1) * per_page >= count) {
+      res.status(200).json({
+        success: true,
+        message: "No withdrawal history on this page",
+        data: paginated_result(page, per_page, count, []),
+      });
+      return;
+    }
+
+    const withdrawals = await Transaction.find(filters)
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * per_page)
+      .limit(per_page);
+
+    res.status(200).json({
+      success: true,
+      message: "Seller withdrawal history fetched successfully",
+      data: paginated_result(page, per_page, count, withdrawals),
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getAllTransactions = async (
   req: Request,
   res: Response,

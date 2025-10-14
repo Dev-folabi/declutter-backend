@@ -27,6 +27,34 @@ export const validateWaitlist = [
   handleValidationErrors,
 ];
 
+export const validateBecomeSeller = [
+  body("accountNumber")
+    .notEmpty()
+    .withMessage("Account Number must be provided")
+    .isString()
+    .withMessage("Account Number must be a string"),
+  body("bankCode")
+    .notEmpty()
+    .withMessage("Bank code must be provided")
+    .isString()
+    .withMessage("Bank code must be a string"),
+  body("pin")
+    .notEmpty()
+    .withMessage("Pin must be provided")
+    .isString()
+    .withMessage("Pin must be a string"),
+  handleValidationErrors,
+];
+
+export const validateResendVerificationOTP = [
+  body("email")
+    .notEmpty()
+    .withMessage("Email is required")
+    .isEmail()
+    .withMessage("Invalid email address"),
+  handleValidationErrors,
+];
+
 export const validateAddSchoolsBulk = [
   body("schools")
     .isArray({ min: 1 })

@@ -133,10 +133,11 @@ export interface IOrder extends Document {
 
 // Interface for Order
 export interface IWeListened extends Document {
-  name: string;
-  statement: string;
-  school: string;
-  is_active: boolean;
+  firstName: string;
+  lastName: string;
+  email: string;
+  message: string;
+  hasRead: boolean;
 }
 
 // interface for Admin
@@ -166,7 +167,7 @@ export interface ITransaction extends Document {
   userId: string;
   amount: number;
   transactionDate: Date;
-  status: string;
+  status: "pending" | "completed" | "failed" | "refund" | "refunded" | "cancelled";
   charges?: number;
   transactionType: string;
   description?: string;
@@ -194,7 +195,7 @@ export interface ITransaction extends Document {
   totalAmount?: number;
   sellerEarnings?: number;
   revenue?: number;
-
+  expiresAt?: Date;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -10,7 +10,7 @@ import { handleError } from "../error/errorHandler";
 const getOrCreateCart = async (userId: string) => {
   let cart = await Cart.findOne({ user: userId }).populate(
     "items.product",
-    "name productImage"
+    "name productImage quantity"
   );
   if (!cart) {
     cart = await Cart.create({ user: userId, items: [], totalPrice: 0 });
@@ -38,10 +38,16 @@ export const getUserCart = async (
 
     const cart = await getOrCreateCart(user._id as string);
 
+    const cartData = cart.toObject();
+    cartData.items = cartData.items.map((item: any) => ({
+      ...item,
+      availableQuantity: item.product.quantity,
+    }));
+
     res.status(200).json({
       success: true,
       message: "Cart retrieved successfully.",
-      data: cart,
+      data: cartData,
     });
   } catch (error) {
     next(error);

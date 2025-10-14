@@ -62,6 +62,7 @@ export const getAllUnsoldProduct = async (
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
+    const totalProducts = await Product.countDocuments(query);
     const productsData = _.map(products, (product) =>
       _.omit(product.toObject(), ["is_approved"])
     );
@@ -71,7 +72,7 @@ export const getAllUnsoldProduct = async (
         products.length > 0
           ? "Product retrieved successfully."
           : "No product listed at the moment",
-      data: productsData,
+      data: paginated_result(page, limit, totalProducts, productsData),
     });
   } catch (error) {
     next(error);
