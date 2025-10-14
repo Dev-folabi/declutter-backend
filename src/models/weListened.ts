@@ -4,21 +4,25 @@ import { Schema, model } from "mongoose";
 
 const WeListenedModel = new Schema<IWeListened>(
   {
-    name: {
+    firstName: {
       type: String,
       required: true,
     },
-    school: {
+    lastName: {
       type: String,
       required: true,
     },
-    statement: {
+    email: {
       type: String,
       required: true,
     },
-    is_active: {
+    message: {
+      type: String,
+      required: true,
+    },
+    hasRead: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   { timestamps: true }
