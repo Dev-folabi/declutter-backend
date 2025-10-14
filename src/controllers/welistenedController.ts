@@ -3,6 +3,7 @@ import { WeListened } from "../models/weListened";
 import { Admin } from "../models/adminModel";
 import { sendBulkEmailBCC } from "../utils/mail";
 import { paginated_result } from "../utils/pagination";
+import { handleError } from "../error/errorHandler";
 
 export const createWeListened = async (
   req: Request,
@@ -81,7 +82,7 @@ export const getWeListenedById = async (
     const { id } = req.params;
     const weListened = await WeListened.findById(id);
     if (!weListened) {
-      res.status(404).json({ message: "WeListened not found" });
+      return handleError(res, 404, "WeListened not found");
     }
     res.status(200).json({
       success: true,
@@ -107,12 +108,13 @@ export const updateWeListened = async (
       (key) => key !== "hasRead"
     );
     if (invalidFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Only the hasRead field can be updated. Invalid fields: ${invalidFields.join(
+      return handleError(
+        res,
+        400,
+        `Only the hasRead field can be updated. Invalid fields: ${invalidFields.join(
           ", "
-        )}`,
-      });
+        )}`
+      );
     }
 
     const updatedWeListened = await WeListened.findByIdAndUpdate(
@@ -124,10 +126,7 @@ export const updateWeListened = async (
       }
     );
     if (!updatedWeListened) {
-      res.status(404).json({
-        success: false,
-        message: "WeListened not found",
-      });
+      return handleError(res, 404, "WeListened not found");
     }
     res.status(200).json({
       success: true,
@@ -148,10 +147,7 @@ export const deleteWeListened = async (
     const { id } = req.params;
     const deletedWeListened = await WeListened.findByIdAndDelete(id);
     if (!deletedWeListened) {
-      return res.status(404).json({
-        success: false,
-        message: "WeListened not found",
-      });
+      return handleError(res, 404, "WeListened not found");
     }
     res.status(200).json({
       success: true,
