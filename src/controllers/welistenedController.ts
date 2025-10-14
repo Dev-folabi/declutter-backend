@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { WeListened } from "../models/weListened";
-import { User } from "../models/userModel";
-import { getIdFromToken } from "../function/token";
+import { Admin } from "../models/adminModel";
+import { sendBulkEmailBCC } from "../utils/mail";
 
 export const createWeListened = async (
   req: Request,
@@ -9,28 +9,38 @@ export const createWeListened = async (
   next: NextFunction
 ) => {
   try {
-    const user = await User.findById(getIdFromToken(req));
+    const { firstName, lastName, email, message } = req.body;
+    const newWeListened = await WeListened.create({
+      firstName,
+      lastName,
+      email,
+      message,
+    });
 
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "You dont have the permission to view this page.",
-        data: null,
-      });
+    const admins = await Admin.find({
+      role: { $in: ["admin", "super_admin"] },
+    }).select("email");
+
+    if (admins.length > 0) {
+      const recipientEmails = admins.map((admin) => admin.email);
+      const emailSubject = "New User Feedback Received";
+      const emailBody = `
+        <p>A new feedback submission has been received.</p>
+        <p><strong>Details:</strong></p>
+        <ul>
+          <li><strong>Name:</strong> ${firstName} ${lastName}</li>
+          <li><strong>Email:</strong> ${email}</li>
+        </ul>
+        <p><strong>Message:</strong></p>
+        <p>${message}</p>
+      `;
+
+      await sendBulkEmailBCC(recipientEmails, emailSubject, emailBody);
     }
 
-    if (!user?.is_admin) {
-      res.status(400).json({
-        success: false,
-        message: "You are not authorized for this action.",
-        data: null,
-      });
-    }
-
-    const newWeListened = await WeListened.create(req.body);
     res.status(201).json({
       success: true,
-      message: "Your message has been created successfully.",
+      message: "Your message has been submitted successfully.",
       data: newWeListened,
     });
   } catch (error) {
@@ -82,24 +92,6 @@ export const updateWeListened = async (
   next: NextFunction
 ) => {
   try {
-    const user = await User.findById(getIdFromToken(req));
-
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "You dont have the permission to view this page.",
-        data: null,
-      });
-    }
-
-    if (!user?.is_admin) {
-      res.status(400).json({
-        success: false,
-        message: "You are not authorized for this action.",
-        data: null,
-      });
-    }
-
     const { id } = req.params;
     const updatedWeListened = await WeListened.findByIdAndUpdate(id, req.body, {
       new: true,
@@ -128,7 +120,7 @@ export const deleteWeListened = async (
 ): Promise<Response<any, Record<string, any>> | void> => {
   try {
     const { id } = req.params;
-    const deletedWeListened = await WeListened.findByIdAndDelete(req.params.id);
+    const deletedWeListened = await WeListened.findByIdAndDelete(id);
     if (!deletedWeListened) {
       return res.status(404).json({
         success: false,
@@ -138,48 +130,6 @@ export const deleteWeListened = async (
     res.status(200).json({
       success: true,
       message: "WeListened deleted successfully",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const removeWeListened = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const user = await User.findById(getIdFromToken(req));
-
-    if (!user) {
-      res.status(400).json({
-        success: false,
-        message: "You dont have the permission to view this page.",
-        data: null,
-      });
-    }
-
-    if (!user?.is_admin) {
-      res.status(400).json({
-        success: false,
-        message: "You are not authorized for this action.",
-        data: null,
-      });
-    }
-
-    const data = await WeListened.findByIdAndDelete(req.params.id);
-    if (!data) {
-      res.status(404).json({
-        success: false,
-        message: "WeListened not found",
-        data: null,
-      });
-    }
-    res.status(204).json({
-      success: true,
-      message: "Your message has been deleted successfully.",
-      data: null,
     });
   } catch (error) {
     next(error);

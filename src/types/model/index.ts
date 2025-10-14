@@ -133,9 +133,10 @@ export interface IOrder extends Document {
 
 // Interface for Order
 export interface IWeListened extends Document {
-  name: string;
-  statement: string;
-  school: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  message: string;
   is_active: boolean;
 }
 
