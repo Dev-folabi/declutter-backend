@@ -20,9 +20,9 @@ const WeListenedModel = new Schema<IWeListened>(
       type: String,
       required: true,
     },
-    is_active: {
+    hasRead: {
       type: Boolean,
-      default: true,
+      default: false,
     },
   },
   { timestamps: true }

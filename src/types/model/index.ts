@@ -137,7 +137,7 @@ export interface IWeListened extends Document {
   lastName: string;
   email: string;
   message: string;
-  is_active: boolean;
+  hasRead: boolean;
 }
 
 // interface for Admin

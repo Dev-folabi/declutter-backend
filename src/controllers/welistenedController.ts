@@ -2,6 +2,7 @@ import { Request, Response, NextFunction } from "express";
 import { WeListened } from "../models/weListened";
 import { Admin } from "../models/adminModel";
 import { sendBulkEmailBCC } from "../utils/mail";
+import { paginated_result } from "../utils/pagination";
 
 export const createWeListened = async (
   req: Request,
@@ -54,11 +55,17 @@ export const getAllWeListened = async (
   next: NextFunction
 ) => {
   try {
-    const weListened = await WeListened.find();
+    const page = parseInt(req.query.page as string) || 1;
+    const limit = parseInt(req.query.limit as string) || 10;
+    const startIndex = (page - 1) * limit;
+
+    const weListened = await WeListened.find().skip(startIndex).limit(limit);
+    const count = await WeListened.countDocuments();
+
     res.status(200).json({
       success: true,
       message: "WeListened retrieved successfully.",
-      data: weListened,
+      data: paginated_result(page, limit, count, weListened, startIndex),
     });
   } catch (error) {
     next(error);
@@ -93,10 +100,29 @@ export const updateWeListened = async (
 ) => {
   try {
     const { id } = req.params;
-    const updatedWeListened = await WeListened.findByIdAndUpdate(id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const { hasRead } = req.body;
+
+    // Check if other fields are present in the request body
+    const invalidFields = Object.keys(req.body).filter(
+      (key) => key !== "hasRead"
+    );
+    if (invalidFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Only the hasRead field can be updated. Invalid fields: ${invalidFields.join(
+          ", "
+        )}`,
+      });
+    }
+
+    const updatedWeListened = await WeListened.findByIdAndUpdate(
+      id,
+      { hasRead },
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
     if (!updatedWeListened) {
       res.status(404).json({
         success: false,

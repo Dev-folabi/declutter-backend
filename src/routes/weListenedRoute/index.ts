@@ -57,6 +57,17 @@ const router = express.Router();
  *     security:
  *       - bearerAuth: []
  *     description: Retrieve a list of all submitted feedback messages.
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *         description: The page number to retrieve.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *         description: The number of items to retrieve per page.
  *     responses:
  *       200:
  *         description: Feedback messages retrieved successfully.
@@ -89,7 +100,7 @@ const router = express.Router();
  *     summary: Update a WeListened message by ID (Admin/Super Admin only)
  *     security:
  *       - bearerAuth: []
- *     description: Update a specific feedback message.
+ *     description: Update a specific feedback message. Only the hasRead field can be updated.
  *     parameters:
  *       - in: path
  *         name: id
@@ -104,14 +115,8 @@ const router = express.Router();
  *           schema:
  *             type: object
  *             properties:
- *               firstName:
- *                 type: string
- *               lastName:
- *                 type: string
- *               email:
- *                 type: string
- *               message:
- *                 type: string
+ *               hasRead:
+ *                 type: boolean
  *     responses:
  *       200:
  *         description: Your message has been updated successfully.
