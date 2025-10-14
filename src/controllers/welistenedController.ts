@@ -82,7 +82,8 @@ export const getWeListenedById = async (
     const { id } = req.params;
     const weListened = await WeListened.findById(id);
     if (!weListened) {
-      return handleError(res, 404, "WeListened not found");
+       handleError(res, 404, "WeListened not found");
+       return;
     }
     res.status(200).json({
       success: true,
@@ -108,13 +109,14 @@ export const updateWeListened = async (
       (key) => key !== "hasRead"
     );
     if (invalidFields.length > 0) {
-      return handleError(
+       handleError(
         res,
         400,
         `Only the hasRead field can be updated. Invalid fields: ${invalidFields.join(
           ", "
         )}`
       );
+      return;
     }
 
     const updatedWeListened = await WeListened.findByIdAndUpdate(
@@ -126,7 +128,8 @@ export const updateWeListened = async (
       }
     );
     if (!updatedWeListened) {
-      return handleError(res, 404, "WeListened not found");
+       handleError(res, 404, "WeListened not found");
+       return;
     }
     res.status(200).json({
       success: true,
@@ -142,12 +145,13 @@ export const deleteWeListened = async (
   req: Request,
   res: Response,
   next: NextFunction
-): Promise<Response<any, Record<string, any>> | void> => {
+) => {
   try {
     const { id } = req.params;
     const deletedWeListened = await WeListened.findByIdAndDelete(id);
     if (!deletedWeListened) {
-      return handleError(res, 404, "WeListened not found");
+       handleError(res, 404, "WeListened not found");
+       return;
     }
     res.status(200).json({
       success: true,
