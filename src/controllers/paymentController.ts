@@ -27,6 +27,8 @@ const PAYSTACK_WEBHOOK_SECRET =
     ? process.env.PAYSTACK_TEST_SECRET_KEY!
     : process.env.PAYSTACK_LIVE_SECRET_KEY!;
 
+console.log({environment, PAYSTACK_WEBHOOK_SECRET})
+
 export const getBankCodes = async (
   req: Request,
   res: Response,
