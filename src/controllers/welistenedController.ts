@@ -14,6 +14,7 @@ export const createWeListened = async (
     const { firstName, lastName, email, message } = req.body;
     if (!firstName || !lastName || !email || !message) {
       handleError(res, 400, "All fields are required");
+      return;
     }
     const newWeListened = await WeListened.create({
       firstName,
