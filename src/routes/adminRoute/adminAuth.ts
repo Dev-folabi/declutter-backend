@@ -1,6 +1,6 @@
 import express from "express";
 import {
-  registerAdmin,
+ // registerAdmin,
   loginAdmin,
   verifyAdminEmail,
   resetAdminPasswordOTP,
@@ -203,7 +203,7 @@ const router = express.Router();
  */
 
 // Admin-only routes
-router.post("/signup", validateAdminRegister, registerAdmin);
+//router.post("/signup", validateAdminRegister, registerAdmin);
 router.post("/login", validateLogin, loginAdmin);
 router.post(
   "/reset-password-otp",
