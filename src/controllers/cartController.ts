@@ -145,10 +145,23 @@ export const addToCart = async (
     cart.markModified("items");
     await cart.save();
 
+    // Populate product details to match getUserCart
+    await cart.populate("items.product", "name productImage quantity price");
+
+    const cartData = cart.toObject();
+    cartData.items = cartData.items.map((item: any) => ({
+      ...item,
+      availableQuantity: item.product.quantity,
+      product: {
+        ...item.product,
+        productImage: item.product.productImage || [],
+      },
+    }));
+
     res.status(201).json({
       success: true,
       message: "Product added to cart successfully.",
-      data: cart,
+      data: cartData,
     });
   } catch (error) {
     next(error);
