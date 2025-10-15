@@ -59,8 +59,8 @@ export const sendWaitlistMessage = async (
 ) => {
   try {
     // Get all waitlist emails
-    // const waitlistEmails = await Waitlist.find().select("email");
-    const waitlistEmails = [{ email: "yusufafolabi95@gmail.com" }];
+    const waitlistEmails = await Waitlist.find().select("email");
+    // const waitlistEmails = [{ email: "declutmart@gmail.com" }];
     // Send bulk mail
     await sendBulkEmailBCC(
       waitlistEmails.map((email) => email.email),

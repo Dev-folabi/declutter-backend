@@ -76,7 +76,7 @@ import { validateTransactionId } from "../../middlewares/validators";
  *       401:
  *         description: Unauthorized - invalid or missing token.
  *
- * /api/transactions/user/{transactionId}/refund-status:
+ * /api/transactions/user/{orderId}/refund-status:
  *   get:
  *     summary: Get refund status for user's transaction
  *     description: Retrieves the refund status and history for a specific transaction owned by the authenticated user. User access required.
@@ -85,7 +85,7 @@ import { validateTransactionId } from "../../middlewares/validators";
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: transactionId
+ *         name: orderId
  *         required: true
  *         schema:
  *           type: string
@@ -101,7 +101,7 @@ import { validateTransactionId } from "../../middlewares/validators";
  *       401:
  *         description: Unauthorized - invalid or missing token.
  *
- * /api/transactions/refund-request/{transactionId}:
+ * /api/transactions/refund-request/{orderId}:
  *   post:
  *     tags: [Transactions]
  *     summary: Request refund for a transaction
@@ -110,7 +110,7 @@ import { validateTransactionId } from "../../middlewares/validators";
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
- *         name: transactionId
+ *         name: orderId
  *         required: true
  *         schema:
  *           type: string
@@ -671,7 +671,7 @@ const router = express.Router();
 // User endpoints (require authentication)
 router.get("/user", verifyToken, getUserTransactions);
 router.get(
-  "/user/:transactionId/refund-status",
+  "/user/:orderId/refund-status",
   verifyToken,
   validateTransactionId,
   getUserRefundStatus
@@ -683,7 +683,7 @@ router.get(
   getTransactionById
 );
 // Refund request endpoint (requires authentication)
-router.post("/refund-request/:transactionId", verifyToken, createRefundRequest);
+router.post("/refund-request/:orderId", verifyToken, createRefundRequest);
 
 router.get("/", authorizeRoles(...ADMIN_ONLY_ROLES), getAllTransactions);
 router.get(

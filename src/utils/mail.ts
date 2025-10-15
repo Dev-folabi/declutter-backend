@@ -248,6 +248,7 @@ export const sendBulkEmailBCC = async (
         bcc: batch.map((email) => ({ email })), // actual recipients hidden in BCC
         subject,
         htmlContent: generateEmailHTML(text),
+        // htmlContent: text,
       };
 
       await client.sendTransacEmail(sendSmtpEmail);

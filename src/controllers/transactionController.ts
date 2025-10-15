@@ -10,6 +10,7 @@ import { Admin } from "../models/adminModel";
 import { CreateNotificationData } from "../types/model";
 import { ITransaction } from "../types/model";
 import { Product } from "../models/productList";
+import mongoose from "mongoose";
 
 export const getTransactionById = async (
   req: Request,
@@ -26,18 +27,15 @@ export const getTransactionById = async (
     )) as ITransaction;
 
     if (!transaction) {
-       res.status(404).json({
+      res.status(404).json({
         success: false,
         message: "Transaction not found",
       });
       return;
     }
 
-    if (
-      !isAdmin &&
-      transaction.userId.toString() !== user._id.toString()
-    ) {
-       res.status(403).json({
+    if (!isAdmin && transaction.userId.toString() !== user._id.toString()) {
+      res.status(403).json({
         success: false,
         message: "You are not authorized to view this transaction",
       });
@@ -53,7 +51,10 @@ export const getTransactionById = async (
     ]);
 
     let orderDetails = null;
-    if (transaction.referenceId && transaction.referenceId.startsWith("order_")) {
+    if (
+      transaction.referenceId &&
+      transaction.referenceId.startsWith("order_")
+    ) {
       const orderId = transaction.referenceId.split("_")[1];
       const order = await Order.findById(orderId).populate({
         path: "items.product",
@@ -65,7 +66,7 @@ export const getTransactionById = async (
       }
     }
 
-     res.status(200).json({
+    res.status(200).json({
       success: true,
       message: "Transaction retrieved successfully",
       data: {
@@ -560,7 +561,7 @@ export const createRefundRequest = async (
   next: NextFunction
 ) => {
   try {
-    const { transactionId } = req.params;
+    const { orderId } = req.params;
     const { reason } = req.body;
     const userId = (req as any).user?._id;
 
@@ -585,10 +586,9 @@ export const createRefundRequest = async (
     }
 
     // Find transaction with populated user data
-    const transaction = await Transaction.findById(transactionId).populate(
-      "userId",
-      "fullName email"
-    );
+    const transaction = await Transaction.findOne({
+      orderId,
+    }).populate("userId", "fullName email");
 
     if (!transaction) {
       res.status(404).json({
@@ -600,7 +600,7 @@ export const createRefundRequest = async (
     }
 
     // Verify transaction belongs to user
-    if (transaction.userId !== userId.toString()) {
+    if (transaction.userId.toString() !== userId.toString()) {
       res.status(403).json({
         success: false,
         message: "You can only request refunds for your own transactions.",
@@ -764,10 +764,10 @@ export const getUserRefundStatus = async (
   next: NextFunction
 ) => {
   try {
-    const { transactionId } = req.params;
+    const { orderId } = req.params;
     const userId = (req as any).user?._id;
 
-    const transaction = await Transaction.findById(transactionId)
+    const transaction = await Transaction.findOne({ orderId })
       .populate("refundRequest.requestedBy", "fullName email")
       .populate("refundHistory.performedBy", "fullName email")
       .populate("refundDetails.processedBy", "fullName email");
