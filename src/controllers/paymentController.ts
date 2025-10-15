@@ -184,6 +184,7 @@ export const initiateOrderPayment = async (
       totalAmount,
       sellerEarnings,
       revenue,
+      orderId: order._id,
       expiresAt,
     } as ITransaction);
 

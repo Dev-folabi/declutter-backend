@@ -18,6 +18,7 @@ const TransactionSchema: Schema = new Schema<ITransaction>(
       required: true,
       enum: ["credit", "debit"],
     },
+    orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
     description: { type: String },
     referenceId: { type: String, unique: true, sparse: true },
     refundRequest: {

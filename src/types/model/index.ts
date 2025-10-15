@@ -172,6 +172,7 @@ export interface ITransaction extends Document {
   transactionType: string;
   description?: string;
   referenceId?: string;
+  orderId?: Schema.Types.ObjectId;
   refundRequest?: {
     reason: string;
     requestedBy: Schema.Types.ObjectId;
