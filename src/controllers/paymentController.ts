@@ -22,10 +22,12 @@ import { generateReferenceId } from "../utils/referenceGenerator";
 
 const environment = getEnvironment();
 
-const PAYSTACK_WEBHOOK_SECRET =
-  environment === "local" || "staging"
-    ? process.env.PAYSTACK_TEST_SECRET_KEY!
-    : process.env.PAYSTACK_LIVE_SECRET_KEY!;
+const isTestEnv = ["local", "staging"].includes(environment);
+
+const PAYSTACK_WEBHOOK_SECRET = isTestEnv
+  ? process.env.PAYSTACK_TEST_SECRET_KEY!
+  : process.env.PAYSTACK_LIVE_SECRET_KEY!;
+
 
 console.log({environment, PAYSTACK_WEBHOOK_SECRET})
 
