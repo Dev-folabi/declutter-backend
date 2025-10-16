@@ -481,6 +481,26 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
     user.emailVerified = true;
     await user.save();
 
+    await sendEmail(
+      user.email,
+      "🎉 Welcome to DeclutMart — You're a DeclutStar!",
+      `
+      <h1>Hey DeclutStar,</h1>
+      <p>Welcome to the decluttering community!</p>
+
+      
+      <p>As part of DeclutMart users, you are now officially a <strong>DeclutStar 🎉</strong> and you will have the opportunity to declutter, buy and sell used items.</p>
+
+      <p>Here's what you can do to get ready:</p>
+        <ul>
+          <li>Gather those items you've been meaning to sell — it's time to give them a second home.</li>
+          <li>Get ready to explore a community of students buying and selling smartly.</li>
+          <li>Spread the word — invite your friends to join the movement and become fellow DeclutStars!</li>
+        </ul>
+     
+      `
+    )
+
     // Remove OTP after success
     await OTPVerification.deleteOne({ _id: otpVerification._id });
 
