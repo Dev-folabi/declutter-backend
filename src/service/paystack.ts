@@ -6,13 +6,14 @@ dotenv.config();
 
 const environment = getEnvironment();
 
-const PAYSTACK_SECRET_KEY =
-  environment === "local" || "staging"
-    ? process.env.PAYSTACK_TEST_SECRET_KEY!
-    : process.env.PAYSTACK_LIVE_SECRET_KEY!;
+const isTestEnv = ["local", "staging"].includes(environment);
+
+const PAYSTACK_WEBHOOK_SECRET = isTestEnv
+  ? process.env.PAYSTACK_TEST_SECRET_KEY!
+  : process.env.PAYSTACK_LIVE_SECRET_KEY!;
 
 const PAYMENT_CALLBACK_URL =
-  environment === "local" || "staging"
+  isTestEnv
     ? process.env.PAYMENT_TEST_CALLBACK_URL!
     : process.env.PAYMENT_LIVE_CALLBACK_URL!;
 
