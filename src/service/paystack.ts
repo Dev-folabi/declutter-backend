@@ -8,7 +8,7 @@ const environment = getEnvironment();
 
 const isTestEnv = ["local", "staging"].includes(environment);
 
-const PAYSTACK_WEBHOOK_SECRET = isTestEnv
+const PAYSTACK_SECRET_KEY = isTestEnv
   ? process.env.PAYSTACK_TEST_SECRET_KEY!
   : process.env.PAYSTACK_LIVE_SECRET_KEY!;
 
