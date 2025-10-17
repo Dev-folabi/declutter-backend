@@ -4,12 +4,12 @@ import cors from "cors";
 import dotenv from "dotenv";
 import routes from "./routes/api";
 import { rateLimiter } from "./middlewares/rateLimiter";
-import { blockBotsMiddleware } from "./middlewares/authMiddleware"
+import { blockBotsMiddleware } from "./middlewares/authMiddleware";
 import connectDB from "./db";
 import { errorHandler } from "./error/errorHandler";
 import swaggerRouter from "./swagger";
 import "./cronJob/cron";
-import { getEnvironment } from "../src/function/environment";
+import { getEnvironment } from "./function/environment";
 
 // Dotenv config
 dotenv.config();
@@ -26,10 +26,16 @@ app.set("trust proxy", 1);
 
 const corsOptions = {
   origin: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+    "X-Requested-With",
+    "Accept",
+    "Origin",
+  ],
   credentials: true,
-  optionsSuccessStatus: 200
+  optionsSuccessStatus: 200,
 };
 
 // Middlewares
