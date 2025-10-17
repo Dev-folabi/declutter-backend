@@ -20,8 +20,9 @@ const swaggerDefinition = {
     {
       url:
         environment === "local"
-          ? "http://localhost:9000"
-          : "https://auth-microservice-stss.onrender.com",
+          ? "http://localhost:6000"
+          : environment === "staging" ? "https://auth-microservice-stss.onrender.com" 
+          : "https://auth-microservice-production-9cd4.up.railway.app",
     },
   ],
   components: {

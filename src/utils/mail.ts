@@ -191,7 +191,7 @@ const generateEmailHTML = (text: string): string => {
           </div>
           
           <div class="signature">
-            <p>Thank you,</p>
+            <p>Happy decluttering,</p>
             <p class="team-name">DeclutMart Team</p>
           </div>
         </div>
