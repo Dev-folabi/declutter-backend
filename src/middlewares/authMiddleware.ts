@@ -1,5 +1,11 @@
 import { Request, Response, NextFunction } from "express";
 import { decodeToken } from "../function/token";
+import dotenv from "dotenv";
+import { getEnvironment } from "../function/environment";
+
+dotenv.config();
+
+const environment = getEnvironment();
 
 export const verifyToken = (
   req: Request,
@@ -21,11 +27,11 @@ export const verifyToken = (
       role: decoded.role,
       is_admin: decoded.is_admin,
     };
-     (req as any).admin = {
+    (req as any).admin = {
       _id: decoded._id,
       role: decoded.role,
       is_admin: decoded.is_admin
-     }
+    }
     next();
   } catch (error) {
     res.status(401).json({ message: "Invalid token" });
@@ -55,4 +61,31 @@ export const authorizeRoles = (...allowedRoles: string[]) => {
 
     next();
   };
+};
+
+export const blockBotsMiddleware = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): void => {
+  const userAgent = req.get("User-Agent") || "";
+
+  if (
+    ["production", "staging"].includes(environment) &&
+    /bot|crawler|spider|scraper|internet|^-$|\s-\s|selenium|phantom|headless|wget|curl|request|python|java|node(?!-fetch)|ruby|perl|go|rust|php/i.test(
+      userAgent
+    )
+  ) {
+    // eslint-disable-next-line
+    console.log(
+      `Suspicious User-Agent blocked: ${userAgent} from IP: ${req.ip}`
+    );
+    res.status(403).json({
+      success: false,
+      message: "Access denied",
+    });
+    return;
+  }
+
+  next();
 };

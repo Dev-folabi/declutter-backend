@@ -3,14 +3,18 @@ import morgan from "morgan";
 import cors from "cors";
 import dotenv from "dotenv";
 import routes from "./routes/api";
-// import { rateLimiter } from "./middlewares/rateLimiter";
+import { rateLimiter } from "./middlewares/rateLimiter";
+import { blockBotsMiddleware } from "./middlewares/authMiddleware"
 import connectDB from "./db";
 import { errorHandler } from "./error/errorHandler";
 import swaggerRouter from "./swagger";
 import "./cronJob/cron";
+import { getEnvironment } from "../src/function/environment";
 
 // Dotenv config
 dotenv.config();
+
+const environment = getEnvironment();
 
 // Initialize express server//
 const app: Express = express();
@@ -32,7 +36,11 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 app.use(morgan("combined"));
-// app.use(rateLimiter);
+
+if (["production", "staging"].includes(environment)) {
+  app.use(rateLimiter);
+  app.use(blockBotsMiddleware);
+}
 
 // Routes
 app.get("/", (req: Request, res: Response) => {
