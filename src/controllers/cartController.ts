@@ -10,7 +10,7 @@ import { handleError } from "../error/errorHandler";
 const getOrCreateCart = async (userId: string) => {
   let cart = await Cart.findOne({ user: userId }).populate(
     "items.product",
-    "name productImage quantity"
+    "name productImage quantity productType"
   );
   if (!cart) {
     cart = await Cart.create({ user: userId, items: [], totalPrice: 0 });
@@ -146,7 +146,7 @@ export const addToCart = async (
     await cart.save();
 
     // Populate product details to match getUserCart
-    await cart.populate("items.product", "name productImage quantity price");
+    await cart.populate("items.product", "name productImage quantity price productType");
 
     const cartData = cart.toObject();
     cartData.items = cartData.items.map((item: any) => ({

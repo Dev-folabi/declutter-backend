@@ -114,7 +114,7 @@ export const listAProduct = async (
       return;
      }
 
-    const { name, categoryId, price, location, description, phoneNumber, quantity } = req.body;
+    const { name, categoryId, price, location, description, phoneNumber, quantity, productType } = req.body;
     const categoryExist = await Category.findById(categoryId);
     if (!categoryExist) {
       res.status(400).json({
@@ -199,7 +199,8 @@ export const listAProduct = async (
       seller: user?._id,
       productImage: productImageUrls,
       productVideos: productVideoUrls,
-      sellerPhoneNumber: phoneNumber
+      sellerPhoneNumber: phoneNumber,
+      productType,
     });
 
     const productData = _.omit(newProduct.toObject(), []);

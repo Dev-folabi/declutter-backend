@@ -457,6 +457,11 @@ export const validateCreateProduct = [
     .withMessage(
       "Invalid phone number format (must be in international format, e.g. +2348012345678)"
     ),
+  body("productType")
+    .notEmpty()
+    .withMessage("Product type is required")
+    .isIn(["new", "used"])
+    .withMessage("Invalid product type. Must be 'new' or 'used'"),
   handleValidationErrors,
 ];
 
@@ -496,6 +501,13 @@ export const validateUpdateProduct = [
     .withMessage("Description must be a string")
     .notEmpty()
     .withMessage("Description cannot be empty"),
+
+  check("productType")
+    .if((value, { req }) => req.body.productType)
+    .notEmpty()
+    .withMessage("Product type cannot be empty")
+    .isIn(["new", "used"])
+    .withMessage("Invalid product type. Must be 'new' or 'used'"),
 
   handleValidationErrors,
 ];

@@ -229,6 +229,7 @@ const router = express.Router();
  *               - description
  *               - categoryId
  *               - phoneNumber
+ *               - productType
  *             properties:
  *               name:
  *                 type: string
@@ -248,6 +249,10 @@ const router = express.Router();
  *                 type: string
  *                 description: Phone number must be in international format
  *                 example: "+2348012345678"
+ *               productType:
+ *                 type: string
+ *                 enum: [new, used]
+ *                 description: The condition of the product.
  *               files:
  *                 type: array
  *                 items:
@@ -298,6 +303,10 @@ const router = express.Router();
  *                 type: integer
  *                 description: The updated number of items available for sale.
  *                 example: 10
+ *               productType:
+ *                 type: string
+ *                 enum: [new, used]
+ *                 description: The condition of the product.
  *               files:
  *                 type: array
  *                 items:

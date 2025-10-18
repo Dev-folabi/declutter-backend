@@ -133,7 +133,7 @@ export const getUserOrders = async (
     }
 
     const orders = await Order.find({ user: user._id })
-      .populate("items.product", "name productImage")
+      .populate("items.product", "name productImage productType")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -167,7 +167,7 @@ export const getOrderItems = async (
     const order = await Order.findOne({
       _id: order_id,
       user: user._id,
-    }).populate("items.product", "name productImage");
+    }).populate("items.product", "name productImage productType");
 
     if (!order) {
       res.status(404).json({
