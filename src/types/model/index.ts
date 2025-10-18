@@ -78,6 +78,7 @@ export interface ProductListingType extends Document {
   category: Schema.Types.ObjectId;
   location: string;
   description: string;
+  productType: 'new' | 'used';
   is_approved: boolean;
   rejection_reason?: string;
   is_reserved: boolean;
