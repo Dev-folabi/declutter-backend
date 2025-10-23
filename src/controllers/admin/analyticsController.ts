@@ -94,54 +94,54 @@ const calculatePercentageChange = (
 };
 
 const _getUserGrowthChartData = async () => {
-    const months = Array.from({ length: 12 }, (_, i) => {
-      const d = new Date();
-      d.setMonth(d.getMonth() - i);
-      return {
-        month: d.toLocaleString("default", { month: "short" }),
-        year: d.getFullYear(),
-        startDate: new Date(d.getFullYear(), d.getMonth(), 1),
-        endDate: new Date(d.getFullYear(), d.getMonth() + 1, 0),
-      };
-    }).reverse();
+  const months = Array.from({ length: 12 }, (_, i) => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - i);
+    return {
+      month: d.toLocaleString("default", { month: "short" }),
+      year: d.getFullYear(),
+      startDate: new Date(d.getFullYear(), d.getMonth(), 1),
+      endDate: new Date(d.getFullYear(), d.getMonth() + 1, 0),
+    };
+  }).reverse();
 
-    const newUsersData = await User.aggregate([
-      {
-        $group: {
-          _id: {
-            year: { $year: "$createdAt" },
-            month: { $month: "$createdAt" },
-          },
-          count: { $sum: 1 },
+  const newUsersData = await User.aggregate([
+    {
+      $group: {
+        _id: {
+          year: { $year: "$createdAt" },
+          month: { $month: "$createdAt" },
         },
+        count: { $sum: 1 },
       },
-    ]);
+    },
+  ]);
 
-    const returningUsersData = await User.aggregate([
-        {
-            $group: {
-                _id: {
-                    year: { $year: "$lastLogin" },
-                    month: { $month: "$lastLogin" },
-                },
-                count: { $sum: 1 },
-            },
+  const returningUsersData = await User.aggregate([
+    {
+      $group: {
+        _id: {
+          year: { $year: "$lastLogin" },
+          month: { $month: "$lastLogin" },
         },
-    ]);
+        count: { $sum: 1 },
+      },
+    },
+  ]);
 
-    return months.map((m) => {
-      const newUsers = newUsersData.find(
-        (d) => d._id.year === m.year && d._id.month === m.startDate.getMonth() + 1
-      );
-      const returningUsers = returningUsersData.find(
-        (d) => d._id.year === m.year && d._id.month === m.startDate.getMonth() + 1
-      );
-      return {
-        month: m.month,
-        newUsers: newUsers ? newUsers.count : 0,
-        returningUsers: returningUsers ? returningUsers.count : 0,
-      };
-    });
+  return months.map((m) => {
+    const newUsers = newUsersData.find(
+      (d) => d._id.year === m.year && d._id.month === m.startDate.getMonth() + 1
+    );
+    const returningUsers = returningUsersData.find(
+      (d) => d._id.year === m.year && d._id.month === m.startDate.getMonth() + 1
+    );
+    return {
+      month: m.month,
+      newUsers: newUsers ? newUsers.count : 0,
+      returningUsers: returningUsers ? returningUsers.count : 0,
+    };
+  });
 }
 
 // Private helper function to get summary data
@@ -499,10 +499,10 @@ export const getAdminDashboard = async (
       { $unwind: "$productDetails" },
       {
         $lookup: {
-            from: "categories",
-            localField: "productDetails.category",
-            foreignField: "_id",
-            as: "categoryDetails"
+          from: "categories",
+          localField: "productDetails.category",
+          foreignField: "_id",
+          as: "categoryDetails"
         }
       },
       { $unwind: "$categoryDetails" },
@@ -517,33 +517,33 @@ export const getAdminDashboard = async (
     ]);
 
     const totalSalesForPeriod = await Order.aggregate([
-        { $match: { status: "paid", createdAt: { $gte: startDate } } },
-        { $unwind: "$items" },
-        { $group: { _id: null, total: { $sum: "$items.price" } } },
+      { $match: { status: "paid", createdAt: { $gte: startDate } } },
+      { $unwind: "$items" },
+      { $group: { _id: null, total: { $sum: "$items.price" } } },
     ]);
     const totalSales = totalSalesForPeriod.length > 0 ? totalSalesForPeriod[0].total : 1;
 
     const topProducts = topProductsData.map((p) => ({
-        name: p._id,
-        percentage: (p.totalSold / totalSales) * 100,
+      name: p._id,
+      percentage: (p.totalSold / totalSales) * 100,
     }));
 
     // Pending Listings
     const pendingListings = await Product.find({ status: "pending" })
       .sort({ createdAt: -1 })
       .limit(3)
-      .select("name price createdAt");
+      .select("name price productImage createdAt");
 
     // Sales Record
     const salesRecord = await Order.find({ status: { $in: ["paid", "pending", "failed"] } })
-        .sort({ createdAt: -1 })
-        .limit(4)
-        .populate({
-            path: "items.product",
-            model: "Product",
-            select: "name price productImage"
-        })
-        .select("items status createdAt");
+      .sort({ createdAt: -1 })
+      .limit(4)
+      .populate({
+        path: "items.product",
+        model: "Product",
+        select: "name price productImage"
+      })
+      .select("items status createdAt");
 
     res.status(200).json({
       success: true,
