@@ -97,7 +97,8 @@ export const loginAdmin = async (
       handleError(res, 404, "Admin not found");
       return;
     }
-    // Compare passwords
+
+     // Compare passwords
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       handleError(res, 401, "Invalid credentials");
