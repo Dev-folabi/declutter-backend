@@ -8,7 +8,6 @@ import {
   getUserRefundStatus,
   createRefundRequest,
   getAllRefundRequests,
-  getTransactionSummary,
 } from "../../controllers/transactionController";
 import { authorizeRoles, verifyToken } from "../../middlewares/authMiddleware";
 import { ADMIN_ONLY_ROLES } from "../../constant";
@@ -678,12 +677,6 @@ router.get(
   getUserRefundStatus
 );
 
-// Admin endpoints (require admin authentication)
-router.get(
-  "/summary",
-  authorizeRoles(...ADMIN_ONLY_ROLES),
-  getTransactionSummary
-);
 
 router.get(
   "/",
