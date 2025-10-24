@@ -29,8 +29,11 @@ let corsOptions;
 if (environment === "production") {
   const whitelist = ["https://www.declutmart.com", "https://declutmart.com"];
   corsOptions = {
-    origin: (origin, callback) => {
-      if (whitelist.indexOf(origin) !== -1 || !origin) {
+    origin: (
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) => {
+      if (whitelist.indexOf(origin!) !== -1 || !origin) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
