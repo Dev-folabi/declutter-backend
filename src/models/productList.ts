@@ -38,6 +38,12 @@ const ProductListSchema = new Schema<ProductListingType>(
       type: String,
       required: true,
     },
+    productType: {
+      type: String,
+      enum: ['new', 'used'],
+      required: true,
+      default: 'used',
+    },
     is_approved: {
       type: Boolean,
       default: false,

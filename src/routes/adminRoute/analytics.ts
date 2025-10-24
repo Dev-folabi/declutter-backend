@@ -229,7 +229,7 @@ router.get("/report/monthly", verifyToken, exportMonthlyReport);
 
 /**
  * @swagger
- * /api/admin/analytics/transaction-summary:
+ * /api/admin/analytics/transaction-stats:
  *   get:
  *     summary: Get transaction summary for dashboard cards
  *     description: Retrieves key transaction metrics for display on the admin dashboard.
