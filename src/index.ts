@@ -24,27 +24,44 @@ const port = process.env.PORT || 6000;
 
 app.set("trust proxy", 1);
 
-const whitelist = ["https://www.declutmart.com", "https://declutmart.com"];
+let corsOptions;
 
-const corsOptions = {
-  origin: (origin, callback) => {
-    if (whitelist.indexOf(origin) !== -1 || !origin) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-    "X-Requested-With",
-    "Accept",
-    "Origin",
-  ],
-  credentials: true,
-  optionsSuccessStatus: 200,
-};
+if (environment === "production") {
+  const whitelist = ["https://www.declutmart.com", "https://declutmart.com"];
+  corsOptions = {
+    origin: (origin, callback) => {
+      if (whitelist.indexOf(origin) !== -1 || !origin) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200,
+  };
+} else {
+  corsOptions = {
+    origin: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "X-Requested-With",
+      "Accept",
+      "Origin",
+    ],
+    credentials: true,
+    optionsSuccessStatus: 200,
+  };
+}
 
 // Middlewares
 app.use(cors(corsOptions));
