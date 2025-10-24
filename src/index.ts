@@ -24,8 +24,16 @@ const port = process.env.PORT || 6000;
 
 app.set("trust proxy", 1);
 
+const whitelist = ["https://www.declutmart.com", "https://declutmart.com"];
+
 const corsOptions = {
-  origin: true,
+  origin: (origin, callback) => {
+    if (whitelist.indexOf(origin) !== -1 || !origin) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: [
     "Content-Type",
