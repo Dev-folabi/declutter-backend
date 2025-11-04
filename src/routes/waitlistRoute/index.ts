@@ -1,6 +1,7 @@
 import express from "express";
 import {
   collectWaitlistEmail,
+  bulkCreateWaitlistEmails,
   sendWaitlistMessage,
   getWaitlistEmails,
 } from "../../controllers/waitlistController";
@@ -64,6 +65,7 @@ const router = express.Router();
 
 
 router.post("/", validateWaitlist, collectWaitlistEmail);
+router.post("/bulk", bulkCreateWaitlistEmails);
 router.post("/message", sendWaitlistMessage);
 router.get("/", getWaitlistEmails);
 
