@@ -5,6 +5,7 @@ import { getIdFromToken } from "../../function/token";
 import { sendBulkEmailBCC } from "../../utils/mail";
 import { handleError } from "../../error/errorHandler";
 import { Request, Response, NextFunction } from "express";
+import { Waitlist } from "../../models/waitlist";
 
 interface AnnouncementRequest {
   title: string;
@@ -74,6 +75,7 @@ export const createAnnouncement = async (
     });
 
     let users;
+    let waitlist;
     const emailProjection = { email: 1, _id: 0 };
 
     switch (category) {
@@ -85,6 +87,7 @@ export const createAnnouncement = async (
         break;
       case "All":
         users = await User.find({}, emailProjection);
+        waitlist = await Waitlist.find();
         break;
       default:
         return handleError(
@@ -107,7 +110,17 @@ export const createAnnouncement = async (
       .map((user) => user.email)
       .filter((email) => email && email.includes("@"));
 
-    if (userEmails.length === 0) {
+    const waitlistEmails = (waitlist || [])
+      .map((entry: any) => entry.email)
+      .filter((email: any) => email && email.includes("@"));
+
+    const recipientEmails = Array.from(
+      new Set([...userEmails, ...waitlistEmails])
+    );
+
+    // const recipientEmails = ["declutmart@gmail.com"];
+
+    if (recipientEmails.length === 0) {
       return handleError(
         res,
         400,
@@ -118,7 +131,7 @@ export const createAnnouncement = async (
     setImmediate(async () => {
       try {
         const emailResults = await sendBulkEmailBCC(
-          userEmails,
+          recipientEmails,
           `New Announcement: ${title}`,
           message
         );
@@ -143,10 +156,10 @@ export const createAnnouncement = async (
 
     res.status(201).json({
       success: true,
-      message: `Announcement created successfully and will be sent to ${userEmails.length} recipients.`,
+      message: `Announcement created successfully and will be sent to ${recipientEmails.length} recipients.`,
       data: {
         announcement: populatedAnnouncement,
-        recipientCount: userEmails.length,
+        recipientCount: recipientEmails.length,
         category,
       },
     });

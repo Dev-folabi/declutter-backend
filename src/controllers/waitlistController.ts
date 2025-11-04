@@ -52,6 +52,105 @@ export const collectWaitlistEmail = async (
   }
 };
 
+export const bulkCreateWaitlistEmails = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { emails } = req.body;
+
+    // Validate input
+    if (!Array.isArray(emails) || emails.length === 0) {
+      res.status(400).json({
+        message: "Please provide a non-empty array of email addresses.",
+      });
+      return;
+    }
+
+    // Filter valid emails (must contain @)
+    const validEmails = emails
+      .filter(
+        (email) => email && typeof email === "string" && email.includes("@")
+      )
+      .map((email) => email.trim().toLowerCase());
+
+    if (validEmails.length === 0) {
+      res.status(400).json({
+        message: "No valid email addresses found in the provided array.",
+      });
+      return;
+    }
+
+    // Remove duplicates within the array itself
+    const uniqueEmails = Array.from(new Set(validEmails));
+
+    // Check which emails already exist in the waitlist
+    const existingWaitlistEntries = await Waitlist.find({
+      email: { $in: uniqueEmails },
+    }).select("email");
+
+    const existingEmails = new Set(
+      existingWaitlistEntries.map((entry) => entry.email)
+    );
+
+    // Filter out emails that already exist
+    const newEmails = uniqueEmails.filter(
+      (email) => !existingEmails.has(email)
+    );
+
+    if (newEmails.length === 0) {
+      res.status(200).json({
+        message: "All provided emails already exist in the waitlist.",
+        data: {
+          totalProvided: emails.length,
+          validEmails: validEmails.length,
+          uniqueEmails: uniqueEmails.length,
+          alreadyExists: existingEmails.size,
+          newlyAdded: 0,
+        },
+      });
+      return;
+    }
+
+    // Bulk create new waitlist entries
+    const waitlistEntries = newEmails.map((email) => ({ email }));
+    const createdEntries = await Waitlist.insertMany(waitlistEntries, {
+      ordered: false,
+    });
+
+    // Get total count after insertion
+    const totalAddresses = await Waitlist.countDocuments();
+
+    // Respond with success
+    res.status(200).json({
+      message: `Successfully added ${createdEntries.length} email(s) to the waitlist 🎉`,
+      data: {
+        totalProvided: emails.length,
+        validEmails: validEmails.length,
+        uniqueEmails: uniqueEmails.length,
+        alreadyExists: existingEmails.size,
+        newlyAdded: createdEntries.length,
+        totalWaitlistCount: totalAddresses,
+      },
+    });
+  } catch (error: any) {
+    if (error.code === 11000) {
+      const totalCount = await Waitlist.countDocuments();
+      res.status(200).json({
+        message:
+          "Some emails were added, but some duplicates were encountered.",
+        data: {
+          totalWaitlistCount: totalCount,
+        },
+      });
+      return;
+    }
+    console.error("Error bulk adding emails to waitlist:", error);
+    next(error);
+  }
+};
+
 export const sendWaitlistMessage = async (
   req: Request,
   res: Response,
@@ -61,17 +160,17 @@ export const sendWaitlistMessage = async (
     // Get all waitlist emails
     const waitlistEmails = await Waitlist.find().select("email");
     // const waitlistEmails = [{ email: "declutmart@gmail.com" }];
+
     // Send bulk mail
     await sendBulkEmailBCC(
       waitlistEmails.map((email) => email.email),
-      "We're Launching in 24 Hours! Join Our X Space on Smart Spending",
-      `
-          <!DOCTYPE html>
+      "🌟 Hello November, Hello New Deals! | Exciting News for You, DeclutStars 💥",
+      `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>24 Hours Until DeclutMart Launches!</title>
+    <title>Happy New Month from DeclutMart!</title>
     <style>
         * {
             margin: 0;
@@ -97,7 +196,7 @@ export const sendWaitlistMessage = async (
         
         .header {
             background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-            padding: 35px 30px;
+            padding: 45px 30px;
             text-align: center;
             color: white;
             position: relative;
@@ -111,7 +210,7 @@ export const sendWaitlistMessage = async (
             right: -50%;
             width: 200%;
             height: 200%;
-            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            background: radial-gradient(circle, rgba(255,255,255,0.15) 0%, transparent 70%);
             animation: pulse 3s ease-in-out infinite;
         }
         
@@ -120,33 +219,32 @@ export const sendWaitlistMessage = async (
             50% { transform: scale(1.1); opacity: 0.3; }
         }
         
-        .header h1 {
-            font-size: 26px;
-            margin-bottom: 8px;
-            font-weight: 700;
+        .header-content {
             position: relative;
             z-index: 1;
+        }
+        
+        .month-icon {
+            font-size: 50px;
+            margin-bottom: 15px;
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 10px;
+            font-weight: 700;
         }
         
         .header p {
-            font-size: 16px;
+            font-size: 18px;
             opacity: 0.95;
-            position: relative;
-            z-index: 1;
-        }
-        
-        .countdown-badge {
-            background: white;
-            color: #FF6B35;
-            padding: 15px 30px;
-            border-radius: 50px;
-            display: inline-block;
-            margin: 20px auto 0;
-            font-weight: 700;
-            font-size: 24px;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-            position: relative;
-            z-index: 1;
+            font-weight: 500;
         }
         
         .content {
@@ -171,140 +269,190 @@ export const sendWaitlistMessage = async (
             color: #2C3E50;
         }
         
-        .event-card {
-            background: linear-gradient(135deg, #2C3E50 0%, #34495e 100%);
+        .announcement-box {
+            background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
             border-radius: 12px;
             padding: 30px;
             margin: 30px 0;
             color: white;
-            box-shadow: 0 8px 25px rgba(44, 62, 80, 0.3);
-        }
-        
-        .event-card h2 {
-            font-size: 22px;
-            margin-bottom: 15px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .event-icon {
-            font-size: 28px;
-        }
-        
-        .event-details {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        
-        .event-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 10px;
-            color: #4CAF50;
-        }
-        
-        .event-description {
-            font-size: 15px;
-            opacity: 0.9;
-            line-height: 1.6;
-        }
-        
-        .cta-button {
-            display: inline-block;
-            background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-            color: white;
-            padding: 16px 35px;
-            border-radius: 50px;
-            text-decoration: none;
-            font-weight: 700;
-            font-size: 16px;
-            margin-top: 15px;
-            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
-            transition: all 0.3s ease;
             text-align: center;
+            box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
         }
         
-        .cta-button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.5);
+        .announcement-badge {
+            background: white;
+            color: #4CAF50;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 700;
+            display: inline-block;
+            margin-bottom: 15px;
         }
         
-        .benefits-box {
+        .announcement-box h2 {
+            font-size: 24px;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+        
+        .announcement-box p {
+            font-size: 16px;
+            opacity: 0.95;
+            line-height: 1.7;
+        }
+        
+        .features-grid {
+            display: flex;
+            gap: 15px;
+            margin: 25px 0;
+            flex-wrap: wrap;
+        }
+        
+        .feature-card {
+            flex: 1;
+            min-width: 140px;
+            background: rgba(255, 255, 255, 0.2);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+        }
+        
+        .feature-icon {
+            font-size: 36px;
+            margin-bottom: 10px;
+        }
+        
+        .feature-text {
+            font-size: 15px;
+            font-weight: 600;
+        }
+        
+        .action-list {
             background: #FFF5F0;
             border-radius: 12px;
-            padding: 25px;
-            margin: 25px 0;
+            padding: 30px;
+            margin: 30px 0;
             border: 2px solid #FFE5D9;
         }
         
-        .benefits-box h3 {
+        .action-list h3 {
             color: #2C3E50;
-            font-size: 18px;
-            margin-bottom: 15px;
-            font-weight: 600;
+            font-size: 20px;
+            margin-bottom: 25px;
+            text-align: center;
+            font-weight: 700;
         }
         
-        .benefit-item {
+        .action-item {
             display: flex;
-            align-items: center;
-            margin-bottom: 12px;
-            padding: 12px;
+            align-items: flex-start;
+            margin-bottom: 18px;
+            padding: 18px;
             background: white;
-            border-radius: 8px;
-            border-left: 3px solid #4CAF50;
+            border-radius: 10px;
+            border-left: 4px solid #FF6B35;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
         }
         
-        .benefit-item:last-child {
+        .action-item:hover {
+            transform: translateX(8px);
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.15);
+        }
+        
+        .action-item:last-child {
             margin-bottom: 0;
         }
         
-        .check-icon {
-            color: #4CAF50;
-            font-size: 20px;
-            margin-right: 12px;
-            font-weight: bold;
+        .action-icon {
+            font-size: 24px;
+            margin-right: 15px;
+            flex-shrink: 0;
         }
         
-        .benefit-text {
-            color: #333;
-            font-size: 15px;
-            font-weight: 500;
+        .action-content {
+            flex: 1;
+        }
+        
+        .action-title {
+            color: #2C3E50;
+            font-size: 16px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .action-description {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+        
+        .cta-section {
+            background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
+            border-radius: 12px;
+            padding: 35px 30px;
+            margin: 30px 0;
+            text-align: center;
+            color: white;
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
+        }
+        
+        .cta-section h2 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .website-button {
+            display: inline-block;
+            background: white;
+            color: #FF6B35;
+            padding: 18px 45px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 18px;
+            margin-top: 15px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .website-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
         }
         
         .closing {
             text-align: center;
             margin: 35px 0 25px;
-            padding: 25px;
+            padding: 30px;
             background: linear-gradient(135deg, #FFF5F0 0%, #FFE5D9 100%);
             border-radius: 12px;
         }
         
-        .closing-text {
-            font-size: 18px;
-            color: #2C3E50;
-            font-weight: 600;
-            margin-bottom: 15px;
-        }
-        
-        .action-items {
-            display: flex;
-            justify-content: center;
-            gap: 15px;
-            flex-wrap: wrap;
-            margin-top: 15px;
-        }
-        
-        .action-badge {
-            background: white;
+        .closing-main {
+            font-size: 20px;
             color: #FF6B35;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: 14px;
-            font-weight: 600;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .closing-sub {
+            font-size: 16px;
+            color: #2C3E50;
+            font-weight: 500;
+        }
+        
+        .sparkle {
+            display: inline-block;
+            animation: sparkle 1.5s ease-in-out infinite;
+        }
+        
+        @keyframes sparkle {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.2); }
         }
         
         .signature {
@@ -319,24 +467,23 @@ export const sendWaitlistMessage = async (
             margin: 5px 0;
         }
         
-        .signature .excitement {
-            font-style: italic;
-            color: #FF6B35;
-            margin-bottom: 12px;
+        .signature .regards {
+            color: #2C3E50;
+            margin-bottom: 8px;
             font-weight: 500;
         }
         
-        .signature .name {
-            color: #2C3E50;
+        .signature .team {
+            color: #FF6B35;
             font-weight: 700;
             font-size: 17px;
-            margin-bottom: 5px;
+            margin-bottom: 10px;
         }
         
-        .signature .brand {
-            font-weight: 600;
-            color: #FF6B35;
-            font-size: 16px;
+        .signature .tagline {
+            color: #666;
+            font-style: italic;
+            font-size: 14px;
         }
         
         .footer {
@@ -359,35 +506,61 @@ export const sendWaitlistMessage = async (
         }
         
         @media (max-width: 600px) {
-            .header h1 {
-                font-size: 22px;
+            body {
+                padding: 10px;
             }
             
-            .countdown-badge {
-                font-size: 20px;
-                padding: 12px 25px;
+            .header {
+                padding: 35px 20px;
+            }
+            
+            .header h1 {
+                font-size: 26px;
+            }
+            
+            .header p {
+                font-size: 16px;
+            }
+            
+            .month-icon {
+                font-size: 40px;
             }
             
             .content {
                 padding: 30px 20px;
             }
             
-            .event-card {
+            .announcement-box, .action-list, .cta-section, .closing {
                 padding: 25px 20px;
             }
             
-            .event-card h2 {
-                font-size: 19px;
+            .announcement-box h2, .cta-section h2 {
+                font-size: 20px;
             }
             
-            .cta-button {
-                display: block;
-                padding: 14px 25px;
-            }
-            
-            .action-items {
+            .features-grid {
                 flex-direction: column;
-                align-items: center;
+                gap: 12px;
+            }
+            
+            .feature-card {
+                min-width: 100%;
+                width: 100%;
+            }
+            
+            .action-item {
+                padding: 15px;
+            }
+            
+            .website-button {
+                display: block;
+                width: 100%;
+                padding: 16px 20px;
+                font-size: 16px;
+            }
+            
+            .closing-main {
+                font-size: 18px;
             }
         }
     </style>
@@ -395,473 +568,103 @@ export const sendWaitlistMessage = async (
 <body>
     <div class="email-container">
         <div class="header">
-            <h1>🎉 The Countdown Is On!</h1>
-            <p>DeclutMart is almost here</p>
-            <div class="countdown-badge">⏰ 24 HOURS</div>
+            <div class="header-content">
+                <div class="month-icon">🍂</div>
+                <h1>Happy November!</h1>
+                <p>Welcome to a brand new month</p>
+            </div>
         </div>
         
         <div class="content">
-            <p class="greeting">Hey DeclutStar,</p>
+            <p class="greeting">Hey DeclutStar! ✨</p>
             
             <p class="main-text">
-                The countdown is officially on — <strong>DeclutMart launches in 24 hours!</strong> 🚀
+                Welcome to a brand new month — <strong>November!</strong> 🧡
             </p>
             
             <p class="main-text">
-                We're so excited to finally bring this platform to life, a space where students can declutter easily, 
-                sell what they no longer need, and connect with buyers who actually need those items. You've been with us 
-                from the waitlist stage, and now it's time to see what we've built together! 💚
+                It's another chance to declutter, shop smart, and make some cool cash while doing it!
             </p>
             
-            <div class="event-card">
-                <h2>
-                    <span class="event-icon">🎙️</span>
-                    Join Our Launch X Space!
-                </h2>
+            <div class="announcement-box">
+                <div class="announcement-badge">🎉 BIG NEWS</div>
+                <h2>DeclutMart Now Accepts New & Preloved Items!</h2>
+                <p>
+                    Whether you're looking to sell that item you no longer use or shop something fresh and affordable, 
+                    we've got you covered. 🛍️
+                </p>
                 
-                <div class="event-details">
-                    <p class="event-title">"Smart Spending, Smarter Living — The Student Guide to Financial Freedom"</p>
-                    <p class="event-description">
-                        An exciting conversation designed to help students make better money decisions while enjoying campus life. 
-                        Come hang out with us as we share insights, laughs, and of course, launch DeclutMart together!
-                    </p>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">✨</div>
+                        <div class="feature-text">New Items</div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">💚</div>
+                        <div class="feature-text">Preloved Items</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="action-list">
+                <h3>Make the Most of This Month:</h3>
+                
+                <div class="action-item">
+                    <div class="action-icon">💫</div>
+                    <div class="action-content">
+                        <div class="action-title">List Your Items</div>
+                        <div class="action-description">Snap it, upload it, and get ready to sell.</div>
+                    </div>
                 </div>
                 
-                <a href="https://twitter.com/i/spaces/1dRKZaVbZPAxB" class="cta-button">
-                    Join the X Space 🎉
+                <div class="action-item">
+                    <div class="action-icon">💫</div>
+                    <div class="action-content">
+                        <div class="action-title">Shop Amazing Deals</div>
+                        <div class="action-description">Discover quality items at budget-friendly prices.</div>
+                    </div>
+                </div>
+                
+                <div class="action-item">
+                    <div class="action-icon">💫</div>
+                    <div class="action-content">
+                        <div class="action-title">Spread the Word</div>
+                        <div class="action-description">Invite your friends to join the DeclutStar community. The more, the merrier!</div>
+                    </div>
+                </div>
+            </div>
+            
+            <p class="main-text" style="text-align: center; font-size: 18px; font-weight: 600; color: #2C3E50;">
+                Let's make November a month of smart spending and easy earning.
+            </p>
+            
+            <div class="cta-section">
+                <h2>Ready to List or Shop? 🚀</h2>
+                <a href="https://www.declutmart.com" class="website-button">
+                    Visit DeclutMart Now
                 </a>
             </div>
             
-            <div class="benefits-box">
-                <h3>Why You Should Join:</h3>
-                
-                <div class="benefit-item">
-                    <span class="check-icon">✓</span>
-                    <span class="benefit-text">Be part of the official DeclutMart launch celebration</span>
-                </div>
-                
-                <div class="benefit-item">
-                    <span class="check-icon">✓</span>
-                    <span class="benefit-text">Learn valuable tips on smart spending and financial freedom</span>
-                </div>
-                
-                <div class="benefit-item">
-                    <span class="check-icon">✓</span>
-                    <span class="benefit-text">Connect with fellow students and the DeclutMart community</span>
-                </div>
-                
-                <div class="benefit-item">
-                    <span class="check-icon">✓</span>
-                    <span class="benefit-text">Get exclusive insights on how to maximize the platform</span>
-                </div>
-            </div>
-            
-            <p class="main-text">
-                It's going to be fun, inspiring, and the perfect way to kick off this journey.
-            </p>
-            
             <div class="closing">
-                <p class="closing-text">
-                    So, mark your calendar, tell a friend, and get ready to:
-                </p>
-                <div class="action-items">
-                    <span class="action-badge">🛍️ Declutter</span>
-                    <span class="action-badge">💰 Earn</span>
-                    <span class="action-badge">🌟 Live Smarter</span>
-                </div>
+                <p class="closing-main">Happy New Month, DeclutStar! 🌸</p>
+                <p class="closing-sub">Keep decluttering, keep shining. <span class="sparkle">✨</span></p>
             </div>
             
             <div class="signature">
-                <p class="excitement">With excitement,</p>
-                <p class="name">Busari Rabiah Eniola</p>
-                <p>Operations & Marketing Lead</p>
-                <p class="brand">DeclutMart</p>
+                <p class="regards">Warm regards,</p>
+                <p class="team">The DeclutMart Team</p>
+                <p class="tagline">Declutter with Ease, Shop Affordably</p>
             </div>
         </div>
         
         <div class="footer">
             <p class="copyright">© 2024 DeclutMart. All rights reserved.</p>
-            <p style="margin-top: 10px;">You're receiving this email because you joined our waitlist.</p>
+            <p style="margin-top: 10px;">You're receiving this email because you're part of our community.</p>
         </div>
     </div>
 </body>
-</html>
-        `
+</html>`
     );
-
-    // Send a message to each email
-    //     for (const email of waitlistEmails) {
-    //       await sendBulkEmailBCC(
-    //         email.email,
-    //         "CONFIRMED: Your early access to DeclutMart starts Oct 15",
-    //         `
-    //           <!DOCTYPE html>
-    // <html lang="en">
-    // <head>
-    //     <meta charset="UTF-8">
-    //     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    //     <title>DeclutMart is Launching!</title>
-    //     <style>
-    //         * {
-    //             margin: 0;
-    //             padding: 0;
-    //             box-sizing: border-box;
-    //         }
-
-    //         body {
-    //             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    //             background: #f5f5f5;
-    //             padding: 20px;
-    //             line-height: 1.6;
-    //         }
-
-    //         .email-container {
-    //             max-width: 600px;
-    //             margin: 0 auto;
-    //             background: white;
-    //             border-radius: 16px;
-    //             overflow: hidden;
-    //             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
-    //         }
-
-    //         .header {
-    //             background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-    //             padding: 40px 30px;
-    //             text-align: center;
-    //             color: white;
-    //             position: relative;
-    //             overflow: hidden;
-    //         }
-
-    //         .header::before {
-    //             content: '';
-    //             position: absolute;
-    //             top: -50%;
-    //             right: -50%;
-    //             width: 200%;
-    //             height: 200%;
-    //             background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
-    //             animation: pulse 3s ease-in-out infinite;
-    //         }
-
-    //         @keyframes pulse {
-    //             0%, 100% { transform: scale(1); opacity: 0.5; }
-    //             50% { transform: scale(1.1); opacity: 0.3; }
-    //         }
-
-    //         .header h1 {
-    //             font-size: 28px;
-    //             margin-bottom: 10px;
-    //             font-weight: 700;
-    //             position: relative;
-    //             z-index: 1;
-    //         }
-
-    //         .header p {
-    //             font-size: 18px;
-    //             opacity: 0.95;
-    //             position: relative;
-    //             z-index: 1;
-    //         }
-
-    //         .hero-image {
-    //             width: 100%;
-    //             height: 300px;
-    //             object-fit: cover;
-    //             display: block;
-    //         }
-
-    //         .content {
-    //             padding: 40px 30px;
-    //         }
-
-    //         .greeting {
-    //             font-size: 20px;
-    //             color: #FF6B35;
-    //             font-weight: 600;
-    //             margin-bottom: 20px;
-    //         }
-
-    //         .main-text {
-    //             color: #333;
-    //             font-size: 16px;
-    //             margin-bottom: 20px;
-    //         }
-
-    //         .highlight-box {
-    //             background: linear-gradient(135deg, #FF6B35 0%, #FF8C42 100%);
-    //             border-radius: 12px;
-    //             padding: 30px;
-    //             margin: 30px 0;
-    //             color: white;
-    //             text-align: center;
-    //             box-shadow: 0 8px 25px rgba(255, 107, 53, 0.3);
-    //             transform: translateY(0);
-    //             transition: transform 0.3s ease;
-    //         }
-
-    //         .highlight-box:hover {
-    //             transform: translateY(-5px);
-    //         }
-
-    //         .highlight-box h2 {
-    //             font-size: 32px;
-    //             margin-bottom: 10px;
-    //             font-weight: 700;
-    //         }
-
-    //         .highlight-box p {
-    //             font-size: 16px;
-    //             opacity: 0.95;
-    //         }
-
-    //         .action-list {
-    //             background: #FFF5F0;
-    //             border-radius: 12px;
-    //             padding: 30px;
-    //             margin: 25px 0;
-    //             border: 2px solid #FFE5D9;
-    //         }
-
-    //         .action-list h3 {
-    //             color: #2C3E50;
-    //             font-size: 20px;
-    //             margin-bottom: 20px;
-    //             text-align: center;
-    //             font-weight: 600;
-    //         }
-
-    //         .action-item {
-    //             display: flex;
-    //             align-items: flex-start;
-    //             margin-bottom: 18px;
-    //             padding: 18px;
-    //             background: white;
-    //             border-radius: 10px;
-    //             border-left: 4px solid #FF6B35;
-    //             transition: all 0.3s ease;
-    //             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-    //         }
-
-    //         .action-item:hover {
-    //             transform: translateX(8px);
-    //             box-shadow: 0 4px 15px rgba(255, 107, 53, 0.15);
-    //         }
-
-    //         .action-item:last-child {
-    //             margin-bottom: 0;
-    //         }
-
-    //         .action-icon {
-    //             width: 40px;
-    //             height: 40px;
-
-    //             display: flex;
-    //             align-items: center;
-    //             justify-content: center;
-    //             color: white;
-    //             font-weight: bold;
-    //             margin-right: 15px;
-    //             flex-shrink: 0;
-    //             font-size: 18px;
-    //             box-shadow: 0 4px 10px rgba(255, 107, 53, 0.3);
-    //         }
-
-    //         .action-text {
-    //             color: #333;
-    //             font-size: 15px;
-    //             line-height: 1.6;
-    //         }
-
-    //         .action-text strong {
-    //             color: #2C3E50;
-    //         }
-
-    //         .closing {
-    //             text-align: center;
-    //             margin: 35px 0;
-    //             padding: 25px;
-    //             background: #FFF5F0;
-    //             border-radius: 12px;
-    //         }
-
-    //         .closing-highlight {
-    //             font-size: 18px;
-    //             color: #FF6B35;
-    //             font-weight: 600;
-    //             margin-bottom: 10px;
-    //         }
-
-    //         .closing-main {
-    //             font-size: 22px;
-    //             color: #2C3E50;
-    //             font-weight: 700;
-    //         }
-
-    //         .signature {
-    //             margin-top: 40px;
-    //             padding-top: 30px;
-    //             border-top: 2px solid #FFE5D9;
-    //         }
-
-    //         .signature p {
-    //             color: #666;
-    //             font-size: 15px;
-    //             margin: 5px 0;
-    //         }
-
-    //         .signature .excitement {
-    //             font-style: italic;
-    //             color: #FF6B35;
-    //             margin-bottom: 15px;
-    //             font-weight: 500;
-    //         }
-
-    //         .signature .name {
-    //             color: #2C3E50;
-    //             font-weight: 700;
-    //             font-size: 17px;
-    //             margin-bottom: 5px;
-    //         }
-
-    //         .signature .brand {
-    //             font-weight: 600;
-    //             color: #FF6B35;
-    //             font-size: 16px;
-    //         }
-
-    //         .footer {
-    //             background: #2C3E50;
-    //             padding: 30px 25px;
-    //             text-align: center;
-    //             color: #fff;
-    //         }
-
-    //         .footer p {
-    //             font-size: 13px;
-    //             opacity: 0.8;
-    //             margin: 5px 0;
-    //         }
-
-    //         .cta-badge {
-    //             display: inline-block;
-    //             background: #4CAF50;
-    //             color: white;
-    //             padding: 8px 18px;
-    //             border-radius: 20px;
-    //             font-size: 13px;
-    //             font-weight: 600;
-    //             margin-top: 10px;
-    //         }
-
-    //         @media (max-width: 600px) {
-    //             .header h1 {
-    //                 font-size: 24px;
-    //             }
-
-    //             .content {
-    //                 padding: 30px 20px;
-    //             }
-
-    //             .hero-image {
-    //                 height: 200px;
-    //             }
-
-    //             .highlight-box h2 {
-    //                 font-size: 26px;
-    //             }
-
-    //             .action-item {
-    //                 padding: 15px;
-    //             }
-    //         }
-    //     </style>
-    // </head>
-    // <body>
-    //     <div class="email-container">
-    //     <div class="header">
-    //      <h1>🎉 Big News!</h1>
-    //             <p>The wait is almost over</p>
-    //         </div>
-
-    //         <img src="https://ik.imagekit.io/P2PINNOVATORS/Assets/photo_5992352558112426863_y%20(1).jpg?updatedAt=1759820988526" alt="DeclutMart Launch" class="hero-image">
-
-    //         <div class="content">
-    //             <p class="greeting">Dear DeclutStar,</p>
-
-    //             <div class="highlight-box">
-    //                 <h2>October 15</h2>
-    //                 <p>DeclutMart is officially launching!</p>
-    //             </div>
-
-    //             <p class="main-text">
-    //                 Guess what? <strong>You're one of the amazing people who get to be part of our soft launch first!</strong>
-    //                 We can't thank you enough for joining our waitlist and believing in what we're building.
-    //             </p>
-
-    //             <p class="main-text">
-    //                 DeclutMart is all about helping students declutter easily and connect with buyers who actually need their stuff,
-    //                 and it's finally coming to life!
-    //             </p>
-
-    //             <div class="action-list">
-    //                 <h3>Here's what you can do to get ready:</h3>
-
-    //                 <div class="action-item">
-    //                     <div class="action-icon">📦</div>
-    //                     <div class="action-text">
-    //                         <strong>Gather those items you've been meaning to sell</strong> – it's time to give them a second home.
-    //                     </div>
-    //                 </div>
-
-    //                 <div class="action-item">
-    //                     <div class="action-icon">🌟</div>
-    //                     <div class="action-text">
-    //                         <strong>Get ready to explore</strong> a community of students buying and selling smartly.
-    //                     </div>
-    //                 </div>
-
-    //                 <div class="action-item">
-    //                     <div class="action-icon">💬</div>
-    //                     <div class="action-text">
-    //                         <strong>Spread the word</strong> – invite your friends to join the movement and become fellow DeclutStars!
-    //                     </div>
-    //                 </div>
-    //             </div>
-
-    //             <p class="main-text">
-    //                 This soft launch is just the beginning, and <strong>your feedback will help us make DeclutMart even better.</strong>
-    //                 So get ready to click, list, and declutter like never before!
-    //             </p>
-
-    //             <div class="closing">
-    //                 <p class="closing-highlight">
-    //                     We're so excited to have you onboard.
-    //                 </p>
-    //                 <p class="closing-main">
-    //                     October 15 is going to be unforgettable! 🚀
-    //                 </p>
-    //                 <span class="cta-badge">✓ You're On The List</span>
-    //             </div>
-
-    //             <div class="signature">
-    //                 <p class="excitement">With excitement,</p>
-    //                 <p class="name">Busari Rabiah Eniola</p>
-    //                 <p>Operations & Marketing Lead</p>
-    //                 <p class="brand">DeclutMart</p>
-    //             </div>
-    //         </div>
-
-    //         <div class="footer">
-    //             <p style="font-weight: 600; font-size: 14px; opacity: 1;">© 2024 DeclutMart. All rights reserved.</p>
-    //             <p style="margin-top: 10px;">You're receiving this email because you joined our waitlist.</p>
-    //         </div>
-    //     </div>
-    // </body>
-    // </html>
-    //         `
-    //       );
-    //     }
 
     // Respond with success
     res.status(200).json({ message: "Message sent to all waitlist emails" });
