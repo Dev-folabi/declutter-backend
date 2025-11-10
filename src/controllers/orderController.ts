@@ -7,6 +7,9 @@ import { createNotification } from "./notificationController";
 import { Order } from "../models/order";
 import { Cart } from "../models/cart";
 import { CreateNotificationData } from "../types/model";
+import { Logistics } from "../models/logisticModel";
+import { Admin } from "../models/adminModel";
+import { sendEmail } from "../utils/mail";
 
 export const orderCheckout = async (
   req: Request,
@@ -187,3 +190,96 @@ export const getOrderItems = async (
     next(error);
   }
 };
+
+export const OrderAvailability = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+      const { orderId } = req.params;
+      const {isAvailable } = req.body
+      const user =  await User.findById(getIdFromToken(req))
+      
+      if (!user) {
+          res.status(401).json({
+              success: false,
+              message: "Unauthenticated user cannot perform this action.",
+              data: null
+          })
+          return
+      }
+
+      // only sellers with approved status can perform this action
+      if (user.role.includes("seller") && !user.sellerStatus.includes("approved")) {
+         res.status(400).json({
+              success: false,
+              messsage: "Unapproved seller cannnot perform this action",
+              data: null
+         })
+         return
+      }
+      
+      // check if order exists
+      const order = await Order.findById(orderId);
+      if(!order || !order.status.includes("paid") ) {
+        res.status(400).json({
+          success: false,
+          message: "Invalid order or payment not completed.",
+          data: null
+        })
+        return
+      }
+      // || !order.status.includes("paid")
+      
+      let logistics = await Logistics.findOne({order: order._id})
+      // create logistics if not exist
+      if (!logistics) {
+        logistics = new Logistics({
+          order: order?._id,
+          status: "ready_for_pickup"
+        })
+      }
+      if (isAvailable === true) {
+          logistics.status = "ready_for_pickup"
+      } else if (isAvailable === false) {
+          logistics.status = "cancelled"
+      }
+      await logistics.save();
+      // Notify the logistic agents and the admin 
+      const allowedAdmin = await Admin.find({role: {$in: ["logistics_agent", "super_admin"]}}).select("_id email");
+
+      if ( allowedAdmin.length === 0) {
+          res.status(400).json({
+              success: false,
+              message: "No logistics agents or admins found to notify.",
+              data: null
+          })
+          return
+      }
+
+      for (const admin of allowedAdmin) {
+          const notificationData: CreateNotificationData = {
+              recipient: admin._id as string,
+              recipientModel: "Admin" as const,
+              body: `Order ${order._id} is marked as ${logistics.status}`,
+              type: "market",
+              title: "Order Availability Update",
+          }
+          await createNotification(notificationData);
+          // send email 
+          await sendEmail(
+              admin.email,
+               "Order Availability Update",
+               `The order with ID ${order._id} has been marked as ${
+                isAvailable ? "available" : "unavailable"
+              } by the seller.`
+          )
+      }
+
+      res.status(200).json({
+          success: true,
+          message: "Order availability confirmed and  updated successfully",
+          data: logistics
+      })
+     
+  } catch (error) {
+      next(error)
+  }
+}

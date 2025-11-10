@@ -117,6 +117,7 @@ export interface IOrderItem extends Document {
 
 // Interface for Order
 export interface IOrder extends Document {
+  customOrderId: string;
   user: Schema.Types.ObjectId;
   items: IOrderItem[];
   totalPrice: number;
@@ -128,11 +129,12 @@ export interface IOrder extends Document {
     primaryPhoneNumber: string;
     secondaryPhoneNumber?: string;
   };
+  isAvailableForPickup?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Interface for Order
+// Interface for weListened
 export interface IWeListened extends Document {
   firstName: string;
   lastName: string;
@@ -140,7 +142,28 @@ export interface IWeListened extends Document {
   message: string;
   hasRead: boolean;
 }
+// Interface for Logistics 
+export interface ILogistics extends Document {
+  logisticId: Schema.Types.ObjectId;
+  order: Schema.Types.ObjectId;
+  status: "ready_for_pickup" | "in_transit" | "delivered" | "cancelled";
+  createdAt: Date;
+  updatedAt: Date;
 
+}
+
+// interface for invoice
+export interface IInvoice extends Document {
+  customInvoiceId: string;
+  orderId: Schema.Types.ObjectId;
+  pickupAddress: string;
+  deliveryAddress: string;
+  amount: number;
+  typeOfAssignment: "pickup" | "delivery"|"pickup_and_delivery";
+  createdBy: Schema.Types.ObjectId
+  status: "successfull" | "pending" | "failed";
+
+}
 // interface for Admin
 export interface IAdmin extends Document {
   fullName: string;
