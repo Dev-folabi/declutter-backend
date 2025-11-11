@@ -18,6 +18,13 @@ const OrderItemSchema: Schema = new Schema<IOrderItem>(
 // Schema for Order
 const OrderSchema: Schema = new Schema<IOrder>(
   {
+    customOrderId: { 
+      type: String,  
+      unique: true,
+      immutable: true, 
+      default: () => {
+      return "ORD" + Math.floor(100000 + Math.random() * 900000)}
+    },
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
@@ -42,6 +49,7 @@ const OrderSchema: Schema = new Schema<IOrder>(
       primaryPhoneNumber: { type: String },
       secondaryPhoneNumber: { type: String },
     },
+    isAvailableForPickup: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

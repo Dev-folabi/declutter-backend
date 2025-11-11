@@ -20,6 +20,7 @@ import categoryRoute from "./categoryRoute";
 import categoryAdminRoute from "./adminRoute/category";
 import analyticsRoute from "./adminRoute/analytics";
 import dashboardRoute from "./dashboardRoute";
+import logisticsRoute from "../routes/adminRoute/logistics";
 import { verifyToken } from "../middlewares/authMiddleware";
 import sellerRoute from "./sellerRoute";
 const router = Router();
@@ -32,6 +33,7 @@ adminRouter.use("/product", verifyToken, productManagementRoute);
 adminRouter.use("/ticket", verifyToken, adminTicketRoute);
 adminRouter.use("/announcement", verifyToken, announcementRoute);
 adminRouter.use("/category", verifyToken, categoryAdminRoute);
+adminRouter.use("/logistics", verifyToken, logisticsRoute);
 
 router.use("/waitlist", waitlistRoute);
 router.use("/auth", authRoute);
