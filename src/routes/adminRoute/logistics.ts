@@ -28,6 +28,13 @@ const router = express.Router();
 
 /**
  * @swagger
+ * tags:
+ *   name: Invoices
+ *   description: Invoice Management APIs
+ */
+
+/**
+ * @swagger
  * /api/admin/logistics:
  *   get:
  *     summary: Get all logistics
@@ -73,35 +80,6 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Logistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     pagination:
- *                       type: object
- *                     results:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           logisticId:
- *                             type: string
- *                           orderId:
- *                             type: string
- *                           status:
- *                             type: string
- *                           date:
- *                             type: string
- *                           time:
- *                             type: string
  *       403:
  *         description: Unauthorized access
  */
@@ -110,35 +88,13 @@ const router = express.Router();
  * @swagger
  * /api/admin/logistics/stats:
  *   get:
- *     summary: Get logistics statistics (cards)
+ *     summary: Get logistics statistics
  *     tags: [Logistics]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Logistics statistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     totalAvailableItems:
- *                       type: integer
- *                     failedDeliveries:
- *                       type: integer
- *                     successfulPickups:
- *                       type: integer
- *                     failedPickups:
- *                       type: integer
- *                     successfulDeliveries:
- *                       type: integer
  *       403:
  *         description: Unauthorized access
  */
@@ -176,24 +132,6 @@ const router = express.Router();
  *     responses:
  *       201:
  *         description: Invoice created successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     invoiceId:
- *                       type: string
- *                     linkedOrder:
- *                       type: string
- *                     status:
- *                       type: string
  *       400:
  *         description: Validation error
  *       403:
@@ -251,43 +189,6 @@ const router = express.Router();
  *     responses:
  *       200:
  *         description: Invoices retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     pagination:
- *                       type: object
- *                     results:
- *                       type: array
- *                       items:
- *                         type: object
- *                         properties:
- *                           _id:
- *                             type: string
- *                           invoiceId:
- *                             type: string
- *                           createdBy:
- *                             type: object
- *                             properties:
- *                               name:
- *                                 type: string
- *                           status:
- *                             type: string
- *                           typeOfAssignment:
- *                             type: string
- *                           amount:
- *                             type: number
- *                           createdAt:
- *                             type: string
- *                             format: date-time
  *       403:
  *         description: Unauthorized access
  */
@@ -296,7 +197,7 @@ const router = express.Router();
  * @swagger
  * /api/admin/logistics/invoices/{id}/download:
  *   get:
- *     summary: Download a successful delivery invoice as PDF
+ *     summary: Download invoice as PDF
  *     tags: [Invoices]
  *     security:
  *       - bearerAuth: []
@@ -316,7 +217,7 @@ const router = express.Router();
  *               type: string
  *               format: binary
  *       400:
- *         description: Invalid request (invoice not successful or not delivery)
+ *         description: Invalid request
  *       403:
  *         description: Unauthorized
  *       404:
@@ -361,7 +262,7 @@ const router = express.Router();
  * @swagger
  * /api/admin/logistics/{logisticId}/status:
  *   patch:
- *     summary: Update a logistic status
+ *     summary: Update logistic status
  *     tags: [Logistics]
  *     security:
  *       - bearerAuth: []
@@ -386,27 +287,32 @@ const router = express.Router();
  *       200:
  *         description: Logistic status updated successfully
  *       400:
- *         description: Invalid action or missing logistic ID
+ *         description: Invalid action
  *       403:
  *         description: Unauthorized access
  */
 
 // ============ ROUTES ============
 
+// Stats route
 router.get("/stats", authorizeRoles(...LOGISTIC_ONLY_ROLES), getLogisticsStats);
 
+// Invoice routes - all specific paths with "invoices" prefix
 router.post(
   "/create-invoice",
   validateCreateInvoice,
   authorizeRoles(...LOGISTIC_ONLY_ROLES),
   createInvoice
 );
+
 router.get("/invoices", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllInvoices);
+
 router.get(
   "/invoices/:id/download",
   authorizeRoles(...LOGISTIC_ONLY_ROLES),
   downloadInvoicePdf
 );
+
 router.patch(
   "/invoices/:id/invoice-status",
   validateSetInvoiceStatus,
@@ -414,7 +320,9 @@ router.patch(
   setInvoiceStatus
 );
 
+// Base logistics routes
 router.get("/", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllLogistics);
+
 router.patch(
   "/:logisticId/status",
   validateLogisticStatusUpdate,
