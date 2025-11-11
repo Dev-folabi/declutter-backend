@@ -9,6 +9,7 @@ import { Request, Response, NextFunction } from "express";
 import { Invoice } from "../../models/invoice";
 import { Admin } from "../../models/adminModel";
 import { IOrder } from "../../types/model";
+import PDFDocument from "pdfkit";
 
 export const getAllLogistics = async (req: Request, res: Response, next: NextFunction) => {
     try {
@@ -410,11 +411,13 @@ export const downloadInvoicePdf = async (
 
     const { id } = req.params;
     if (!id) {
-      res.status(400).json({
-        success: false,
-        message: "Invoice id is required",
-        data: null,
-      });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invoice id is required",
+          data: null,
+        });
       return;
     }
 
@@ -437,21 +440,25 @@ export const downloadInvoicePdf = async (
 
     // Ensure invoice is successful and for delivery (or pickup_and_delivery)
     if (invoice.status !== "successfull") {
-      res.status(400).json({
-        success: false,
-        message: "Invoice is not successful",
-        data: null,
-      });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invoice is not successful",
+          data: null,
+        });
       return;
     }
 
     const order: any = invoice.orderId as any;
     if (!order) {
-      res.status(400).json({
-        success: false,
-        message: "Linked order not found",
-        data: null,
-      });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Linked order not found",
+          data: null,
+        });
       return;
     }
 
@@ -461,11 +468,13 @@ export const downloadInvoicePdf = async (
         order.deliveryType === "pickup_and_delivery"
       )
     ) {
-      res.status(400).json({
-        success: false,
-        message: "Invoice is not a delivery invoice",
-        data: null,
-      });
+      res
+        .status(400)
+        .json({
+          success: false,
+          message: "Invoice is not a delivery invoice",
+          data: null,
+        });
       return;
     }
 
@@ -492,7 +501,12 @@ export const downloadInvoicePdf = async (
     doc.fontSize(14).text("Order Details", { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(12).text(`Order ID: ${order.customOrderId || order._id}`);
-    // Do not display customer details in the PDF as requested
+    const user = (order.user as any) || (order.userId as any);
+    if (user) {
+      doc.text(
+        `Customer: ${user.fullName || user.name || "N/A"} (${user.email || "N/A"})`
+      );
+    }
     doc.text(`Delivery Type: ${order.deliveryType}`);
     doc.moveDown();
 
@@ -519,10 +533,47 @@ export const downloadInvoicePdf = async (
       doc.moveDown();
     }
 
+    // Items Table
+    doc.fontSize(14).text("Items", { underline: true });
+    doc.moveDown(0.5);
+
+    const tableTop = doc.y;
+    const itemX = 50;
+    const qtyX = 300;
+    const priceX = 350;
+    const totalX = 450;
+
+    doc.fontSize(10).text("Item", itemX, tableTop);
+    doc.text("Qty", qtyX, tableTop);
+    doc.text("Price", priceX, tableTop);
+    doc.text("Subtotal", totalX, tableTop);
     doc.moveDown();
-    doc.fontSize(12).text(`Invoice Amount: #${invoice.amount.toFixed(2)}`, {
-      align: "right",
+
+    let grandTotal = 0;
+    (order.items || []).forEach((it: any) => {
+      const name = it.product?.name || "Item";
+      const qty = it.quantity || 1;
+      const price = Number(it.price || 0);
+      const subtotal = qty * price;
+      grandTotal += subtotal;
+
+      const y = doc.y;
+      doc.fontSize(10).text(name, itemX, y);
+      doc.text(String(qty), qtyX, y);
+      doc.text(`#${price.toFixed(2)}`, priceX, y);
+      doc.text(`#${subtotal.toFixed(2)}`, totalX, y);
+      doc.moveDown();
     });
+
+    doc.moveDown();
+    doc
+      .fontSize(12)
+      .text(`Invoice Amount: #${invoice.amount.toFixed(2)}`, {
+        align: "right",
+      });
+    doc
+      .fontSize(12)
+      .text(`Order Total: #${grandTotal.toFixed(2)}`, { align: "right" });
 
     doc.end();
   } catch (error) {

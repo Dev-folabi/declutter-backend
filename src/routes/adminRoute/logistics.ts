@@ -1,10 +1,12 @@
 import {
-    getAllLogistics,
-    setlogisticStatus,
-    createInvoice,
-    getAllInvoices,
-    setInvoiceStatus
-} from "../../controllers/admin/logistics"
+  getAllLogistics,
+  setlogisticStatus,
+  createInvoice,
+  getAllInvoices,
+  setInvoiceStatus,
+  getLogisticsStats,
+  downloadInvoicePdf,
+} from "../../controllers/admin/logistics";
 import {
     validateCreateInvoice,
     validateSetInvoiceStatus,
@@ -322,11 +324,98 @@ const router = express.Router()
  *         description: Invoice not found
  */
 
+/**
+ * @swagger
+ * /api/admin/logistics/stats:
+ *   get:
+ *     summary: Get logistics statistics (cards)
+ *     tags: [Logistics]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Logistics statistics retrieved successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     totalAvailableItems:
+ *                       type: integer
+ *                     failedDeliveries:
+ *                       type: integer
+ *                     successfulPickups:
+ *                       type: integer
+ *                     failedPickups:
+ *                       type: integer
+ *                     successfulDeliveries:
+ *                       type: integer
+ *       403:
+ *         description: Unauthorized access
+ */
 
-router.get("/", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllLogistics)
-router.patch("/:logisticId/status", validateLogisticStatusUpdate, authorizeRoles(...LOGISTIC_ONLY_ROLES), setlogisticStatus)
-router.post("/create-invoice", validateCreateInvoice, authorizeRoles(...LOGISTIC_ONLY_ROLES), createInvoice)
-router.get("/invoices", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllInvoices)
-router.patch("/:id/invoice-status", validateSetInvoiceStatus, authorizeRoles(...LOGISTIC_ONLY_ROLES), setInvoiceStatus)
+/**
+ * @swagger
+ * /api/admin/logistics/invoices/{id}/download:
+ *   get:
+ *     summary: Download a successful delivery invoice as PDF
+ *     tags: [Invoices]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: Invoice ID
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: PDF file stream
+ *         content:
+ *           application/pdf:
+ *             schema:
+ *               type: string
+ *               format: binary
+ *       400:
+ *         description: Invalid request (invoice not successful or not delivery)
+ *       403:
+ *         description: Unauthorized
+ *       404:
+ *         description: Invoice not found
+ */
+router.get(
+  "/invoices/:id/download",
+  authorizeRoles(...LOGISTIC_ONLY_ROLES),
+  downloadInvoicePdf
+);
+router.get("/stats", authorizeRoles(...LOGISTIC_ONLY_ROLES), getLogisticsStats);
+router.get("/", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllLogistics);
+router.patch(
+  "/:logisticId/status",
+  validateLogisticStatusUpdate,
+  authorizeRoles(...LOGISTIC_ONLY_ROLES),
+  setlogisticStatus
+);
+router.post(
+  "/create-invoice",
+  validateCreateInvoice,
+  authorizeRoles(...LOGISTIC_ONLY_ROLES),
+  createInvoice
+);
+router.get("/invoices", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllInvoices);
+router.patch(
+  "/:id/invoice-status",
+  validateSetInvoiceStatus,
+  authorizeRoles(...LOGISTIC_ONLY_ROLES),
+  setInvoiceStatus
+);
 
 export default router
