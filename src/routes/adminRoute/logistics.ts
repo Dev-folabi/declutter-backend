@@ -4,21 +4,18 @@ import {
   createInvoice,
   getAllInvoices,
   setInvoiceStatus,
-  getLogisticsStats,
-  downloadInvoicePdf,
 } from "../../controllers/admin/logistics";
 import {
-    validateCreateInvoice,
-    validateSetInvoiceStatus,
-    validateLogisticStatusUpdate,
-    
-} from "../../middlewares/validators"
+  validateCreateInvoice,
+  validateSetInvoiceStatus,
+  validateLogisticStatusUpdate,
+} from "../../middlewares/validators";
 
-import { LOGISTIC_ONLY_ROLES } from "../../constant"
-import express from "express"
-import { authorizeRoles } from "../../middlewares/authMiddleware"
+import { LOGISTIC_ONLY_ROLES } from "../../constant";
+import express from "express";
+import { authorizeRoles } from "../../middlewares/authMiddleware";
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @swagger
@@ -186,7 +183,7 @@ const router = express.Router()
  *                 data:
  *                   type: object
  *                   properties:
- *                     customInvoiceId:
+ *                     invoiceId:
  *                       type: string
  *                     linkedOrder:
  *                       type: string
@@ -324,79 +321,6 @@ const router = express.Router()
  *         description: Invoice not found
  */
 
-/**
- * @swagger
- * /api/admin/logistics/stats:
- *   get:
- *     summary: Get logistics statistics (cards)
- *     tags: [Logistics]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Logistics statistics retrieved successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *                 data:
- *                   type: object
- *                   properties:
- *                     totalAvailableItems:
- *                       type: integer
- *                     failedDeliveries:
- *                       type: integer
- *                     successfulPickups:
- *                       type: integer
- *                     failedPickups:
- *                       type: integer
- *                     successfulDeliveries:
- *                       type: integer
- *       403:
- *         description: Unauthorized access
- */
-
-/**
- * @swagger
- * /api/admin/logistics/invoices/{id}/download:
- *   get:
- *     summary: Download a successful delivery invoice as PDF
- *     tags: [Invoices]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - name: id
- *         in: path
- *         required: true
- *         description: Invoice ID
- *         schema:
- *           type: string
- *     responses:
- *       200:
- *         description: PDF file stream
- *         content:
- *           application/pdf:
- *             schema:
- *               type: string
- *               format: binary
- *       400:
- *         description: Invalid request (invoice not successful or not delivery)
- *       403:
- *         description: Unauthorized
- *       404:
- *         description: Invoice not found
- */
-router.get(
-  "/invoices/:id/download",
-  authorizeRoles(...LOGISTIC_ONLY_ROLES),
-  downloadInvoicePdf
-);
-router.get("/stats", authorizeRoles(...LOGISTIC_ONLY_ROLES), getLogisticsStats);
 router.get("/", authorizeRoles(...LOGISTIC_ONLY_ROLES), getAllLogistics);
 router.patch(
   "/:logisticId/status",
@@ -418,4 +342,4 @@ router.patch(
   setInvoiceStatus
 );
 
-export default router
+export default router;
