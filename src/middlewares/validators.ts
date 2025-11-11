@@ -770,3 +770,72 @@ export const validateContactUs = [
     .withMessage("Message body must be between 10 and 2000 characters"),
   handleValidationErrors,
 ];
+export const validateOrderAvailability = [
+  param("orderId")    
+    .notEmpty()
+    .withMessage("Order ID is required")
+    .isMongoId()
+    .withMessage("Invalid order ID format"),
+  body("isAvailable")
+    .notEmpty()
+    .withMessage("isAvailable field is required")
+    .isBoolean()
+    .withMessage("isAvailable must be a boolean value"),
+  handleValidationErrors,  
+]
+export const validateLogisticStatusUpdate = [
+  param("logisticId")    
+    .notEmpty()
+    .withMessage("Logistic ID is required")
+    .isMongoId()
+    .withMessage("Invalid logistic ID format"),
+  body("action")
+    .notEmpty()
+    .withMessage("Action field is required")
+    .isIn([ "picked_up", "delivered", "to_be_picked_up"])
+    .withMessage("Action must be one of: picked_up, delivered, to_be_picked_up"),
+  handleValidationErrors,
+]
+
+export const validateCreateInvoice = [
+  body("itemId")
+    .notEmpty()
+    .withMessage("Item ID is required")
+    .isString()
+    .withMessage("Invalid Item ID format"),
+  body("typeOfAssignment")
+    .notEmpty()
+    .withMessage("Type of assignment is required")
+    .isIn(["pickup", "delivery", "pickup_and_delivery"])
+    .withMessage(
+      "Type of assignment must be one of: pickup, delivery, pickup_and_delivery"
+    ),
+  body("amount")
+    .notEmpty()
+    .withMessage("Amount is required")
+    .isFloat({ min: 0 })
+    .withMessage("Amount must be a number greater than  0"),
+  body("deliveryAddress")
+    .optional()
+    .isString()
+    .withMessage("Delivery address must be a string"),
+  body("pickupAddress")
+    .optional()
+    .isString()
+    .withMessage("Pickup address must be a string"),
+  handleValidationErrors,
+];
+
+export const validateSetInvoiceStatus = [
+  param("id")    
+    .notEmpty()
+    .withMessage("Invoice ID is required")
+    .isMongoId()
+    .withMessage("Invalid invoice ID format"),
+  body("status")
+    .notEmpty()
+    .withMessage("Status field is required")
+    .isIn([ "successfull",  "failed"])
+    .withMessage("Status must be one of: successfull, failed"),
+  handleValidationErrors,
+]
