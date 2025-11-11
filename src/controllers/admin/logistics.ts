@@ -274,40 +274,258 @@ export const getAllInvoices = async (req: Request, res: Response, next: NextFunc
     }
 }
 
-export const setInvoiceStatus = async (req: Request, res: Response, next: NextFunction) => {
-    try {
-        const admin = await Admin.findById(getIdFromToken(req))
-        if (!admin) {
-            res.status(403).json({
-                success: false,
-                message: "You are not authorized to perform this action.",
-                data: null
-            })
-            return 
-        }
-        const {id} = req.params;
-        const {status} = req.body;
-        const invoice = await Invoice.findByIdAndUpdate(
-            id,
-            { status },
-            { new: true, runValidators: true } // returns updated doc
-        );
-      
-          if (!invoice) {
-            res.status(404).json({
-              success: false,
-              message: "Invoice not found.",
-              data: null,
-            });
-            return;
-          }
-        
-        res.status(200).json({
-            success: true,
-            message: "Invoice status updated successfully.",
-            data: invoice
-        })
-    } catch (error) {
-        next(error)
+export const setInvoiceStatus = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const admin = await Admin.findById(getIdFromToken(req));
+    if (!admin) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized to perform this action.",
+        data: null,
+      });
+      return;
     }
-}
+    const { id } = req.params;
+    const { status } = req.body;
+    const invoice = await Invoice.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true, runValidators: true } // returns updated doc
+    );
+
+    if (!invoice) {
+      res.status(404).json({
+        success: false,
+        message: "Invoice not found.",
+        data: null,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Invoice status updated successfully.",
+      data: invoice,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getLogisticsStats = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const admin = await Admin.findById(getIdFromToken(req));
+    if (!admin) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized for this action.",
+        data: null,
+      });
+      return;
+    }
+
+    // Total available items: number of orders available for pickup
+    const totalAvailableItems = await Order.countDocuments({
+      isAvailableForPickup: true,
+    });
+
+    // Helper aggregation on Logistics joined with Order to compute counts
+    const agg = await Logistics.aggregate([
+      {
+        $lookup: {
+          from: "orders",
+          localField: "order",
+          foreignField: "_id",
+          as: "orderDoc",
+        },
+      },
+      { $unwind: { path: "$orderDoc", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          status: 1,
+          deliveryType: "$orderDoc.deliveryType",
+        },
+      },
+    ]);
+
+    let failedDeliveries = 0;
+    let successfulDeliveries = 0;
+    let successfulPickups = 0;
+    let failedPickups = 0;
+
+    for (const row of agg) {
+      const status = row.status;
+      const type = row.deliveryType;
+      if (type === "delivery") {
+        if (status === "cancelled") failedDeliveries += 1;
+        if (status === "delivered") successfulDeliveries += 1;
+      }
+      if (type === "pickup") {
+        if (status === "cancelled") failedPickups += 1;
+        // consider in_transit or delivered as successful pickup
+        if (status === "in_transit" || status === "delivered")
+          successfulPickups += 1;
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Logistics stats retrieved successfully.",
+      data: {
+        totalAvailableItems,
+        failedDeliveries,
+        successfulPickups,
+        failedPickups,
+        successfulDeliveries,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const downloadInvoicePdf = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const admin = await Admin.findById(getIdFromToken(req));
+    if (!admin) {
+      res.status(403).json({
+        success: false,
+        message: "You are not authorized for this action.",
+        data: null,
+      });
+      return;
+    }
+
+    const { id } = req.params;
+    if (!id) {
+      res.status(400).json({
+        success: false,
+        message: "Invoice id is required",
+        data: null,
+      });
+      return;
+    }
+
+    const invoice = await Invoice.findById(id)
+      .populate({
+        path: "orderId",
+        populate: [
+          { path: "items.product", model: "Product" },
+          { path: "user", model: "User", select: "fullName email" },
+        ],
+      })
+      .populate({ path: "createdBy", select: "name" });
+
+    if (!invoice) {
+      res
+        .status(404)
+        .json({ success: false, message: "Invoice not found", data: null });
+      return;
+    }
+
+    // Ensure invoice is successful and for delivery (or pickup_and_delivery)
+    if (invoice.status !== "successfull") {
+      res.status(400).json({
+        success: false,
+        message: "Invoice is not successful",
+        data: null,
+      });
+      return;
+    }
+
+    const order: any = invoice.orderId as any;
+    if (!order) {
+      res.status(400).json({
+        success: false,
+        message: "Linked order not found",
+        data: null,
+      });
+      return;
+    }
+
+    if (
+      !(
+        order.deliveryType === "delivery" ||
+        order.deliveryType === "pickup_and_delivery"
+      )
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Invoice is not a delivery invoice",
+        data: null,
+      });
+      return;
+    }
+
+    // Create PDF
+    const doc = new PDFDocument({ margin: 50 });
+    const fileName = `invoice_${invoice.invoiceId}.pdf`;
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="${fileName}"`);
+
+    doc.pipe(res);
+
+    // Header
+    doc.fontSize(20).text("Delivery Invoice", { align: "center" });
+    doc.moveDown();
+
+    doc.fontSize(12).text(`Invoice ID: ${invoice.invoiceId}`);
+    doc.text(
+      `Created At: ${((invoice as any).createdAt as Date | undefined)?.toLocaleString()}`
+    );
+    doc.text(`Generated By: ${(invoice.createdBy as any)?.name || "Admin"}`);
+    doc.moveDown();
+
+    // Order info
+    doc.fontSize(14).text("Order Details", { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(12).text(`Order ID: ${order.customOrderId || order._id}`);
+    // Do not display customer details in the PDF as requested
+    doc.text(`Delivery Type: ${order.deliveryType}`);
+    doc.moveDown();
+
+    // Addresses
+    if (
+      invoice.typeOfAssignment === "delivery" ||
+      invoice.typeOfAssignment === "pickup_and_delivery"
+    ) {
+      doc.fontSize(12).text("Delivery Address:");
+      doc
+        .fontSize(10)
+        .text(
+          invoice.deliveryAddress || order.deliveryAddress?.location || "N/A"
+        );
+      doc.moveDown();
+    }
+
+    if (
+      invoice.typeOfAssignment === "pickup" ||
+      invoice.typeOfAssignment === "pickup_and_delivery"
+    ) {
+      doc.fontSize(12).text("Pickup Address:");
+      doc.fontSize(10).text(invoice.pickupAddress || "N/A");
+      doc.moveDown();
+    }
+
+    doc.moveDown();
+    doc.fontSize(12).text(`Invoice Amount: #${invoice.amount.toFixed(2)}`, {
+      align: "right",
+    });
+
+    doc.end();
+  } catch (error) {
+    next(error);
+  }
+};
