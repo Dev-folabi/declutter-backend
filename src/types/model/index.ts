@@ -78,7 +78,7 @@ export interface ProductListingType extends Document {
   category: Schema.Types.ObjectId;
   location: string;
   description: string;
-  productType: 'new' | 'used';
+  productType: "new" | "used";
   is_approved: boolean;
   rejection_reason?: string;
   is_reserved: boolean;
@@ -91,7 +91,7 @@ export interface ProductListingType extends Document {
     flaggedBy: Types.ObjectId;
     date: Date;
   }[];
-  sellerPhoneNumber: string,
+  sellerPhoneNumber: string;
 }
 
 // Interface for CartItem
@@ -117,6 +117,7 @@ export interface IOrderItem extends Document {
 
 // Interface for Order
 export interface IOrder extends Document {
+  customOrderId: string;
   user: Schema.Types.ObjectId;
   items: IOrderItem[];
   totalPrice: number;
@@ -128,11 +129,12 @@ export interface IOrder extends Document {
     primaryPhoneNumber: string;
     secondaryPhoneNumber?: string;
   };
+  isAvailableForPickup?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// Interface for Order
+// Interface for weListened
 export interface IWeListened extends Document {
   firstName: string;
   lastName: string;
@@ -140,7 +142,26 @@ export interface IWeListened extends Document {
   message: string;
   hasRead: boolean;
 }
+// Interface for Logistics
+export interface ILogistics extends Document {
+  logisticId: Schema.Types.ObjectId;
+  order: Schema.Types.ObjectId;
+  status: "ready_for_pickup" | "in_transit" | "delivered" | "cancelled";
+  createdAt: Date;
+  updatedAt: Date;
+}
 
+// interface for invoice
+export interface IInvoice extends Document {
+  invoiceId: string;
+  orderId: Schema.Types.ObjectId;
+  pickupAddress: string;
+  deliveryAddress: string;
+  amount: number;
+  typeOfAssignment: "pickup" | "delivery" | "pickup_and_delivery";
+  createdBy: Schema.Types.ObjectId;
+  status: "successfull" | "pending" | "failed";
+}
 // interface for Admin
 export interface IAdmin extends Document {
   fullName: string;
@@ -168,7 +189,13 @@ export interface ITransaction extends Document {
   userId: string;
   amount: number;
   transactionDate: Date;
-  status: "pending" | "completed" | "failed" | "refund" | "refunded" | "cancelled";
+  status:
+    | "pending"
+    | "completed"
+    | "failed"
+    | "refund"
+    | "refunded"
+    | "cancelled";
   charges?: number;
   transactionType: string;
   description?: string;
@@ -245,17 +272,17 @@ export interface IAnalyticsReport extends Document {
   revenue: number;
   commission: number;
   refundRequests: number;
-  month: number
-  year: number
+  month: number;
+  year: number;
   topProducts: {
-    productId: string
-    totalSales: number
-    count: number
-  }[]
+    productId: string;
+    totalSales: number;
+    count: number;
+  }[];
   generatedAt: Date;
 }
 
-export interface ICategory  extends Document {
+export interface ICategory extends Document {
   name: string;
   description?: string;
 }

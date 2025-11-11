@@ -9,6 +9,7 @@ import { uploadMultipleToImageKit } from "../utils/imagekit";
 import { paginated_result } from "../utils/pagination";
 import { Category } from "../models/category";
 import { CreateNotificationData } from "../types/model";
+import { Admin } from "../models/adminModel";
 
 export const getAllUnsoldProduct = async (
   req: Request,
@@ -44,7 +45,7 @@ export const getAllUnsoldProduct = async (
     if (search) {
       const categories = await Category.find({
         name: { $regex: search, $options: "i" },
-      }).select('_id');
+      }).select("_id");
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
@@ -57,8 +58,8 @@ export const getAllUnsoldProduct = async (
     delete query.search;
 
     const products = await Product.find(query)
-      .populate("category", 'name description')
-      .populate("seller", 'fullName profileImageURL sellerStatus email')
+      .populate("category", "name description")
+      .populate("seller", "fullName profileImageURL sellerStatus email")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -108,13 +109,22 @@ export const listAProduct = async (
     if (user.sellerStatus !== "approved") {
       res.status(400).json({
         success: false,
-       message: "Seller is not approved yet.",
+        message: "Seller is not approved yet.",
         data: null,
       });
       return;
-     }
+    }
 
-    const { name, categoryId, price, location, description, phoneNumber, quantity, productType } = req.body;
+    const {
+      name,
+      categoryId,
+      price,
+      location,
+      description,
+      phoneNumber,
+      quantity,
+      productType,
+    } = req.body;
     const categoryExist = await Category.findById(categoryId);
     if (!categoryExist) {
       res.status(400).json({
@@ -130,8 +140,8 @@ export const listAProduct = async (
         success: false,
         message: "Price must be greater than zero.",
         data: null,
-      })
-      return
+      });
+      return;
     }
 
     const files = req.files as Express.Multer.File[];
@@ -182,7 +192,6 @@ export const listAProduct = async (
         ["product", "marketplace", "video"]
       );
     }
-   
 
     const productId = () => {
       return `DM-${Date.now()}`;
@@ -213,14 +222,38 @@ export const listAProduct = async (
       title: "Product Listing Notification",
     };
 
-    Promise.allSettled([
+    const allowedAdmin = await Admin.find({
+      role: { $in: ["admin", "super_admin"] },
+    }).select("_id email");
+
+    const tasks: Promise<any>[] = [
       createNotification(notificationData),
       sendEmail(
         user?.email!,
         "Product Listing Notification",
         "Your product listing has been successfully submitted and is now pending review by the admin."
       ),
-    ]);
+    ];
+
+    for (const admin of allowedAdmin) {
+      const adminNotification: CreateNotificationData = {
+        recipient: admin._id as string,
+        recipientModel: "Admin" as const,
+        body: `A new product listing with ID ${newProduct._id} is pending your approval.`,
+        type: "market",
+        title: "Product Listing Notification",
+      };
+      tasks.push(createNotification(adminNotification));
+      tasks.push(
+        sendEmail(
+          admin.email,
+          "Product Listing Notification",
+          `A new product listing with ID ${newProduct._id} is pending your approval.`
+        )
+      );
+    }
+
+    await Promise.allSettled(tasks);
 
     res.status(201).json({
       success: true,
@@ -310,8 +343,8 @@ export const getSingleUnsoldProduct = async (
       _id: req.params.id,
       quantity: { $gt: 0 },
     })
-    .populate("seller", "fullName profileImageURL sellerStatus email")
-    .populate("category", "name description");
+      .populate("seller", "fullName profileImageURL sellerStatus email")
+      .populate("category", "name description");
     if (product) {
       const productData = _.omit(product?.toObject(), ["is_approved"]);
 
@@ -367,7 +400,7 @@ export const getUnsoldProductsByCategory = async (
     if (search) {
       const categories = await Category.find({
         name: { $regex: search, $options: "i" },
-      }).select('_id');
+      }).select("_id");
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
@@ -380,8 +413,8 @@ export const getUnsoldProductsByCategory = async (
     delete query.search;
 
     const products = await Product.find(query)
-      .populate("category", 'name description')
-      .populate("seller", 'fullName profileImageURL sellerStatus email')
+      .populate("category", "name description")
+      .populate("seller", "fullName profileImageURL sellerStatus email")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
@@ -443,7 +476,7 @@ export const getAllLongUnsoldProduct = async (
     if (search) {
       const categories = await Category.find({
         name: { $regex: search, $options: "i" },
-      }).select('_id');
+      }).select("_id");
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
@@ -456,8 +489,8 @@ export const getAllLongUnsoldProduct = async (
     delete query.search;
 
     const products = await Product.find(query)
-      .populate("category", 'name description')
-      .populate("seller", 'fullName profileImageURL sellerStatus email')
+      .populate("category", "name description")
+      .populate("seller", "fullName profileImageURL sellerStatus email")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: 1 });
@@ -517,7 +550,7 @@ export const getSellerProducts = async (
     if (search) {
       const categories = await Category.find({
         name: { $regex: search, $options: "i" },
-      }).select('_id');
+      }).select("_id");
       const categoryIds = categories.map((c) => c._id);
       query.$or = [
         { name: { $regex: search, $options: "i" } }, // Search by product name (case insensitive)
@@ -526,11 +559,10 @@ export const getSellerProducts = async (
       ];
     }
 
-
     // Get products with pagination
     const products = await Product.find(query)
-      .populate("category", 'name description')
-      .populate("seller", 'fullName profileImageURL sellerStatus email')
+      .populate("category", "name description")
+      .populate("seller", "fullName profileImageURL sellerStatus email")
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 });
