@@ -21,6 +21,7 @@ export const getTransactionStats = async (
       sellersBalance,
       commissionEarnings,
       totalRefunds,
+      cancelledTransactions,
     ] = await Promise.all([
       // Balance: Total completed credit transactions
       Transaction.aggregate([
@@ -43,13 +44,33 @@ export const getTransactionStats = async (
       ]),
       // Sellers Pending Balance: The sum of the pendingBalance from all seller accounts
       User.aggregate([
-        { $match: { role: "seller", "accountDetail.pendingBalance": { $exists: true } } },
-        { $group: { _id: null, total: { $sum: "$accountDetail.pendingBalance" } } },
+        {
+          $match: {
+            role: "seller",
+            "accountDetail.pendingBalance": { $exists: true },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$accountDetail.pendingBalance" },
+          },
+        },
       ]),
       // Sellers Balance: The sum of the availableBalance for all sellers
       User.aggregate([
-        { $match: { role: "seller", "accountDetail.availableBalance": { $exists: true } } },
-        { $group: { _id: null, total: { $sum: "$accountDetail.availableBalance" } } },
+        {
+          $match: {
+            role: "seller",
+            "accountDetail.availableBalance": { $exists: true },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            total: { $sum: "$accountDetail.availableBalance" },
+          },
+        },
       ]),
       // Commission Earnings: The sum of the revenue generated from complete credit transactions
       Transaction.aggregate([
@@ -61,9 +82,15 @@ export const getTransactionStats = async (
         { $match: { status: "refunded" } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
+      // Cancelled: the total sum amounts of 'cancelled' transactions
+      Transaction.aggregate([
+        { $match: { status: "cancelled" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } },
+      ]),
     ]);
 
-    const extractTotal = (result: any[]) => result.length > 0 ? result[0].total : 0;
+    const extractTotal = (result: any[]) =>
+      result.length > 0 ? result[0].total : 0;
 
     res.status(200).json({
       success: true,
@@ -71,6 +98,7 @@ export const getTransactionStats = async (
         balance: extractTotal(balance),
         totalTransactions: extractTotal(totalTransactions),
         completed: extractTotal(completedTransactions),
+        cancelled: extractTotal(cancelledTransactions),
         failed: extractTotal(failedTransactions),
         sellersPendingBalance: extractTotal(sellersPendingBalance),
         sellersBalance: extractTotal(sellersBalance),
@@ -142,7 +170,7 @@ const _getUserGrowthChartData = async () => {
       returningUsers: returningUsers ? returningUsers.count : 0,
     };
   });
-}
+};
 
 // Private helper function to get summary data
 const _getAnalyticsSummary = async (period: number) => {
@@ -478,7 +506,9 @@ export const getAdminDashboard = async (
     // Top-level stats
     const totalUsers = await User.countDocuments();
     const totalListings = await Product.countDocuments();
-    const totalTransactions = await Transaction.countDocuments({ status: "completed" });
+    const totalTransactions = await Transaction.countDocuments({
+      status: "completed",
+    });
     const reports = await Order.countDocuments({ status: "paid" });
 
     // User Growth Chart (New vs. Returning Users)
@@ -502,8 +532,8 @@ export const getAdminDashboard = async (
           from: "categories",
           localField: "productDetails.category",
           foreignField: "_id",
-          as: "categoryDetails"
-        }
+          as: "categoryDetails",
+        },
       },
       { $unwind: "$categoryDetails" },
       {
@@ -521,7 +551,8 @@ export const getAdminDashboard = async (
       { $unwind: "$items" },
       { $group: { _id: null, total: { $sum: "$items.price" } } },
     ]);
-    const totalSales = totalSalesForPeriod.length > 0 ? totalSalesForPeriod[0].total : 1;
+    const totalSales =
+      totalSalesForPeriod.length > 0 ? totalSalesForPeriod[0].total : 1;
 
     const topProducts = topProductsData.map((p) => ({
       name: p._id,
@@ -535,13 +566,15 @@ export const getAdminDashboard = async (
       .select("name price productImage createdAt");
 
     // Sales Record
-    const salesRecord = await Order.find({ status: { $in: ["paid", "pending", "failed"] } })
+    const salesRecord = await Order.find({
+      status: { $in: ["paid", "pending", "failed"] },
+    })
       .sort({ createdAt: -1 })
       .limit(4)
       .populate({
         path: "items.product",
         model: "Product",
-        select: "name price productImage"
+        select: "name price productImage",
       })
       .select("items status createdAt");
 
