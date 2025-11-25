@@ -18,7 +18,7 @@ client.setApiKey(
 // Helper: generate styled HTML
 const generateEmailHTML = (text: string): string => {
   const currentYear = new Date().getFullYear();
-  
+
   return `
     <!DOCTYPE html>
     <html lang="en">
@@ -187,7 +187,7 @@ const generateEmailHTML = (text: string): string => {
           <div class="divider"></div>
           
           <div class="content">
-            ${text}
+            ${text.replace(/\./g, ".<br />")}
           </div>
           
           <div class="signature">
@@ -209,7 +209,7 @@ const generateEmailHTML = (text: string): string => {
 // Send single email
 export const sendEmail = async (to: string, subject: string, text: string) => {
   try {
-    const recipients = to.split(',').map(email => ({ email: email.trim() }));
+    const recipients = to.split(",").map((email) => ({ email: email.trim() }));
 
     const sendSmtpEmail = {
       sender: { name: "DeclutMart", email: process.env.EMAIL_USER as string },

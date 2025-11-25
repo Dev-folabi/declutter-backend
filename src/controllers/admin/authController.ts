@@ -47,7 +47,6 @@ export const registerAdmin = async (
       emailVerified: true,
     });
 
-
     // // Send Password email
     const firstName = fullName.split(" ")[0];
     await sendEmail(
@@ -98,7 +97,7 @@ export const loginAdmin = async (
       return;
     }
 
-     // Compare passwords
+    // Compare passwords
     const isMatch = await bcrypt.compare(password, admin.password);
     if (!isMatch) {
       handleError(res, 401, "Invalid credentials");
@@ -353,3 +352,178 @@ export const resetAdminPassword = async (
   }
 };
 
+// get admin profile
+export const getAdminProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const admin = (req as any).user as IAdmin;
+    const adminData = _.omit(admin.toObject(), ["password"]);
+
+    res.status(200).json({
+      success: true,
+      message: "Admin profile fetched successfully",
+      data: adminData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// update admin profile
+export const updateAdminProfile = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { fullName, profileImageURL } = req.body;
+    const admin = (req as any).user as IAdmin;
+
+    if (fullName) admin.fullName = fullName;
+    if (profileImageURL) admin.profileImageURL = profileImageURL;
+
+    await admin.save();
+
+    const adminData = _.omit(admin.toObject(), ["password"]);
+
+    res.status(200).json({
+      success: true,
+      message: "Profile updated successfully",
+      data: adminData,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// update admin password
+export const updateAdminPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { old_password, new_password, confirm_password } = req.body;
+    const admin = (req as any).user as IAdmin;
+
+    if (new_password !== confirm_password) {
+      return handleError(res, 400, "Passwords do not match.");
+    }
+
+    // Check old password
+    const isMatch = await bcrypt.compare(old_password, admin.password);
+    if (!isMatch) {
+      return handleError(res, 400, "Incorrect old password.");
+    }
+
+    // Prevent reusing old password
+    const samePassword = await bcrypt.compare(new_password, admin.password);
+    if (samePassword) {
+      return handleError(
+        res,
+        400,
+        "New password must be different from the old one."
+      );
+    }
+
+    // Hash and update password
+    admin.password = await bcrypt.hash(new_password, 10);
+    await admin.save();
+
+    const notificationData: CreateNotificationData = {
+      recipient: admin._id as string,
+      recipientModel: "Admin" as const,
+      body: "Your password has been changed",
+      type: "account",
+      title: "Password Change",
+    };
+
+    await createNotification(notificationData);
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// resend OTP
+export const resendOTP = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email, type } = req.body;
+
+    const admin = await Admin.findOne({ email });
+    if (!admin) {
+      return handleError(res, 404, "Admin not found.");
+    }
+
+    let verificationType = "email";
+    let emailSubject = "OTP Verification";
+    let emailBody = "";
+
+    if (type === "activate account") {
+      if (admin.emailVerified) {
+        return handleError(res, 400, "Account already verified.");
+      }
+      emailSubject = "Verify e-mail - OTP Verification";
+      emailBody = "You requested to verify your email.";
+    } else if (type === "password") {
+      emailSubject = "Reset Your Password - OTP Verification";
+      emailBody = "You requested to reset your password.";
+    } else {
+      return handleError(res, 400, "Invalid OTP type.");
+    }
+
+    const OTP = generateOTP();
+
+    await OTPVerification.updateOne(
+      {
+        "owner.id": admin._id,
+        "owner.type": "Admin",
+        type,
+        verificationType,
+      },
+      {
+        $set: {
+          OTP,
+          type,
+          verificationType,
+          owner: {
+            id: admin._id,
+            type: "Admin",
+          },
+        },
+      },
+      { upsert: true }
+    );
+
+    await sendEmail(
+      admin.email,
+      emailSubject,
+      `
+        Hi ${admin.fullName.split(" ")[0] || "Admin"},
+        <p>${emailBody} Use the OTP below:</p>
+        <h2>${OTP}</h2>
+        <p>This OTP is valid for <strong>30 minutes</strong>.</p>
+        <p>If you didn’t request this, you can safely ignore this email.</p>
+        <br />
+      `
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "OTP sent successfully.",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

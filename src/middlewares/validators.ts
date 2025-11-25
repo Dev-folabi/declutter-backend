@@ -771,7 +771,7 @@ export const validateContactUs = [
   handleValidationErrors,
 ];
 export const validateOrderAvailability = [
-  param("orderId")    
+  param("orderId")
     .notEmpty()
     .withMessage("Order ID is required")
     .isMongoId()
@@ -781,10 +781,10 @@ export const validateOrderAvailability = [
     .withMessage("isAvailable field is required")
     .isBoolean()
     .withMessage("isAvailable must be a boolean value"),
-  handleValidationErrors,  
-]
+  handleValidationErrors,
+];
 export const validateLogisticStatusUpdate = [
-  param("logisticId")    
+  param("logisticId")
     .notEmpty()
     .withMessage("Logistic ID is required")
     .isMongoId()
@@ -792,10 +792,12 @@ export const validateLogisticStatusUpdate = [
   body("action")
     .notEmpty()
     .withMessage("Action field is required")
-    .isIn([ "picked_up", "delivered", "to_be_picked_up"])
-    .withMessage("Action must be one of: picked_up, delivered, to_be_picked_up"),
+    .isIn(["picked_up", "delivered", "to_be_picked_up"])
+    .withMessage(
+      "Action must be one of: picked_up, delivered, to_be_picked_up"
+    ),
   handleValidationErrors,
-]
+];
 
 export const validateCreateInvoice = [
   body("itemId")
@@ -827,7 +829,7 @@ export const validateCreateInvoice = [
 ];
 
 export const validateSetInvoiceStatus = [
-  param("id")    
+  param("id")
     .notEmpty()
     .withMessage("Invoice ID is required")
     .isMongoId()
@@ -835,7 +837,25 @@ export const validateSetInvoiceStatus = [
   body("status")
     .notEmpty()
     .withMessage("Status field is required")
-    .isIn([ "successfull",  "failed"])
+    .isIn(["successfull", "failed"])
     .withMessage("Status must be one of: successfull, failed"),
   handleValidationErrors,
-]
+];
+
+export const validateUpdateAdminProfile = [
+  body("fullName")
+    .optional()
+    .isString()
+    .withMessage("Full name must be a string")
+    .matches(/^(?=.*[a-zA-Z])[a-zA-Z\s'-]+$/)
+    .withMessage(
+      "Full name may only contain letters, spaces, hyphens, or apostrophes"
+    ),
+  body("profileImageURL")
+    .optional()
+    .isString()
+    .withMessage("Profile image URL must be a string")
+    .isURL()
+    .withMessage("Invalid URL format"),
+  handleValidationErrors,
+];
