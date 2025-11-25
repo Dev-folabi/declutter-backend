@@ -5,7 +5,13 @@ import {
   verifyAdminEmail,
   resetAdminPasswordOTP,
   resetAdminPassword,
+  getAdminProfile,
+  updateAdminProfile,
+  updateAdminPassword,
+  resendOTP,
 } from "../../controllers/admin/authController";
+import { verifyToken, authorizeRoles } from "../../middlewares/authMiddleware";
+import { ADMIN_ONLY_ROLES } from "../../constant";
 
 import {
   validateAdminRegister,
@@ -13,6 +19,9 @@ import {
   validateVerifyEmailOTP,
   validateResetPassword,
   validateResetPasswordOTP,
+  validateUpdateAdminProfile,
+  validateChangePassword,
+  validateResendVerificationOTP,
 } from "../../middlewares/validators";
 
 const router = express.Router();
@@ -200,6 +209,134 @@ const router = express.Router();
  *           description: Missing fields or invalid OTP
  *         '404':
  *           description: Admin not found
+ *
+ *   /api/admin/auth/resend-otp:
+ *     post:
+ *       summary: Resend OTP for account activation or password reset
+ *       tags: [Admin Authentication]
+ *       requestBody:
+ *         required: true
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - email
+ *                 - type
+ *               properties:
+ *                 email:
+ *                   type: string
+ *                   format: email
+ *                   example: "admin@example.com"
+ *                 type:
+ *                   type: string
+ *                   enum: [activate account, password]
+ *                   example: "activate account"
+ *       responses:
+ *         '200':
+ *           description: OTP sent successfully
+ *         '400':
+ *           description: Account already verified, invalid OTP type, or input error
+ *         '404':
+ *           description: Admin not found
+ *
+ *   /api/admin/auth/profile:
+ *     get:
+ *       summary: Get admin profile
+ *       tags: [Admin Authentication]
+ *       security:
+ *         - bearerAuth: []
+ *       responses:
+ *         '200':
+ *           description: Admin profile fetched successfully
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   success:
+ *                     type: boolean
+ *                     example: true
+ *                   message:
+ *                     type: string
+ *                     example: "Admin profile fetched successfully"
+ *                   data:
+ *                     $ref: '#/components/schemas/Admin'
+ *         '401':
+ *           description: Unauthorized
+ *     patch:
+ *       summary: Update admin profile
+ *       tags: [Admin Authentication]
+ *       security:
+ *         - bearerAuth: []
+ *       requestBody:
+ *         required: true
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 fullName:
+ *                   type: string
+ *                   example: "Jane Doe"
+ *                 profileImageURL:
+ *                   type: string
+ *                   example: "https://example.com/image.jpg"
+ *       responses:
+ *         '200':
+ *           description: Profile updated successfully
+ *           content:
+ *             application/json:
+ *               schema:
+ *                 type: object
+ *                 properties:
+ *                   success:
+ *                     type: boolean
+ *                     example: true
+ *                   message:
+ *                     type: string
+ *                     example: "Profile updated successfully"
+ *                   data:
+ *                     $ref: '#/components/schemas/Admin'
+ *         '401':
+ *           description: Unauthorized
+ *
+ *   /api/admin/auth/update-password:
+ *     patch:
+ *       summary: Update admin password
+ *       tags: [Admin Authentication]
+ *       security:
+ *         - bearerAuth: []
+ *       requestBody:
+ *         required: true
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               required:
+ *                 - old_password
+ *                 - new_password
+ *                 - confirm_password
+ *               properties:
+ *                 old_password:
+ *                   type: string
+ *                   format: password
+ *                   example: "OldPass123!"
+ *                 new_password:
+ *                   type: string
+ *                   format: password
+ *                   example: "NewPass123!"
+ *                 confirm_password:
+ *                   type: string
+ *                   format: password
+ *                   example: "NewPass123!"
+ *       responses:
+ *         '200':
+ *           description: Password updated successfully
+ *         '400':
+ *           description: Passwords do not match or incorrect old password
+ *         '401':
+ *           description: Unauthorized
  */
 
 // Admin-only routes
@@ -212,5 +349,27 @@ router.post(
 );
 router.post("/reset-password", validateResetPassword, resetAdminPassword);
 router.post("/verify-otp", validateVerifyEmailOTP, verifyAdminEmail);
+router.post("/resend-otp", validateResendVerificationOTP, resendOTP);
+
+router.get(
+  "/profile",
+  verifyToken,
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  getAdminProfile
+);
+router.patch(
+  "/profile",
+  verifyToken,
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  validateUpdateAdminProfile,
+  updateAdminProfile
+);
+router.patch(
+  "/update-password",
+  verifyToken,
+  authorizeRoles(...ADMIN_ONLY_ROLES),
+  validateChangePassword,
+  updateAdminPassword
+);
 
 export default router;
