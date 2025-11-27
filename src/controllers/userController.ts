@@ -71,7 +71,10 @@ export const updateProfile = async (
     }
 
     // Verify current password
-    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    const isPasswordValid = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
     if (!isPasswordValid) {
       res.status(400).json({
         success: false,
@@ -84,7 +87,7 @@ export const updateProfile = async (
     let updateData: any = {};
     if (fullName) updateData.fullName = fullName;
     if (email) {
-      const existingEmail = await User.findOne({email});
+      const existingEmail = await User.findOne({ email });
       if (existingEmail && existingEmail.id !== user_id) {
         return handleError(res, 400, "Email already in use.");
       }
@@ -96,8 +99,8 @@ export const updateProfile = async (
       const uploadResult = await uploadToImageKit({
         file: file.buffer,
         fileName: file.originalname,
-        folder: '/profiles',
-        tags: ['profile', 'user'],
+        folder: "/profiles",
+        tags: ["profile", "user"],
       });
       updateData.profileImageURL = uploadResult.url;
     }
@@ -117,7 +120,7 @@ export const updateProfile = async (
     };
 
     await createNotification(notificationData);
-    
+
     // Exclude sensitive fields from response
     const userData = _.omit(updatedUser?.toObject(), ["password", "pin"]);
 
@@ -164,17 +167,17 @@ export const updateBankDetail = async (
       return handleError(res, 400, "unauthorized.");
     }
 
-    const {
-      withdrawalPin,
-      currentPassword,
-      accountName,
-      accountNumber,
-      bankCode,
-    } = req.body;
+    const { withdrawalPin, currentPassword, accountNumber, bankCode } =
+      req.body;
 
-    const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
-    if (!isValidPin) {
-      return handleError(res, 400, "Invalid pin.");
+    let pin;
+    if (user.accountDetail) {
+      const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
+      if (!isValidPin) {
+        return handleError(res, 400, "Invalid pin.");
+      }
+    } else {
+      pin = await bcrypt.hash(withdrawalPin, 10);
     }
 
     const isValidPassword = await bcrypt.compare(
@@ -185,10 +188,6 @@ export const updateBankDetail = async (
       return handleError(res, 400, "Invalid password.");
     }
 
-    // const otp = OTPisValid(OTP, action, user)
-    // if (!otp) {
-    //   return handleError(res, 400, "Invalid OTP.");
-    // }
     let detail;
     try {
       detail = await paystack.createRecipient(
@@ -196,32 +195,32 @@ export const updateBankDetail = async (
         bankCode as string
       );
     } catch (err: any) {
-      const msg = err?.response?.body?.message || "Invalid bank code or account number.";
+      const msg =
+        err?.response?.body?.message || "Invalid bank code or account number.";
       return handleError(res, 400, msg);
-      
-    }  
-      const recipientCode = detail.recipient_code;
-      const account = detail.details;
-  
-      const encryptedAccountNumber = encryptData(accountNumber);
-      const encryptedbankCode = encryptData(bankCode);
-      const encryptedRecipientCode = encryptData(recipientCode);
-      const encryptedBankName = encryptData(account.bank_name);
-  
-      const accountDetail = {
-        accountName: account.account_name,
-        accountNumber: encryptedAccountNumber,
-        bankCode: encryptedbankCode,
-        bankName: encryptedBankName,
-        recipientCode: encryptedRecipientCode,
-      };
-  
-      await User.updateOne(
-        { _id: user_id },
-        { accountDetail },
-        { new: true, upsert: true }
-      );
-      user.save();
+    }
+    const recipientCode = detail.recipient_code;
+    const account = detail.details;
+
+    const encryptedAccountNumber = encryptData(accountNumber);
+    const encryptedbankCode = encryptData(bankCode);
+    const encryptedRecipientCode = encryptData(recipientCode);
+    const encryptedBankName = encryptData(account.bank_name);
+
+    const accountDetail = {
+      accountName: account.account_name,
+      accountNumber: encryptedAccountNumber,
+      bankCode: encryptedbankCode,
+      bankName: encryptedBankName,
+      recipientCode: encryptedRecipientCode,
+    };
+
+    await User.updateOne(
+      { _id: user_id },
+      { accountDetail, ...(pin && { pin }) },
+      { new: true, upsert: true }
+    );
+    user.save();
 
     const notificationData: CreateNotificationData = {
       recipient: user_id,
@@ -292,8 +291,12 @@ export const updatePin = async (
     if (!isValidPassword) {
       return handleError(res, 400, "Invalid password.");
     }
-    if(withdrawalPin === new_pin){
-      return handleError(res, 400, "New pin must be different from the old pin.");
+    if (withdrawalPin === new_pin) {
+      return handleError(
+        res,
+        400,
+        "New pin must be different from the old pin."
+      );
     }
 
     if (!(new_pin === confirm_pin)) {
