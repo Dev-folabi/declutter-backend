@@ -32,6 +32,8 @@ export interface IUser extends Document {
   profileImageURL: string;
   is_admin: boolean;
   status: "active" | "inactive" | "suspended";
+  referralCode?: string;
+  referredBy?: Schema.Types.ObjectId;
   suspension: {
     isSuspended: boolean;
     reason?: string;
