@@ -48,6 +48,16 @@ const userSchema = new Schema<IUser>(
     lastLogin: {
       type: Date,
     },
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+    },
+    referredBy: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+    },
     suspension: {
       isSuspended: { type: Boolean, default: false },
       reason: { type: String },
@@ -60,4 +70,3 @@ const userSchema = new Schema<IUser>(
 );
 
 export const User = mongoose.model<IUser>("User", userSchema);
- 

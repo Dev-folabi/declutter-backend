@@ -23,6 +23,7 @@ import {
   validateChangePassword,
   validateResendVerificationOTP,
 } from "../../middlewares/validators";
+import { uploadSingle } from "../../middlewares/upload";
 
 const router = express.Router();
 /**
@@ -272,7 +273,7 @@ const router = express.Router();
  *       requestBody:
  *         required: true
  *         content:
- *           application/json:
+ *           multipart/form-data:
  *             schema:
  *               type: object
  *               properties:
@@ -281,7 +282,7 @@ const router = express.Router();
  *                   example: "Jane Doe"
  *                 profileImageURL:
  *                   type: string
- *                   example: "https://example.com/image.jpg"
+ *                   format: binary
  *       responses:
  *         '200':
  *           description: Profile updated successfully
@@ -361,6 +362,7 @@ router.patch(
   "/profile",
   verifyToken,
   authorizeRoles(...ADMIN_ONLY_ROLES),
+  uploadSingle("profileImageURL"),
   validateUpdateAdminProfile,
   updateAdminProfile
 );

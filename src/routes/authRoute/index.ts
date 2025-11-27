@@ -109,11 +109,16 @@ const router = express.Router();
  *               role:
  *                 type: string
  *                 enum: [buyer, seller]
+ *               referralCode:
+ *                 type: string
+ *                 description: Optional referral code from another user (8 uppercase alphanumeric characters)
+ *                 pattern: ^[A-Z0-9]{8}$
+ *                 example: ABC123XY
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: User registered successfully. Response includes the user's unique referral code.
  *       400:
- *         description: Invalid registration data or missing required fields for seller role
+ *         description: Invalid registration data, missing required fields for seller role, or invalid referral code
  *
  * /api/auth/login:
  *   post:

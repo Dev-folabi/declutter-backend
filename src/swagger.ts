@@ -20,7 +20,7 @@ const swaggerDefinition = {
     {
       url:
         environment === "local"
-          ? "http://localhost:6000"
+          ? "http://localhost:4000"
           : environment === "staging" ? "https://auth-microservice-stss.onrender.com" 
           : "https://auth-microservice-production-9cd4.up.railway.app",
     },

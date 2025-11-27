@@ -189,14 +189,12 @@ router.patch(
   "/updateBank",
   validateBankUpdate,
   verifyToken,
-  authorizeRoles("seller"),
   updateBankDetail
 );
 router.patch(
   "/updatePin",
   validateChangePin,
   verifyToken,
-  authorizeRoles("seller"),
   updatePin
 );
 

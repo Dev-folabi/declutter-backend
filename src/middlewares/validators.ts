@@ -557,6 +557,16 @@ export const validateRegister = [
     .withMessage("Role is required")
     .isIn(["seller", "buyer"])
     .withMessage("Invalid role. Role must be either 'seller' or 'buyer'"),
+  body("referralCode")
+    .optional()
+    .isString()
+    .withMessage("Referral code must be a string")
+    .isLength({ min: 8, max: 8 })
+    .withMessage("Referral code must be exactly 8 characters")
+    .matches(/^[A-Z0-9]+$/)
+    .withMessage(
+      "Referral code must contain only uppercase letters and numbers"
+    ),
 
   handleValidationErrors,
 ];
