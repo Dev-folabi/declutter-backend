@@ -11,6 +11,7 @@ import bcrypt from "bcrypt";
 import { generateToken } from "../../function/token";
 import _ from "lodash";
 import { ADMIN_ONLY_ROLES, ROLES } from "../../constant";
+import { uploadToImageKit } from "../../utils/imagekit";
 
 // signup logic for the admin
 export const registerAdmin = async (
@@ -359,7 +360,13 @@ export const getAdminProfile = async (
   next: NextFunction
 ) => {
   try {
-    const admin = (req as any).user as IAdmin;
+    const adminId = (req as any).user._id;
+    const admin = await Admin.findById(adminId);
+
+    if (!admin) {
+      return handleError(res, 404, "Admin not found");
+    }
+
     const adminData = _.omit(admin.toObject(), ["password"]);
 
     res.status(200).json({
@@ -379,11 +386,28 @@ export const updateAdminProfile = async (
   next: NextFunction
 ) => {
   try {
-    const { fullName, profileImageURL } = req.body;
-    const admin = (req as any).user as IAdmin;
+    const { fullName } = req.body;
+    const adminId = (req as any).user._id;
+    const file = req.file;
+
+    const admin = await Admin.findById(adminId);
+
+    if (!admin) {
+      return handleError(res, 404, "Admin not found");
+    }
 
     if (fullName) admin.fullName = fullName;
-    if (profileImageURL) admin.profileImageURL = profileImageURL;
+
+    // Handle profile image upload
+    if (file) {
+      const uploadResult = await uploadToImageKit({
+        file: file.buffer,
+        fileName: file.originalname,
+        folder: "/admin-profiles",
+        tags: ["profile", "admin"],
+      });
+      admin.profileImageURL = uploadResult.url;
+    }
 
     await admin.save();
 
@@ -407,7 +431,13 @@ export const updateAdminPassword = async (
 ) => {
   try {
     const { old_password, new_password, confirm_password } = req.body;
-    const admin = (req as any).user as IAdmin;
+    const adminId = (req as any).user._id;
+
+    const admin = await Admin.findById(adminId);
+
+    if (!admin) {
+      return handleError(res, 404, "Admin not found");
+    }
 
     if (new_password !== confirm_password) {
       return handleError(res, 400, "Passwords do not match.");

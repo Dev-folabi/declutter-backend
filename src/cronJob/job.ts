@@ -55,6 +55,53 @@ export const moveFundsAfterFiveDays = async () => {
           await seller.save();
         }
 
+        // Process referral reward if buyer was referred
+        const buyer = await User.findById(txn.userId).populate("referredBy");
+        if (buyer && buyer.referredBy) {
+          const referrer = buyer.referredBy as any;
+
+          // Calculate referral reward: 1% of platform commission (txn.revenue)
+          const referralReward = Math.round((txn.revenue || 0) * 0.01);
+
+          if (referralReward > 0 && referrer.accountDetail) {
+            // Credit referrer's balance
+            referrer.accountDetail.balance =
+              (referrer.accountDetail.balance || 0) + referralReward;
+            await referrer.save();
+
+            // Create transaction record for referral reward
+            await Transaction.create({
+              userId: referrer._id,
+              amount: referralReward,
+              transactionType: "credit",
+              description: `Referral reward from ${buyer.fullName}'s purchase`,
+              status: "completed",
+              transactionDate: new Date(),
+            });
+
+            // Send notification to referrer
+            const referralMessage = `You earned NGN ${referralReward} as a referral reward from ${buyer.fullName}'s purchase!`;
+            await Promise.allSettled([
+              createNotification({
+                recipient: referrer._id as string,
+                recipientModel: "User" as const,
+                body: referralMessage,
+                title: "Referral Reward Earned",
+                type: "account",
+              }),
+              sendEmail(
+                referrer.email!,
+                "Referral Reward Earned",
+                referralMessage
+              ),
+            ]);
+
+            console.log(
+              `✅ Credited NGN ${referralReward} referral reward to ${referrer.email}`
+            );
+          }
+        }
+
         // Mark product as settled to avoid duplicate transfers
         product.hasSettled = true;
         await product.save();

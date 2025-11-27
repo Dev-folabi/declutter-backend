@@ -23,6 +23,7 @@ import dashboardRoute from "./dashboardRoute";
 import logisticsRoute from "../routes/adminRoute/logistics";
 import { verifyToken } from "../middlewares/authMiddleware";
 import sellerRoute from "./sellerRoute";
+import referralRoute from "./userRoute/referralRoute";
 const router = Router();
 
 const adminRouter = Router();
@@ -38,6 +39,7 @@ adminRouter.use("/logistics", verifyToken, logisticsRoute);
 router.use("/waitlist", waitlistRoute);
 router.use("/auth", authRoute);
 router.use("/user", userRoute);
+router.use("/user/referrals", verifyToken, referralRoute);
 router.use("/notification", verifyToken, notificationsRoute);
 router.use("/product", productRoute);
 router.use("/order", verifyToken, orderRoute);

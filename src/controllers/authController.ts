@@ -15,6 +15,7 @@ import {
   encryptData,
   generateOTP,
 } from "../utils";
+import { generateReferralCode } from "../utils/generateReferralCode";
 import { createNotification } from "./notificationController";
 import paystack from "../service/paystack";
 import { uploadToImageKit } from "../utils/imagekit";
@@ -177,6 +178,7 @@ export const registerUser = async (
       bankCode,
       pin,
       role,
+      referralCode: referralCode,
     } = req.body;
 
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -264,6 +266,21 @@ export const registerUser = async (
       encryptedBankName = encryptData(account.bank_name);
     }
 
+    // Generate unique referral code for new user
+    const userReferralCode = await generateReferralCode();
+
+    // Validate provided referral code and find referrer
+    let referrerId: string | undefined;
+    if (referralCode) {
+      const referrer = await User.findOne({
+        referralCode,
+      });
+      if (!referrer) {
+        return handleError(res, 400, "Invalid referral code provided.");
+      }
+      referrerId = String(referrer._id);
+    }
+
     // Create new user
     const newUser: IUser = await User.create({
       fullName,
@@ -286,6 +303,8 @@ export const registerUser = async (
       role,
       sellerStatus: role === "seller" ? "pending" : "not enroll",
       sellerProfileComplete: role === "seller" ? true : undefined,
+      referralCode: userReferralCode,
+      referredBy: referrerId,
     });
 
     const populatedUser = await newUser.populate("schoolId");
@@ -450,7 +469,11 @@ export const loginUser = async (
   }
 };
 
-export const verifyEmail = async (req: Request, res: Response, next: NextFunction) => {
+export const verifyEmail = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { OTP } = req.body;
 
@@ -462,7 +485,7 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
     const otpVerification = await OTPVerification.findOne({
       OTP: OTP.trim(),
       type: "activate account",
-      "owner.type": "User"
+      "owner.type": "User",
     });
 
     if (!otpVerification) {
@@ -499,7 +522,7 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
         </ul>
      
       `
-    )
+    );
 
     // Remove OTP after success
     await OTPVerification.deleteOne({ _id: otpVerification._id });
@@ -523,7 +546,6 @@ export const verifyEmail = async (req: Request, res: Response, next: NextFunctio
     next(error);
   }
 };
-
 
 export const resetPasswordOTP = async (
   req: Request,
@@ -637,7 +659,7 @@ export const resetPassword = async (
       await createNotification(notificationData);
     } catch (error) {
       // Continue execution even if notification fails
-      console.error('Failed to send password change notification:', error);
+      console.error("Failed to send password change notification:", error);
     }
     // Remove OTP entry
     await OTPVerification.deleteOne({ _id: otpVerification._id });
