@@ -10,6 +10,9 @@ export const collectWaitlistEmail = async (
   try {
     const { email } = req.body;
 
+    res.status(400).json({ message: "Email added to the waitlist 🎉" });
+    return;
+
     // Check if the email already exists in the waitlist
     const existingEmail = await Waitlist.findOne({ email });
     if (existingEmail) {
