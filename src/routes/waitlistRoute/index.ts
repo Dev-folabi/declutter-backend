@@ -65,8 +65,8 @@ const router = express.Router();
 
 
 router.post("/", validateWaitlist, collectWaitlistEmail);
-router.post("/bulk", bulkCreateWaitlistEmails);
-router.post("/message", sendWaitlistMessage);
+// router.post("/bulk", bulkCreateWaitlistEmails);
+// router.post("/message", sendWaitlistMessage);
 router.get("/", getWaitlistEmails);
 
 export default router;
