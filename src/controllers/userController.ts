@@ -171,7 +171,7 @@ export const updateBankDetail = async (
       req.body;
 
     let pin;
-    if (user.accountDetail) {
+    if (user.pin) {
       const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
       if (!isValidPin) {
         return handleError(res, 400, "Invalid pin.");
@@ -278,6 +278,13 @@ export const updatePin = async (
     }
 
     const { withdrawalPin, currentPassword, new_pin, confirm_pin } = req.body;
+    if (!user.pin) {
+      return handleError(
+        res,
+        400,
+        "Transaction pin not set. Please set a pin first."
+      );
+    }
 
     const isValidPin = await bcrypt.compare(withdrawalPin, user.pin);
     if (!isValidPin) {
