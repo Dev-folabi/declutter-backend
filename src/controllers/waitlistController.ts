@@ -5,7 +5,7 @@ import { sendBulkEmailBCC, sendEmail } from "../utils/mail";
 export const collectWaitlistEmail = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.body;
@@ -37,14 +37,14 @@ export const collectWaitlistEmail = async (
           🎉 New User Added to Waitlist!
         </div>
         <div class="content">
-          <p>Dear DeclutMart Admin,</p>
+          <p>Dear Declutter Admin,</p>
           <p>Great news! A new user has joined the waitlist for the amazing product you're building.</p>
           <p><strong>Total Email Addresses on the Waitlist:</strong> ${address}</p>
           <br />
           <p>Happy Building!!!</p>
         </div>
         <br />
-      `
+      `,
     );
 
     // Respond with success
@@ -58,7 +58,7 @@ export const collectWaitlistEmail = async (
 export const bulkCreateWaitlistEmails = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { emails } = req.body;
@@ -74,7 +74,7 @@ export const bulkCreateWaitlistEmails = async (
     // Filter valid emails (must contain @)
     const validEmails = emails
       .filter(
-        (email) => email && typeof email === "string" && email.includes("@")
+        (email) => email && typeof email === "string" && email.includes("@"),
       )
       .map((email) => email.trim().toLowerCase());
 
@@ -94,12 +94,12 @@ export const bulkCreateWaitlistEmails = async (
     }).select("email");
 
     const existingEmails = new Set(
-      existingWaitlistEntries.map((entry) => entry.email)
+      existingWaitlistEntries.map((entry) => entry.email),
     );
 
     // Filter out emails that already exist
     const newEmails = uniqueEmails.filter(
-      (email) => !existingEmails.has(email)
+      (email) => !existingEmails.has(email),
     );
 
     if (newEmails.length === 0) {
@@ -157,12 +157,12 @@ export const bulkCreateWaitlistEmails = async (
 export const sendWaitlistMessage = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Get all waitlist emails
     const waitlistEmails = await Waitlist.find().select("email");
-    // const waitlistEmails = [{ email: "declutmart@gmail.com" }];
+    // const waitlistEmails = [{ email: "Declutter@gmail.com" }];
 
     // Send bulk mail
     await sendBulkEmailBCC(
@@ -173,7 +173,7 @@ export const sendWaitlistMessage = async (
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Happy New Month from DeclutMart!</title>
+    <title>Happy New Month from Declutter!</title>
     <style>
         * {
             margin: 0;
@@ -591,7 +591,7 @@ export const sendWaitlistMessage = async (
             
             <div class="announcement-box">
                 <div class="announcement-badge">🎉 BIG NEWS</div>
-                <h2>DeclutMart Now Accepts New & Preloved Items!</h2>
+                <h2>Declutter Now Accepts New & Preloved Items!</h2>
                 <p>
                     Whether you're looking to sell that item you no longer use or shop something fresh and affordable, 
                     we've got you covered. 🛍️
@@ -643,8 +643,8 @@ export const sendWaitlistMessage = async (
             
             <div class="cta-section">
                 <h2>Ready to List or Shop? 🚀</h2>
-                <a href="https://www.declutmart.com" class="website-button">
-                    Visit DeclutMart Now
+                <a href="https://www.Declutter.com" class="website-button">
+                    Visit Declutter Now
                 </a>
             </div>
             
@@ -655,18 +655,18 @@ export const sendWaitlistMessage = async (
             
             <div class="signature">
                 <p class="regards">Warm regards,</p>
-                <p class="team">The DeclutMart Team</p>
+                <p class="team">The Declutter Team</p>
                 <p class="tagline">Declutter with Ease, Shop Affordably</p>
             </div>
         </div>
         
         <div class="footer">
-            <p class="copyright">© 2024 DeclutMart. All rights reserved.</p>
+            <p class="copyright">© 2024 Declutter. All rights reserved.</p>
             <p style="margin-top: 10px;">You're receiving this email because you're part of our community.</p>
         </div>
     </div>
 </body>
-</html>`
+</html>`,
     );
 
     // Respond with success
@@ -680,7 +680,7 @@ export const sendWaitlistMessage = async (
 export const getWaitlistEmails = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Get all waitlist emails

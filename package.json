@@ -1,5 +1,5 @@
 {
-  "name": "auth-microservice",
+  "name": "declutter-backend",
   "version": "1.0.0",
   "main": "dist/index.js",
   "scripts": {

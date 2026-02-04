@@ -1,13 +1,12 @@
 services:
   app:
     build: .
-    container_name: declutmart
+    container_name: Declutter
     ports:
       - "${PORT}:${PORT}"
     env_file:
       - .env
     volumes:
-      - .:/app 
+      - .:/app
       - /app/node_modules
     restart: unless-stopped
-   

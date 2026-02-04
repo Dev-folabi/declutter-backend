@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
 
 export const sendEmail = async (to: string, subject: string, text: string) => {
   const mailOptions = {
-    from: `"DeclutMart" <${process.env.EMAIL_USER}>`,
+    from: `"Declutter" <${process.env.EMAIL_USER}>`,
     to,
     subject,
     html: generateEmailHTML(text),
@@ -41,7 +41,7 @@ export const sendBulkEmailBCC = async (
   recipients: string[],
   subject: string,
   text: string,
-  batchSize: number = 50
+  batchSize: number = 50,
 ) => {
   const batches = [];
 
@@ -59,7 +59,7 @@ export const sendBulkEmailBCC = async (
   for (const [batchIndex, batch] of batches.entries()) {
     try {
       const mailOptions = {
-        from: `"DeclutMart" <${process.env.EMAIL_USER}>`,
+        from: `"Declutter" <${process.env.EMAIL_USER}>`,
         to: process.env.EMAIL_USER,
         bcc: batch,
         subject,
@@ -69,7 +69,7 @@ export const sendBulkEmailBCC = async (
       await transporter.sendMail(mailOptions);
       results.success += batch.length;
       console.log(
-        `Batch ${batchIndex + 1}/${batches.length} sent successfully (${batch.length} recipients)`
+        `Batch ${batchIndex + 1}/${batches.length} sent successfully (${batch.length} recipients)`,
       );
 
       // Add delay between batches to avoid rate limiting
@@ -132,15 +132,15 @@ const generateEmailHTML = (text: string): string => {
     <body>
       <div class="email-container">
         <div class="header">
-          <img src="${process.env.DECLUTMART_LOGO}" alt="DeclutMart" />
+          <img src="${process.env.Declutter_LOGO}" alt="Declutter" />
         </div>
         <div class="content">
           ${text}
           <p>Thank you,</p>
-          <p><strong>DeclutMart Team</strong></p>
+          <p><strong>Declutter Team</strong></p>
         </div>
         <div class="footer">
-          &copy; ${currentYear} DeclutMart. All rights reserved.
+          &copy; ${currentYear} Declutter. All rights reserved.
         </div>
       </div>
     </body>

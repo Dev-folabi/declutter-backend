@@ -10,7 +10,7 @@ const main = async () => {
   if (!recipient) {
     console.error("Please provide a recipient email address.");
     console.error(
-      "Usage: npx ts-node src/scripts/testEmail.ts <recipient_email>"
+      "Usage: npx ts-node src/scripts/testEmail.ts <recipient_email>",
     );
     process.exit(1);
   }
@@ -20,8 +20,8 @@ const main = async () => {
   try {
     await sendEmail(
       recipient,
-      "Test Email from DeclutMart",
-      "<p>This is a test email to verify the email sending functionality. Have a nice day!</p>"
+      "Test Email from Declutter",
+      "<p>This is a test email to verify the email sending functionality. Have a nice day!</p>",
     );
     console.log("Test email sent successfully.");
   } catch (error) {

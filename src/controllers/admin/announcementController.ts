@@ -16,7 +16,7 @@ interface AnnouncementRequest {
 export const createAnnouncement = async (
   req: Request<{}, {}, AnnouncementRequest>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { title, message, category } = req.body;
@@ -26,7 +26,7 @@ export const createAnnouncement = async (
       return handleError(
         res,
         400,
-        "Title, message, and category are required fields."
+        "Title, message, and category are required fields.",
       );
     }
 
@@ -38,7 +38,7 @@ export const createAnnouncement = async (
       return handleError(
         res,
         400,
-        "Message must be at least 10 characters long."
+        "Message must be at least 10 characters long.",
       );
     }
 
@@ -47,7 +47,7 @@ export const createAnnouncement = async (
       return handleError(
         res,
         400,
-        "Invalid category. Must be 'Buyers', 'Sellers', or 'All'."
+        "Invalid category. Must be 'Buyers', 'Sellers', or 'All'.",
       );
     }
 
@@ -62,7 +62,7 @@ export const createAnnouncement = async (
       return handleError(
         res,
         401,
-        "You are not authorized to perform this action."
+        "You are not authorized to perform this action.",
       );
     }
 
@@ -93,7 +93,7 @@ export const createAnnouncement = async (
         return handleError(
           res,
           400,
-          "Invalid category. Must be 'Buyers', 'Sellers', or 'All'."
+          "Invalid category. Must be 'Buyers', 'Sellers', or 'All'.",
         );
     }
 
@@ -101,7 +101,7 @@ export const createAnnouncement = async (
       return handleError(
         res,
         404,
-        `No active users found for category: ${category}`
+        `No active users found for category: ${category}`,
       );
     }
 
@@ -115,16 +115,16 @@ export const createAnnouncement = async (
       .filter((email: any) => email && email.includes("@"));
 
     const recipientEmails = Array.from(
-      new Set([...userEmails, ...waitlistEmails])
+      new Set([...userEmails, ...waitlistEmails]),
     );
 
-    // const recipientEmails = ["declutmart@gmail.com"];
+    // const recipientEmails = ["Declutter@gmail.com"];
 
     if (recipientEmails.length === 0) {
       return handleError(
         res,
         400,
-        "No valid email addresses found for the selected category."
+        "No valid email addresses found for the selected category.",
       );
     }
 
@@ -133,11 +133,11 @@ export const createAnnouncement = async (
         const emailResults = await sendBulkEmailBCC(
           recipientEmails,
           `New Announcement: ${title}`,
-          message
+          message,
         );
 
         console.log(
-          `Announcement emails sent successfully! Success: ${emailResults.success}, Failed: ${emailResults.failed}`
+          `Announcement emails sent successfully! Success: ${emailResults.success}, Failed: ${emailResults.failed}`,
         );
 
         if (emailResults.failed > 0) {
@@ -172,7 +172,7 @@ export const createAnnouncement = async (
 export const getAnnouncementHistory = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const announcements = await Announcement.find()

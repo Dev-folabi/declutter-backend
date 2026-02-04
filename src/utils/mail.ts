@@ -12,7 +12,7 @@ const currentYear = new Date().getFullYear();
 const client = new TransactionalEmailsApi();
 client.setApiKey(
   TransactionalEmailsApiApiKeys.apiKey,
-  process.env.BREVO_API_KEY as string
+  process.env.BREVO_API_KEY as string,
 );
 
 // Helper: generate styled HTML
@@ -25,7 +25,7 @@ const generateEmailHTML = (text: string): string => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>DeclutMart</title>
+      <title>Declutter</title>
       <style>
         * {
           margin: 0;
@@ -180,7 +180,7 @@ const generateEmailHTML = (text: string): string => {
     <body>
       <div class="email-container">
         <div class="header">
-          <img src="${process.env.DECLUTMART_LOGO}" alt="DeclutMart" />
+          <img src="${process.env.Declutter_LOGO}" alt="Declutter" />
         </div>
         
         <div class="content-wrapper">
@@ -192,12 +192,12 @@ const generateEmailHTML = (text: string): string => {
           
           <div class="signature">
             <p>Happy decluttering,</p>
-            <p class="team-name">DeclutMart Team</p>
+            <p class="team-name">Declutter Team</p>
           </div>
         </div>
         
         <div class="footer">
-          <p class="copyright">&copy; ${currentYear} DeclutMart. All rights reserved.</p>
+          <p class="copyright">&copy; ${currentYear} Declutter. All rights reserved.</p>
           <p>Helping students declutter, one item at a time.</p>
         </div>
       </div>
@@ -212,7 +212,7 @@ export const sendEmail = async (to: string, subject: string, text: string) => {
     const recipients = to.split(",").map((email) => ({ email: email.trim() }));
 
     const sendSmtpEmail = {
-      sender: { name: "DeclutMart", email: process.env.EMAIL_USER as string },
+      sender: { name: "Declutter", email: process.env.EMAIL_USER as string },
       to: recipients,
       subject,
       htmlContent: generateEmailHTML(text),
@@ -231,7 +231,7 @@ export const sendBulkEmailBCC = async (
   recipients: string[],
   subject: string,
   text: string,
-  batchSize: number = 50
+  batchSize: number = 50,
 ) => {
   const batches = [];
   for (let i = 0; i < recipients.length; i += batchSize) {
@@ -243,7 +243,7 @@ export const sendBulkEmailBCC = async (
   for (const [batchIndex, batch] of batches.entries()) {
     try {
       const sendSmtpEmail = {
-        sender: { name: "DeclutMart", email: process.env.EMAIL_USER as string },
+        sender: { name: "Declutter", email: process.env.EMAIL_USER as string },
         to: [{ email: process.env.EMAIL_USER as string }], // dummy TO (yourself)
         bcc: batch.map((email) => ({ email })), // actual recipients hidden in BCC
         subject,
@@ -255,7 +255,7 @@ export const sendBulkEmailBCC = async (
       results.success += batch.length;
 
       console.log(
-        `✅ Batch ${batchIndex + 1}/${batches.length} sent successfully (${batch.length} recipients)`
+        `✅ Batch ${batchIndex + 1}/${batches.length} sent successfully (${batch.length} recipients)`,
       );
 
       if (batchIndex < batches.length - 1) {

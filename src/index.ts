@@ -27,11 +27,11 @@ app.set("trust proxy", 1);
 let corsOptions;
 
 if (environment === "production") {
-  const whitelist = ["https://www.declutmart.com", "https://declutmart.com"];
+  const whitelist = ["https://www.Declutter.com", "https://Declutter.com"];
   corsOptions = {
     origin: (
       origin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void
+      callback: (err: Error | null, allow?: boolean) => void,
     ) => {
       if (whitelist.indexOf(origin!) !== -1 || !origin) {
         callback(null, true);

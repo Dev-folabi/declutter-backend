@@ -23,7 +23,7 @@ import { uploadToImageKit } from "../utils/imagekit";
 export const addSchoolsBulk = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const schools = req.body.schools;
@@ -34,9 +34,9 @@ export const addSchoolsBulk = async (
 
     // Filter out duplicate school names from the request body
     const uniqueSchools = Array.from(
-      new Set(schools.map((school) => school.schoolName))
+      new Set(schools.map((school) => school.schoolName)),
     ).map((schoolName) =>
-      schools.find((school) => school.schoolName === schoolName)
+      schools.find((school) => school.schoolName === schoolName),
     );
 
     // Check for schools that already exist in the database
@@ -45,19 +45,19 @@ export const addSchoolsBulk = async (
     });
 
     const existingSchoolNames = existingSchools.map(
-      (school) => school.schoolName
+      (school) => school.schoolName,
     );
 
     // Filter out schools that already exist
     const newSchools = uniqueSchools.filter(
-      (school) => !existingSchoolNames.includes(school.schoolName)
+      (school) => !existingSchoolNames.includes(school.schoolName),
     );
 
     if (newSchools.length === 0) {
       return handleError(
         res,
         400,
-        "All provided schools already exist, nothing to add."
+        "All provided schools already exist, nothing to add.",
       );
     }
 
@@ -82,7 +82,7 @@ export const addSchoolsBulk = async (
 export const resendVerificationOtp = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.body;
@@ -124,7 +124,7 @@ export const resendVerificationOtp = async (
           },
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Send email
@@ -138,7 +138,7 @@ export const resendVerificationOtp = async (
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
         <p>If you didn’t request this, you can safely ignore this email.</p>
         <br />
-      `
+      `,
     );
 
     res.status(200).json({
@@ -153,7 +153,7 @@ export const resendVerificationOtp = async (
 export const getSchools = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const schools = await School.find();
@@ -166,7 +166,7 @@ export const getSchools = async (
 export const registerUser = async (
   req: Request<{}, {}, UserRequest>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const {
@@ -193,7 +193,7 @@ export const registerUser = async (
         return handleError(
           res,
           400,
-          "Please provide both school ID card and NIN for seller registration."
+          "Please provide both school ID card and NIN for seller registration.",
         );
       }
 
@@ -221,7 +221,7 @@ export const registerUser = async (
         return handleError(
           res,
           400,
-          "Failed to upload documents. Please try again."
+          "Failed to upload documents. Please try again.",
         );
       }
     }
@@ -255,7 +255,7 @@ export const registerUser = async (
     if (role === "seller" && accountNumber && bankCode) {
       const detail = await paystack.createRecipient(
         accountNumber as string,
-        bankCode as string
+        bankCode as string,
       );
       recipientCode = detail.recipient_code;
       account = detail.details;
@@ -328,7 +328,7 @@ export const registerUser = async (
         type: "activate account",
         verificationType: "email",
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Send email
@@ -342,7 +342,7 @@ export const registerUser = async (
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
         <p>If you didn't request this, you can safely ignore this email.</p>
         <br />
-      `
+      `,
     );
 
     // Exclude sensitive fields from response
@@ -369,7 +369,7 @@ export const registerUser = async (
 export const loginUser = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email, password } = req.body;
@@ -382,7 +382,7 @@ export const loginUser = async (
     // Find user by email
     const user = await User.findOne({ email }).populate(
       "schoolId",
-      "schoolName location"
+      "schoolName location",
     );
     if (!user) {
       return handleError(res, 400, "Invalid email or password.");
@@ -417,7 +417,7 @@ export const loginUser = async (
             },
           },
         },
-        { upsert: true }
+        { upsert: true },
       );
 
       // Send email
@@ -431,12 +431,12 @@ export const loginUser = async (
             <p>This OTP is valid for <strong>30 minutes</strong>.</p>
             <p>If you didn’t request this, you can safely ignore this email.</p>
             <br />
-          `
+          `,
       );
       return handleError(
         res,
         400,
-        "Your email has not been verified. Check your email for the otp"
+        "Your email has not been verified. Check your email for the otp",
       );
     }
 
@@ -472,7 +472,7 @@ export const loginUser = async (
 export const verifyEmail = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { OTP } = req.body;
@@ -506,13 +506,13 @@ export const verifyEmail = async (
 
     await sendEmail(
       user.email,
-      "🎉 Welcome to DeclutMart — You're a DeclutStar!",
+      "🎉 Welcome to Declutter — You're a DeclutStar!",
       `
       <h1>Hey DeclutStar,</h1>
       <p>Welcome to the decluttering community!</p>
 
       
-      <p>As part of DeclutMart users, you are now officially a <strong>DeclutStar 🎉</strong> and you will have the opportunity to declutter, buy and sell used items.</p>
+      <p>As part of Declutter users, you are now officially a <strong>DeclutStar 🎉</strong> and you will have the opportunity to declutter, buy and sell used items.</p>
 
       <p>Here's what you can do to get ready:</p>
         <ul>
@@ -521,7 +521,7 @@ export const verifyEmail = async (
           <li>Spread the word — invite your friends to join the movement and become fellow DeclutStars!</li>
         </ul>
      
-      `
+      `,
     );
 
     // Remove OTP after success
@@ -550,7 +550,7 @@ export const verifyEmail = async (
 export const resetPasswordOTP = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { email } = req.body;
@@ -583,7 +583,7 @@ export const resetPasswordOTP = async (
           },
         },
       },
-      { upsert: true }
+      { upsert: true },
     );
 
     // Send email
@@ -597,7 +597,7 @@ export const resetPasswordOTP = async (
         <p>This OTP is valid for <strong>30 minutes</strong>.</p>
         <p>If you didn’t request this, you can safely ignore this email.</p>
         <br />
-      `
+      `,
     );
 
     res.status(200).json({
@@ -612,7 +612,7 @@ export const resetPasswordOTP = async (
 export const resetPassword = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { OTP, newPassword } = req.body;
